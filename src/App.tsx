@@ -414,9 +414,9 @@ function App() {
 
   const addProducto = async (p: Producto) => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { id, ...newProd } = p;
+    const { id, numPart, precioCompra, ...cleanProd } = p;
     const { data, error } = await supabase.from('productos').insert([{
-      ...newProd,
+      ...cleanProd,
       num_part: p.numPart,
       precio_compra: p.precioCompra
     }]).select();
@@ -432,8 +432,10 @@ function App() {
     }
   };
   const updateProducto = async (p: Producto) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { id, numPart, precioCompra, ...cleanProd } = p;
     const { error } = await supabase.from('productos').update({
-      ...p,
+      ...cleanProd,
       num_part: p.numPart,
       precio_compra: p.precioCompra
     }).eq('id', p.id);
@@ -479,9 +481,10 @@ function App() {
   };
 
   const addReparacion = async (r: Reparacion) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { id, clienteId, clienteNombre, tipoServicio, proveedorId, proveedorNombre, fechaIngreso, ...cleanR } = r;
     const { data, error } = await supabase.from('reparaciones').insert([{
-      ...r,
-      id: undefined,
+      ...cleanR,
       cliente_id: r.clienteId,
       cliente_nombre: r.clienteNombre,
       tipo_servicio: r.tipoServicio,
@@ -492,21 +495,23 @@ function App() {
     if (error) {
       alert('Error al añadir reparación: ' + error.message);
     } else if (data) {
-      const newR = data[0];
+      const dbR = data[0];
       setReparaciones(prev => [{
-        ...newR,
-        clienteId: newR.cliente_id,
-        clienteNombre: newR.cliente_nombre,
-        tipoServicio: newR.tipo_servicio,
-        proveedorId: newR.proveedor_id,
-        proveedorNombre: newR.proveedor_nombre,
-        fechaIngreso: newR.fecha_ingreso
+        ...dbR,
+        clienteId: dbR.cliente_id,
+        clienteNombre: dbR.cliente_nombre,
+        tipoServicio: dbR.tipo_servicio,
+        proveedorId: dbR.proveedor_id,
+        proveedorNombre: dbR.proveedor_nombre,
+        fechaIngreso: dbR.fecha_ingreso
       } as Reparacion, ...prev]);
     }
   };
   const updateReparacion = async (r: Reparacion) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { id, clienteId, clienteNombre, tipoServicio, proveedorId, proveedorNombre, fechaIngreso, ...cleanR } = r;
     const { error } = await supabase.from('reparaciones').update({
-      ...r,
+      ...cleanR,
       cliente_id: r.clienteId,
       cliente_nombre: r.clienteNombre,
       tipo_servicio: r.tipoServicio,
@@ -536,9 +541,10 @@ function App() {
   };
 
   const addCotizacion = async (c: Cotizacion) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { id, clienteId, clienteNombre, ejecutivoEmail, ejecutivoTelefono, usuarioId, ...cleanC } = c;
     const { data, error } = await supabase.from('cotizaciones').insert([{
-      ...c,
-      id: undefined,
+      ...cleanC,
       cliente_id: c.clienteId,
       cliente_nombre: c.clienteNombre,
       ejecutivo_email: c.ejecutivoEmail,
@@ -548,21 +554,23 @@ function App() {
     if (error) {
       alert('Error al añadir cotización: ' + error.message);
     } else if (data) {
-      const newC = data[0];
+      const dbC = data[0];
       setCotizaciones(prev => [{
-        ...newC,
-        clienteId: newC.cliente_id,
-        clienteNombre: newC.cliente_nombre,
-        ejecutivoEmail: newC.ejecutivo_email,
-        ejecutivoTelefono: newC.ejecutivo_telefono,
-        usuarioId: newC.usuario_id
+        ...dbC,
+        clienteId: dbC.cliente_id,
+        clienteNombre: dbC.cliente_nombre,
+        ejecutivoEmail: dbC.ejecutivo_email,
+        ejecutivoTelefono: dbC.ejecutivo_telefono,
+        usuarioId: dbC.usuario_id
       } as Cotizacion, ...prev]);
     }
   };
 
   const updateCotizacion = async (c: Cotizacion) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { id, clienteId, clienteNombre, ejecutivoEmail, ejecutivoTelefono, usuarioId, ...cleanC } = c;
     const { error: updateError } = await supabase.from('cotizaciones').update({
-      ...c,
+      ...cleanC,
       cliente_id: c.clienteId,
       cliente_nombre: c.clienteNombre,
       ejecutivo_email: c.ejecutivoEmail,
@@ -606,15 +614,18 @@ function App() {
       };
 
       const { error: despachoError } = await supabase.from('despachos').insert([{
-        ...newDespacho,
         cotizacion_id: newDespacho.cotizacionId,
         consecutivo_cotizacion: newDespacho.consecutivoCotizacion,
         fecha_solicitud: newDespacho.fechaSolicitud,
         cliente_id: newDespacho.clienteId,
         cliente_nombre: newDespacho.clienteNombre,
+        direccion: newDespacho.direccion,
+        items: newDespacho.items,
+        total: newDespacho.total,
         ejecutivo_email: newDespacho.ejecutivoEmail,
         ejecutivo_telefono: newDespacho.ejecutivoTelefono,
-        usuario_id: newDespacho.usuarioId
+        usuario_id: newDespacho.usuarioId,
+        estado: newDespacho.estado
       }]);
 
       if (!despachoError) {
@@ -640,9 +651,10 @@ function App() {
   };
 
   const addOrdenCompra = async (oc: OrdenCompra) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { id, proveedorId, nombreProveedor, condicionesComerciales, conductorId, conductorNombre, fotoEntrega, fotoRemision, usuarioId, ...cleanOC } = oc;
     const { data, error } = await supabase.from('ordenes_compra').insert([{
-      ...oc,
-      id: undefined,
+      ...cleanOC,
       proveedor_id: oc.proveedorId,
       nombre_proveedor: oc.nombreProveedor,
       condiciones_comerciales: oc.condicionesComerciales,
@@ -655,23 +667,25 @@ function App() {
     if (error) {
       alert('Error al añadir O.C.: ' + error.message);
     } else if (data) {
-      const newO = data[0];
+      const dbO = data[0];
       setOrdenesCompra(prev => [{
-        ...newO,
-        proveedorId: newO.proveedor_id,
-        nombreProveedor: newO.nombre_proveedor,
-        condicionesComerciales: newO.condiciones_comerciales,
-        conductorId: newO.conductor_id,
-        conductorNombre: newO.conductor_nombre,
-        fotoEntrega: newO.foto_entrega,
-        fotoRemision: newO.foto_remision,
-        usuarioId: newO.usuario_id
+        ...dbO,
+        proveedorId: dbO.proveedor_id,
+        nombreProveedor: dbO.nombre_proveedor,
+        condicionesComerciales: dbO.condiciones_comerciales,
+        conductorId: dbO.conductor_id,
+        conductorNombre: dbO.conductor_nombre,
+        fotoEntrega: dbO.foto_entrega,
+        fotoRemision: dbO.foto_remision,
+        usuarioId: dbO.usuario_id
       } as OrdenCompra, ...prev]);
     }
   };
   const updateOrdenCompra = async (oc: OrdenCompra) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { id, proveedorId, nombreProveedor, condicionesComerciales, conductorId, conductorNombre, fotoEntrega, fotoRemision, usuarioId, ...cleanOC } = oc;
     const { error } = await supabase.from('ordenes_compra').update({
-      ...oc,
+      ...cleanOC,
       proveedor_id: oc.proveedorId,
       nombre_proveedor: oc.nombreProveedor,
       condiciones_comerciales: oc.condicionesComerciales,
@@ -689,9 +703,10 @@ function App() {
   };
 
   const addConductor = async (c: Conductor) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { id, placaVehiculo, modeloVehiculo, tipoVehiculo, tarjetaPropiedad, ...cleanC } = c;
     const { data, error } = await supabase.from('conductores').insert([{
-      ...c,
-      id: undefined,
+      ...cleanC,
       placa_vehiculo: c.placaVehiculo,
       modelo_vehiculo: c.modeloVehiculo,
       tipo_vehiculo: c.tipoVehiculo,
@@ -700,19 +715,21 @@ function App() {
     if (error) {
       alert('Error al añadir conductor: ' + error.message);
     } else if (data) {
-      const newC = data[0];
+      const dbC = data[0];
       setConductores([...conductores, {
-        ...newC,
-        placaVehiculo: newC.placa_vehiculo,
-        modeloVehiculo: newC.modelo_vehiculo,
-        tipoVehiculo: newC.tipo_vehiculo,
-        tarjetaPropiedad: newC.tarjeta_propiedad
+        ...dbC,
+        placaVehiculo: dbC.placa_vehiculo,
+        modeloVehiculo: dbC.modelo_vehiculo,
+        tipoVehiculo: dbC.tipo_vehiculo,
+        tarjetaPropiedad: dbC.tarjeta_propiedad
       } as Conductor]);
     }
   };
   const updateConductor = async (c: Conductor) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { id, placaVehiculo, modeloVehiculo, tipoVehiculo, tarjetaPropiedad, ...cleanC } = c;
     const { error } = await supabase.from('conductores').update({
-      ...c,
+      ...cleanC,
       placa_vehiculo: c.placaVehiculo,
       modelo_vehiculo: c.modeloVehiculo,
       tipo_vehiculo: c.tipoVehiculo,
@@ -752,16 +769,20 @@ function App() {
   };
 
   const addBudget = async (b: SalesBudget) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { id, usuarioId, nombreVendedor, ...cleanB } = b;
     const { error } = await supabase.from('budgets').insert([{
-      ...b,
+      ...cleanB,
       usuario_id: b.usuarioId,
       nombre_vendedor: b.nombreVendedor
     }]);
     if (!error) setBudgets([...budgets, b]);
   };
   const updateBudget = async (b: SalesBudget) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { id, usuarioId, nombreVendedor, ...cleanB } = b;
     const { error } = await supabase.from('budgets').update({
-      ...b,
+      ...cleanB,
       usuario_id: b.usuarioId,
       nombre_vendedor: b.nombreVendedor
     }).eq('id', b.id);
