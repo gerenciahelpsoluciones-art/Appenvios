@@ -68,8 +68,8 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenes
             id: editingId || Date.now().toString(),
             consecutivo: nextConsecutivo,
             fecha: editingId
-                ? ordenesCompra.find(oc => oc.id === editingId)?.fecha || new Date().toLocaleDateString()
-                : new Date().toLocaleDateString(),
+                ? ordenesCompra.find(oc => oc.id === editingId)?.fecha || new Date().toISOString().split('T')[0]
+                : new Date().toISOString().split('T')[0],
             proveedorId: prov.id,
             nombreProveedor: prov.nombre,
             items: items,

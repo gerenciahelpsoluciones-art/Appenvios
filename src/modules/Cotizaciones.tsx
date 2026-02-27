@@ -126,7 +126,7 @@ const CotizacionesModule: React.FC<IProps> = ({
                 doc.text(`Dirección: ${selectedCliente.direccion}`, 14, 75);
             }
 
-            doc.text(`Fecha: ${new Date().toLocaleDateString()}`, 150, 60);
+            doc.text(`Fecha: ${new Date().toISOString().split('T')[0]}`, 150, 60);
             doc.text(`Validez: 15 días calendario`, 150, 65);
 
             // Table Data
