@@ -317,35 +317,56 @@ function App() {
   };
 
   useEffect(() => {
-    console.log('Suscribiéndose a canales de tiempo real...');
-    setRealtimeStatus('Conectando...');
+    let channel: any;
 
-    const channel = supabase
-      .channel('schema-db-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'app_users' }, (p) => {
-        console.log('Cambio detectado en Usuarios:', p);
-        fetchInitialData();
-        // Sync current user if changed
-        if (currentUser && p.new && (p.new as any).id === currentUser.id) {
-          setCurrentUser(p.new as AppUser);
-        }
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'clientes' }, () => fetchInitialData())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'proveedores' }, () => fetchInitialData())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'productos' }, () => fetchInitialData())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'cotizaciones' }, () => fetchInitialData())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'ordenes_compra' }, () => fetchInitialData())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'despachos' }, () => fetchInitialData())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'conductores' }, () => fetchInitialData())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'reparaciones' }, () => fetchInitialData())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'budgets' }, () => fetchInitialData())
-      .subscribe((status) => {
-        console.log('Estado de conexión Realtime:', status);
-        setRealtimeStatus(status === 'SUBSCRIBED' ? 'En Línea' : status);
-      });
+    const setupSubscription = () => {
+      console.log('Suscribiéndo a canales de tiempo real...');
+      setRealtimeStatus('Conectando...');
+
+      channel = supabase
+        .channel('schema-db-changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'app_users' }, (p) => {
+          console.log('Cambio detectado en Usuarios:', p);
+          fetchInitialData();
+          if (currentUser && p.new && (p.new as any).id === currentUser.id) {
+            setCurrentUser(p.new as AppUser);
+          }
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'clientes' }, () => fetchInitialData())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'proveedores' }, () => fetchInitialData())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'productos' }, () => fetchInitialData())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'cotizaciones' }, () => fetchInitialData())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'ordenes_compra' }, () => fetchInitialData())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'despachos' }, () => fetchInitialData())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'conductores' }, () => fetchInitialData())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'reparaciones' }, () => fetchInitialData())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'budgets' }, () => fetchInitialData())
+        .subscribe((status) => {
+          console.log('Estado de conexión Realtime:', status);
+          setRealtimeStatus(status === 'SUBSCRIBED' ? 'En Línea' : status);
+          if (status === 'SUBSCRIBED') fetchInitialData(); // Refrescar al conectar
+        });
+    };
+
+    setupSubscription();
+
+    const handleOnline = () => {
+      console.log('Red recuperada, reintentando suscripción...');
+      if (channel) supabase.removeChannel(channel);
+      setupSubscription();
+    };
+
+    const handleOffline = () => {
+      setRealtimeStatus('Sin Internet');
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) supabase.removeChannel(channel);
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
     };
   }, []);
 
@@ -960,24 +981,29 @@ function App() {
           <div className="brand-box">
             <span className="logo-icon">🚀</span>
             <span className="logo-text">CRM Appenvios</span>
-            <div style={{
-              fontSize: '0.65rem',
-              color: realtimeStatus === 'En Línea' ? '#4ade80' : '#fb7185',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              marginTop: '4px',
-              background: 'rgba(0,0,0,0.2)',
-              padding: '2px 8px',
-              borderRadius: '10px'
-            }}>
+            <div
+              title="Click para reconectar"
+              onClick={() => window.location.reload()}
+              style={{
+                fontSize: '0.65rem',
+                color: realtimeStatus === 'En Línea' ? '#4ade80' : '#fb7185',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                marginTop: '4px',
+                background: 'rgba(0,0,0,0.2)',
+                padding: '2px 8px',
+                borderRadius: '10px',
+                cursor: 'pointer'
+              }}
+            >
               <span style={{
                 width: '6px',
                 height: '6px',
                 background: realtimeStatus === 'En Línea' ? '#4ade80' : '#fb7185',
                 borderRadius: '50%'
               }}></span>
-              DB: {realtimeStatus}
+              DB: {realtimeStatus} 🔄
             </div>
           </div>
         </div>
