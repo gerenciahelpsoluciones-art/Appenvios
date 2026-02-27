@@ -354,7 +354,9 @@ function App() {
 
   // Update handlers
   const addCliente = async (c: Cliente) => {
-    const { data, error } = await supabase.from('clientes').insert([{ ...c, id: undefined }]).select();
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { id, ...newC } = c;
+    const { data, error } = await supabase.from('clientes').insert([newC]).select();
     if (error) {
       alert('Error al añadir cliente: ' + error.message);
     } else if (data) {
@@ -371,7 +373,9 @@ function App() {
   };
 
   const addProveedor = async (p: Proveedor) => {
-    const { data, error } = await supabase.from('proveedores').insert([{ ...p, id: undefined }]).select();
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { id, ...newP } = p;
+    const { data, error } = await supabase.from('proveedores').insert([newP]).select();
     if (error) {
       alert('Error al añadir proveedor: ' + error.message);
     } else if (data) {
@@ -388,20 +392,21 @@ function App() {
   };
 
   const addProducto = async (p: Producto) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { id, ...newProd } = p;
     const { data, error } = await supabase.from('productos').insert([{
-      ...p,
-      id: undefined,
+      ...newProd,
       num_part: p.numPart,
       precio_compra: p.precioCompra
     }]).select();
     if (error) {
       alert('Error al añadir producto: ' + error.message);
     } else if (data) {
-      const newP = data[0];
+      const dbProd = data[0];
       setProductos([...productos, {
-        ...newP,
-        numPart: newP.num_part,
-        precioCompra: newP.precio_compra
+        ...dbProd,
+        numPart: dbProd.num_part,
+        precioCompra: dbProd.precio_compra
       } as Producto]);
     }
   };
@@ -700,7 +705,9 @@ function App() {
   };
 
   const addUser = async (u: AppUser) => {
-    const { data, error } = await supabase.from('app_users').insert([{ ...u, id: undefined }]).select();
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { id, ...newUser } = u;
+    const { data, error } = await supabase.from('app_users').insert([newUser]).select();
     if (error) {
       alert('Error al añadir usuario: ' + error.message);
     } else if (data) {
