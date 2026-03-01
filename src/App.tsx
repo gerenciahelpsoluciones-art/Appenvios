@@ -448,31 +448,47 @@ function App() {
 
   const updateDespacho = async (d: Despacho) => {
     const oldDespacho = despachos.find(item => item.id === d.id);
-    const { error } = await supabase.from('despachos').update({
-      ...d,
+
+    console.log('Intentando actualizar despacho (mapa explícito):', d);
+
+    // Explicit mapping to avoid invalid columns
+    const payload = {
       cotizacion_id: d.cotizacionId,
       consecutivo_cotizacion: d.consecutivoCotizacion,
       fecha_solicitud: d.fechaSolicitud,
       cliente_id: d.clienteId,
       cliente_nombre: d.clienteNombre,
+      direccion: d.direccion,
+      items: d.items,
+      total: d.total,
       ejecutivo_email: d.ejecutivoEmail,
       ejecutivo_telefono: d.ejecutivoTelefono,
       usuario_id: d.usuarioId,
+      estado: d.estado,
       conductor_id: d.conductorId,
       conductor_nombre: d.conductorNombre,
       foto_entrega: d.fotoEntrega,
-      foto_remision: d.fotoRemision
-    }).eq('id', d.id);
+      foto_remision: d.fotoRemision,
+      georeferencia: d.georeferencia
+    };
 
-    if (!error) {
-      setDespachos(despachos.map(item => item.id === d.id ? d : item));
-      if (oldDespacho && oldDespacho.estado !== d.estado) {
-        sendEmailNotification(
-          d.ejecutivoEmail,
-          `Cambio de Estado Pedido: ${d.consecutivoCotizacion}`,
-          `Hola, el pedido asociado a la cotización ${d.consecutivoCotizacion} ha cambiado su estado de "${oldDespacho.estado}" a "${d.estado}".`
-        );
-      }
+    const { error } = await supabase.from('despachos').update(payload).eq('id', d.id);
+
+    if (error) {
+      console.error('Error crítico en Supabase (updateDespacho):', error);
+      alert(`ERROR AL GUARDAR CAMBIOS: ${error.message}\nDetalle: ${error.details || 'Sin detalles'}\nCódigo: ${error.code}`);
+      return;
+    }
+
+    console.log('Despacho actualizado con éxito en DB');
+    setDespachos(despachos.map(item => item.id === d.id ? d : item));
+
+    if (oldDespacho && oldDespacho.estado !== d.estado) {
+      sendEmailNotification(
+        d.ejecutivoEmail,
+        `Cambio de Estado Pedido: ${d.consecutivoCotizacion}`,
+        `Hola, el pedido asociado a la cotización ${d.consecutivoCotizacion} ha cambiado su estado de "${oldDespacho.estado}" a "${d.estado}".`
+      );
     }
   };
   const deleteDespacho = async (id: string) => {
@@ -567,85 +583,102 @@ function App() {
   };
 
   const updateCotizacion = async (c: Cotizacion) => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { id, clienteId, clienteNombre, ejecutivoEmail, ejecutivoTelefono, usuarioId, ...cleanC } = c;
-    const { error: updateError } = await supabase.from('cotizaciones').update({
-      ...cleanC,
+    // 1. Explicit mapping for Supabase Update
+    const quotePayload = {
+      fecha: c.fecha,
       cliente_id: c.clienteId,
       cliente_nombre: c.clienteNombre,
+      consecutivo: c.consecutivo,
+      items: c.items,
+      subtotal: c.subtotal,
+      iva: c.iva,
+      total: c.total,
+      ejecutivo: c.ejecutivo,
       ejecutivo_email: c.ejecutivoEmail,
       ejecutivo_telefono: c.ejecutivoTelefono,
-      usuario_id: c.usuarioId
-    }).eq('id', c.id);
+      usuario_id: c.usuarioId,
+      estado: c.estado
+    };
 
-    if (updateError) return;
+    const { error: updateError } = await supabase.from('cotizaciones').update(quotePayload).eq('id', c.id);
 
+    if (updateError) {
+      console.error('Error actualizando cotización:', updateError);
+      alert('Error en base de datos: ' + updateError.message);
+      return;
+    }
+
+    // 2. Update local state
     setCotizaciones(prev => prev.map(item => item.id === c.id ? c : item));
 
-    // Automation: If status is 'Ganado' and no despacho exists, create one
-    if (c.estado === 'Ganado' && !despachos.some(d => d.cotizacionId === c.id)) {
-      const client = clientes.find(cli => cli.id === c.clienteId);
+    // 3. Trigger Outlook Email & Logistics Automation if Won
+    if (c.estado === 'Ganado') {
+      // Outlook Integration
+      const subject = encodeURIComponent(`NUEVO PEDIDO GANADO - ${c.consecutivo}`);
+      const body = encodeURIComponent(`Hola Logística,\n\nSe ha ganado la cotización ${c.consecutivo}.\nCliente: ${c.clienteNombre}\nTotal: $${Math.round(c.total).toLocaleString()}\n\nFavor proceder con el despacho.`);
+      const mailtoUrl = `mailto:logistica@helpsoluciones.com.co?cc=facturacion@helpsoluciones.com.co&subject=${subject}&body=${body}`;
+      window.open(mailtoUrl, '_blank');
 
-      // Robust mapping for items
-      const despachoItems = (c.items || []).map(item => {
-        const prod = productos.find(p => p.id === item.productoId);
-        return {
-          productoId: item.productoId,
-          nombreProducto: prod?.nombre || 'Producto Desconocido',
-          numPart: prod?.numPart || 'N/A',
-          cantidad: item.cantidad || 0
+      // Create Logistics record if it doesn't exist
+      if (!despachos.some(d => d.cotizacionId === c.id)) {
+        const client = clientes.find(cli => cli.id === c.clienteId);
+        const despachoItems = (c.items || []).map(item => {
+          const prod = productos.find(p => p.id === item.productoId);
+          return {
+            productoId: item.productoId,
+            nombreProducto: prod?.nombre || 'Producto Desconocido',
+            numPart: prod?.numPart || 'N/A',
+            cantidad: item.cantidad || 0
+          };
+        });
+
+        const newDespacho: Despacho = {
+          id: Date.now().toString(), // Temp ID
+          cotizacionId: c.id,
+          consecutivoCotizacion: c.consecutivo,
+          fechaSolicitud: new Date().toISOString().split('T')[0],
+          clienteId: c.clienteId,
+          clienteNombre: c.clienteNombre,
+          direccion: client?.direccion || 'N/A',
+          items: despachoItems,
+          total: c.total,
+          ejecutivoEmail: c.ejecutivoEmail || '',
+          ejecutivoTelefono: c.ejecutivoTelefono,
+          usuarioId: c.usuarioId,
+          estado: 'Pendiente'
         };
-      });
 
-      const newDespacho: Despacho = {
-        id: Date.now().toString(),
-        cotizacionId: c.id,
-        consecutivoCotizacion: c.consecutivo,
-        fechaSolicitud: new Date().toLocaleDateString(),
-        clienteId: c.clienteId,
-        clienteNombre: c.clienteNombre,
-        direccion: client?.direccion || 'N/A',
-        items: despachoItems,
-        total: c.total,
-        ejecutivoEmail: c.ejecutivoEmail || '',
-        ejecutivoTelefono: c.ejecutivoTelefono,
-        usuarioId: c.usuarioId,
-        estado: 'Pendiente'
-      };
+        const { data: despachoData, error: despachoError } = await supabase.from('despachos').insert([{
+          cotizacion_id: newDespacho.cotizacionId,
+          consecutivo_cotizacion: newDespacho.consecutivoCotizacion,
+          fecha_solicitud: newDespacho.fechaSolicitud,
+          cliente_id: newDespacho.clienteId,
+          cliente_nombre: newDespacho.clienteNombre,
+          direccion: newDespacho.direccion,
+          items: newDespacho.items,
+          total: newDespacho.total,
+          ejecutivo_email: newDespacho.ejecutivoEmail,
+          ejecutivo_telefono: newDespacho.ejecutivoTelefono,
+          usuario_id: newDespacho.usuarioId,
+          estado: newDespacho.estado
+        }]).select();
 
-      const { error: despachoError } = await supabase.from('despachos').insert([{
-        cotizacion_id: newDespacho.cotizacionId,
-        consecutivo_cotizacion: newDespacho.consecutivoCotizacion,
-        fecha_solicitud: newDespacho.fechaSolicitud,
-        cliente_id: newDespacho.clienteId,
-        cliente_nombre: newDespacho.clienteNombre,
-        direccion: newDespacho.direccion,
-        items: newDespacho.items,
-        total: newDespacho.total,
-        ejecutivo_email: newDespacho.ejecutivoEmail,
-        ejecutivo_telefono: newDespacho.ejecutivoTelefono,
-        usuario_id: newDespacho.usuarioId,
-        estado: newDespacho.estado
-      }]);
-
-      if (!despachoError) {
-        setDespachos(prev => [newDespacho, ...prev]);
-
-        // Notify executive
-        if (c.ejecutivoEmail) {
-          sendEmailNotification(
-            c.ejecutivoEmail,
-            `Nuevo Pedido: ${c.consecutivo}`,
-            `Hola, tu cotización ${c.consecutivo} ha sido marcada como GANADA y ya se encuentra en trámite de logística.`
-          );
+        if (despachoError) {
+          console.error('Error creando despacho:', despachoError);
+        } else if (despachoData) {
+          const dbD = despachoData[0];
+          setDespachos(prev => [...prev, {
+            ...dbD,
+            cotizacionId: dbD.cotizacion_id,
+            consecutivoCotizacion: dbD.consecutivo_cotizacion,
+            fechaSolicitud: dbD.fecha_solicitud,
+            clienteId: dbD.cliente_id,
+            clienteNombre: dbD.cliente_nombre,
+            ejecutivoEmail: dbD.ejecutivo_email,
+            ejecutivoTelefono: dbD.ejecutivo_telefono,
+            usuarioId: dbD.usuario_id
+          } as Despacho]);
         }
-
-        // Notify Logistics Team
-        sendEmailNotification(
-          'logistica@helpsoluciones.com.co',
-          `NUEVO PEDIDO - Cotización ${c.consecutivo}`,
-          `Se ha generado un nuevo pedido desde la cotización ${c.consecutivo} para el cliente ${c.clienteNombre}.\n\nPor favor iniciar el proceso de alistamiento y despacho.`
-        );
       }
     }
   };
@@ -898,6 +931,9 @@ function App() {
           budgets={budgets}
           currentUser={currentUser}
           onUpdateQuote={updateCotizacion}
+          clientes={clientes}
+          productos={productos}
+          proveedores={proveedores}
         />;
       case 'admin':
         return <AdminModule
