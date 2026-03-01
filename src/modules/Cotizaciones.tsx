@@ -19,6 +19,7 @@ interface IProps {
     clientes: Cliente[];
     productos: Producto[];
     proveedores: Proveedor[];
+    cotizaciones: Cotizacion[];
     onAddQuote: (c: Cotizacion) => void;
     onSendWhatsApp: (phone: string, message: string) => void;
     currentUser: AppUser;
@@ -28,19 +29,32 @@ const CotizacionesModule: React.FC<IProps> = ({
     clientes,
     productos,
     proveedores,
+    cotizaciones,
     onAddQuote,
     onSendWhatsApp,
     currentUser
 }) => {
+    // Helper to generate dynamic consecutive
+    const generateConsecutivo = () => {
+        const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
+        const names = currentUser.nombre.trim().split(' ').filter(Boolean);
+        const init1 = names[0] ? names[0][0].toUpperCase() : 'X';
+        const init2 = names.length > 1 ? names[names.length - 1][0].toUpperCase() : (names[0] && names[0].length > 1 ? names[0][1].toUpperCase() : 'X');
+        const initials = `${init1}${init2}`;
+        const userQuotesCount = cotizaciones.filter(c => c.usuarioId === currentUser.id).length;
+        const nextCounter = (userQuotesCount + 1).toString().padStart(3, '0');
+        return `HSI-${initials}-${nextCounter}-${dateStr}`;
+    };
+
     const [items, setItems] = useState<QuoteItem[]>([]);
     const [selectedClienteId, setSelectedClienteId] = useState('');
-    const [consecutivo, setConsecutivo] = useState(`HS-${new Date().getFullYear()}-${Math.floor(Math.random() * 900) + 100}`);
+    const [consecutivo, setConsecutivo] = useState(generateConsecutivo());
     const [condiciones, setCondiciones] = useState('1. Forma de pago: Contado.\n2. Tiempo de entrega: 3 a 5 días hábiles.\n3. Garantía: 12 meses por defectos de fábrica.');
     const [ejecutivo, setEjecutivo] = useState({
-        nombre: 'CARLOS ALBERTO CORREA',
-        cargo: 'Ejecutiva Comercial',
-        telefono: '316 000 0000',
-        correo: 'ventas@helpsoluciones.com.co'
+        nombre: currentUser.nombre || '',
+        cargo: currentUser.cargo || 'Ejecutivo Comercial',
+        telefono: currentUser.telefono || '',
+        correo: currentUser.email || ''
     });
 
     const selectedCliente = clientes.find(c => c.id === selectedClienteId);
@@ -270,7 +284,10 @@ const CotizacionesModule: React.FC<IProps> = ({
             }
 
             // Save PDF
-            doc.save(`COTIZACION HELP SOLUCIONES INFORMATICAS NIT-900686378-7_${consecutivo}.pdf`);
+            const pdfFileName = selectedCliente
+                ? `COTIZACION HELP SOLUCIONES INFORMATICAS - ${selectedCliente.nombre.toUpperCase()} - ${consecutivo}.pdf`
+                : `COTIZACION HELP SOLUCIONES INFORMATICAS_${consecutivo}.pdf`;
+            doc.save(pdfFileName);
         } catch (error: any) {
             console.error("Error generating PDF:", error);
             alert(`Error al generar el PDF: ${error.message || 'Error desconocido'}. Verifique los datos ingresados.`);

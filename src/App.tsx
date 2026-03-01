@@ -865,6 +865,7 @@ function App() {
           clientes={clientes}
           productos={productos}
           proveedores={proveedores}
+          cotizaciones={cotizaciones}
           onAddQuote={addCotizacion}
           onSendWhatsApp={sendWhatsAppNotification}
           currentUser={currentUser}
