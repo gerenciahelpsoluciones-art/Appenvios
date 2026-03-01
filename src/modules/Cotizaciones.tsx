@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import type { Cliente, Producto, Proveedor, Cotizacion, AppUser } from '../App';
+import { logoBase64 } from '../assets/logoBase64';
 
 interface QuoteItem {
     id: string;
@@ -110,6 +111,16 @@ const CotizacionesModule: React.FC<IProps> = ({
             doc.text(`Cotización N°: ${consecutivo}`, 200, 22, { align: 'right' });
             doc.text("Expertos en Tecnología | Servicios y Productos", 14, 30);
 
+            // Watermark Logo
+            try {
+                doc.setGState(new (doc as any).GState({ opacity: 0.1 }));
+                // Center the logo, assume roughly square or rectangle. Width: 120, Height: 120
+                doc.addImage(logoBase64, 'JPEG', 45, 100, 120, 120);
+                doc.setGState(new (doc as any).GState({ opacity: 1.0 }));
+            } catch (e) {
+                console.error("Error setting watermark", e);
+            }
+
             // Client Info Box
             doc.setTextColor(0, 0, 0);
             doc.setFontSize(12);
@@ -194,7 +205,9 @@ const CotizacionesModule: React.FC<IProps> = ({
                 doc.text("CONDICIONES COMERCIALES:", 14, finalY + 50);
                 doc.setFont("helvetica", "normal");
                 const splitCondiciones = doc.splitTextToSize(condiciones, 180);
-                doc.text(splitCondiciones, 14, finalY + 58);
+                doc.text(splitCondiciones, 14, finalY + 56);
+                // Adjust Y position if conditions take multiple lines
+                finalY += (splitCondiciones.length * 5);
             }
 
             // Executive Section
@@ -210,7 +223,7 @@ const CotizacionesModule: React.FC<IProps> = ({
             // Footer branding
             doc.setFontSize(8);
             doc.setTextColor(150, 150, 150);
-            doc.text("HELP SOLUCIONES INFORMATICAS - NIT 900686378-7", 105, 285, { align: 'center' });
+            doc.text("HELP SOLUCIONES INFORMATICAS correo:gerencia@helpsoluciones.com.co Tel: 3043358650-3003453610", 105, 288, { align: 'center' });
 
             // Trigger global save if callback exists
             if (onAddQuote) {
@@ -308,7 +321,7 @@ const CotizacionesModule: React.FC<IProps> = ({
                         <h3>Condiciones Comerciales</h3>
                         <textarea
                             className="input-field"
-                            rows={4}
+                            rows={8}
                             style={{ width: '100%', resize: 'vertical', marginTop: '0.5rem' }}
                             placeholder="Escriba aquí las condiciones comerciales..."
                             value={condiciones}
