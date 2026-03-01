@@ -952,8 +952,6 @@ function App() {
         return <VendedoresModule
           users={users}
           budgets={budgets}
-          onUpdateUser={updateUser}
-          onAddUser={addUser}
         />;
       case 'dashboard':
         const now = new Date();

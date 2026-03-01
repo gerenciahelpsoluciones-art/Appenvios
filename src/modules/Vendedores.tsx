@@ -1,49 +1,14 @@
-import React, { useState } from 'react';
+import React from 'react';
 import type { AppUser, SalesBudget } from '../App';
 
 interface IProps {
     users: AppUser[];
     budgets: SalesBudget[];
-    onUpdateUser: (u: AppUser) => void;
-    onAddUser: (u: AppUser) => void;
 }
 
-const Vendedores: React.FC<IProps> = ({ users, budgets, onUpdateUser, onAddUser }) => {
-    const vendedores = users.filter(u => u.rol === 'Comercial');
-    const [editingUser, setEditingUser] = useState<AppUser | null>(null);
-    const [isAdding, setIsAdding] = useState(false);
-    const [newUser, setNewUser] = useState<Partial<AppUser>>({
-        nombre: '',
-        usuario: '',
-        password: '',
-        email: '',
-        telefono: '',
-        cargo: 'Asesor Comercial',
-        rol: 'Comercial',
-        permisos: ['dashboard', 'cotizaciones', 'clientes', 'productos']
-    });
+const Vendedores: React.FC<IProps> = ({ users, budgets }) => {
+    const vendedores = users.filter(u => u.rol === 'Comercial' || (u.cargo && u.cargo.toLowerCase().includes('comercial')));
 
-    const handleAddUser = () => {
-        if (!newUser.nombre || !newUser.usuario || !newUser.password) {
-            alert('Nombre, usuario y contraseña son obligatorios');
-            return;
-        }
-        onAddUser({
-            ...newUser,
-            id: Date.now().toString(),
-        } as AppUser);
-        setIsAdding(false);
-        setNewUser({
-            nombre: '',
-            usuario: '',
-            password: '',
-            email: '',
-            telefono: '',
-            cargo: 'Asesor Comercial',
-            rol: 'Comercial',
-            permisos: ['dashboard', 'cotizaciones', 'clientes', 'productos']
-        });
-    };
 
     const getBudgetForUser = (userId: string) => {
         const now = new Date();
@@ -58,9 +23,6 @@ const Vendedores: React.FC<IProps> = ({ users, budgets, onUpdateUser, onAddUser 
                     <h2>Asesores Comerciales</h2>
                     <p>Gestión y seguimiento de equipo de ventas</p>
                 </div>
-                <button className="btn-success" onClick={() => setIsAdding(true)}>
-                    ➕ Nuevo Vendedor
-                </button>
             </div>
 
             <div className="vendedores-grid">
@@ -90,11 +52,6 @@ const Vendedores: React.FC<IProps> = ({ users, budgets, onUpdateUser, onAddUser 
                             </div>
                         </div>
 
-                        <div className="vendedor-actions">
-                            <button className="btn-secondary" onClick={() => setEditingUser(v)}>
-                                ✏️ Editar Perfil
-                            </button>
-                        </div>
                     </div>
                 ))}
 
@@ -105,109 +62,7 @@ const Vendedores: React.FC<IProps> = ({ users, budgets, onUpdateUser, onAddUser 
                 )}
             </div>
 
-            {isAdding && (
-                <div className="modal-overlay">
-                    <div className="modal-content animate-scale-in">
-                        <h3>Registrar Nuevo Vendedor</h3>
-                        <div className="form-grid">
-                            <div className="form-group">
-                                <label>Nombre Completo</label>
-                                <input
-                                    className="input-field"
-                                    placeholder="Ej: Juan Perez"
-                                    value={newUser.nombre}
-                                    onChange={e => setNewUser({ ...newUser, nombre: e.target.value })}
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label>Usuario</label>
-                                <input
-                                    className="input-field"
-                                    placeholder="Ej: jperez"
-                                    value={newUser.usuario}
-                                    onChange={e => setNewUser({ ...newUser, usuario: e.target.value })}
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label>Contraseña</label>
-                                <input
-                                    type="password"
-                                    className="input-field"
-                                    value={newUser.password}
-                                    onChange={e => setNewUser({ ...newUser, password: e.target.value })}
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label>Email</label>
-                                <input
-                                    className="input-field"
-                                    placeholder="email@ejemplo.com"
-                                    value={newUser.email}
-                                    onChange={e => setNewUser({ ...newUser, email: e.target.value })}
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label>Teléfono</label>
-                                <input
-                                    className="input-field"
-                                    placeholder="Ej: 300 123 4567"
-                                    value={newUser.telefono}
-                                    onChange={e => setNewUser({ ...newUser, telefono: e.target.value })}
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label>Cargo</label>
-                                <input
-                                    className="input-field"
-                                    value={newUser.cargo}
-                                    onChange={e => setNewUser({ ...newUser, cargo: e.target.value })}
-                                />
-                            </div>
-                        </div>
-                        <div className="form-actions">
-                            <button className="btn-success" onClick={handleAddUser}>
-                                Crear Vendedor
-                            </button>
-                            <button className="btn-secondary" onClick={() => setIsAdding(false)}>
-                                Cancelar
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-            {editingUser && (
-                <div className="modal-overlay">
-                    <div className="modal-content animate-scale-in">
-                        <h3>Editar Perfil: {editingUser.nombre}</h3>
-                        <div className="form-grid">
-                            <div className="form-group">
-                                <label>Email</label>
-                                <input
-                                    className="input-field"
-                                    value={editingUser.email}
-                                    onChange={e => setEditingUser({ ...editingUser, email: e.target.value })}
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label>Teléfono</label>
-                                <input
-                                    className="input-field"
-                                    value={editingUser.telefono}
-                                    onChange={e => setEditingUser({ ...editingUser, telefono: e.target.value })}
-                                />
-                            </div>
-                        </div>
-                        <div className="form-actions">
-                            <button className="btn-success" onClick={() => { onUpdateUser(editingUser); setEditingUser(null); }}>
-                                Guardar Cambios
-                            </button>
-                            <button className="btn-secondary" onClick={() => setEditingUser(null)}>
-                                Cancelar
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+
 
             <style>{`
                 .vendedores-grid {
