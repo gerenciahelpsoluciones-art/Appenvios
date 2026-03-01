@@ -104,22 +104,24 @@ const CotizacionesModule: React.FC<IProps> = ({
             doc.setFontSize(20);
             doc.setTextColor(255, 255, 255);
             doc.setFont("helvetica", "bold");
-            doc.text("HELP SOLUCIONES INFORMATICAS", 14, 22);
+
+            // Logo in Header (White background box for cleaner look)
+            try {
+                doc.setFillColor(255, 255, 255);
+                doc.rect(5, 5, 30, 30, 'F');
+                doc.addImage(logoBase64, 'JPEG', 5, 5, 30, 30);
+            } catch (e) {
+                console.error("Error drawing logo in header", e);
+            }
+
+            doc.text("HELP SOLUCIONES INFORMATICAS", 40, 22);
 
             doc.setFontSize(10);
             doc.setFont("helvetica", "normal");
             doc.text(`Cotización N°: ${consecutivo}`, 200, 22, { align: 'right' });
-            doc.text("Expertos en Tecnología | Servicios y Productos", 14, 30);
+            doc.text("Expertos en Tecnología | Servicios y Productos", 40, 30);
 
-            // Watermark Logo
-            try {
-                doc.setGState(new (doc as any).GState({ opacity: 0.1 }));
-                // Center the logo, assume roughly square or rectangle. Width: 120, Height: 120
-                doc.addImage(logoBase64, 'JPEG', 45, 100, 120, 120);
-                doc.setGState(new (doc as any).GState({ opacity: 1.0 }));
-            } catch (e) {
-                console.error("Error setting watermark", e);
-            }
+
 
             // Client Info Box
             doc.setTextColor(0, 0, 0);
@@ -197,21 +199,30 @@ const CotizacionesModule: React.FC<IProps> = ({
             doc.text(`VALOR TOTAL:`, totalsX, finalY + 36);
             doc.text(`$${grandTotal.toLocaleString()}`, valuesX, finalY + 36, { align: 'right' });
 
+            let currentY = finalY + 45;
+
             // Conditions Section
             if (condiciones) {
                 doc.setTextColor(0, 0, 0);
                 doc.setFontSize(10);
                 doc.setFont("helvetica", "bold");
-                doc.text("CONDICIONES COMERCIALES:", 14, finalY + 50);
+                doc.text("CONDICIONES COMERCIALES:", 14, currentY + 5);
                 doc.setFont("helvetica", "normal");
                 const splitCondiciones = doc.splitTextToSize(condiciones, 180);
-                doc.text(splitCondiciones, 14, finalY + 56);
-                // Adjust Y position if conditions take multiple lines
-                finalY += (splitCondiciones.length * 5);
+                doc.text(splitCondiciones, 14, currentY + 12);
+
+                // Adjust currentY according to how many lines the conditions took
+                currentY += 12 + (splitCondiciones.length * 5);
+            }
+
+            // Page Break if we are too low
+            if (currentY > 240) {
+                doc.addPage();
+                currentY = 20;
             }
 
             // Executive Section
-            const execY = finalY + 90;
+            const execY = currentY + 10;
             doc.setFont("helvetica", "bold");
             doc.text("ATENTAMENTE,", 14, execY);
             doc.text(ejecutivo.nombre, 14, execY + 10);
@@ -220,10 +231,14 @@ const CotizacionesModule: React.FC<IProps> = ({
             doc.text(`Tel: ${ejecutivo.telefono}`, 14, execY + 20);
             doc.text(`Email: ${ejecutivo.correo}`, 14, execY + 25);
 
-            // Footer branding
-            doc.setFontSize(8);
-            doc.setTextColor(150, 150, 150);
-            doc.text("HELP SOLUCIONES INFORMATICAS correo:gerencia@helpsoluciones.com.co Tel: 3043358650-3003453610", 105, 288, { align: 'center' });
+            // Footer branding (applied to all pages)
+            const pageCount = (doc as any).internal.getNumberOfPages();
+            for (let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                doc.setFontSize(8);
+                doc.setTextColor(150, 150, 150);
+                doc.text("HELP SOLUCIONES INFORMATICAS correo:gerencia@helpsoluciones.com.co Tel: 3043358650-3003453610", 105, 290, { align: 'center' });
+            }
 
             // Trigger global save if callback exists
             if (onAddQuote) {
