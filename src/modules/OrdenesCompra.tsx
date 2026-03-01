@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import type { Proveedor, Producto, OrdenCompra, OrdenCompraItem, AppUser } from '../App';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { logoBase64 } from '../assets/logoBase64';
 
 interface IProps {
     proveedores: Proveedor[];
@@ -120,11 +121,21 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenes
         doc.setTextColor(255, 255, 255);
         doc.setFontSize(22);
         doc.setFont('helvetica', 'bold');
+
+        // Logo in Header
+        try {
+            doc.setFillColor(255, 255, 255);
+            doc.rect(5, 5, 30, 30, 'F');
+            doc.addImage(logoBase64, 'JPEG', 5, 5, 30, 30);
+        } catch (e) {
+            console.error("Error drawing logo in header", e);
+        }
+
         doc.text('ORDEN DE COMPRA', 105, 20, { align: 'center' });
 
         doc.setFontSize(10);
         doc.setFont('helvetica', 'normal');
-        doc.text(`Consecutivo: ${oc.consecutivo}`, 105, 30, { align: 'center' });
+        doc.text(`Consecutivo: ${oc.consecutivo}`, 200, 27, { align: 'right' });
 
         // Company Details (Left)
         doc.setTextColor(0, 0, 0);

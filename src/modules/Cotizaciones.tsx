@@ -118,8 +118,8 @@ const CotizacionesModule: React.FC<IProps> = ({
 
             doc.setFontSize(10);
             doc.setFont("helvetica", "normal");
-            doc.text(`Cotización N°: ${consecutivo}`, 200, 25, { align: 'right' });
-            doc.text("Expertos en Tecnología | Servicios y Productos", 40, 33);
+            doc.text(`Cotización N°: ${consecutivo}`, 200, 27, { align: 'right' });
+            doc.text("Expertos en Tecnología | Servicios y Productos", 40, 35);
 
 
 
