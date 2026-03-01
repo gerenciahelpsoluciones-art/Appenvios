@@ -35,6 +35,7 @@ export interface Cliente {
   correo: string;
   direccion: string;
   coordenadas?: string;
+  usuarioId?: string;
 }
 
 export interface Proveedor {
@@ -218,7 +219,12 @@ function App() {
       if (userData) setUsers(userData as AppUser[]);
 
       const { data: clientData } = await supabase.from('clientes').select('*');
-      if (clientData) setClientes(clientData as Cliente[]);
+      if (clientData) {
+        setClientes(clientData.map((c: any) => ({
+          ...c,
+          usuarioId: c.usuario_id
+        })));
+      }
 
       const { data: providerData } = await supabase.from('proveedores').select('*');
       if (providerData) setProveedores(providerData as Proveedor[]);
@@ -376,8 +382,13 @@ function App() {
   // Update handlers
   const addCliente = async (c: Cliente) => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { id, ...newC } = c;
-    const { data, error } = await supabase.from('clientes').insert([newC]).select();
+    const { id, usuarioId, ...newC } = c; // Don't send camelCase or temporary ID
+    const dbClient = {
+      ...newC,
+      usuario_id: currentUser?.id // Force assign to current user
+    };
+
+    const { data, error } = await supabase.from('clientes').insert([dbClient]).select();
     if (error) {
       alert('Error al añadir cliente: ' + error.message);
     } else if (data) {
@@ -385,7 +396,9 @@ function App() {
     }
   };
   const updateCliente = async (c: Cliente) => {
-    const { error } = await supabase.from('clientes').update(c).eq('id', c.id);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { usuarioId, ...rest } = c; // Don't send the frontend-only property
+    const { error } = await supabase.from('clientes').update(rest).eq('id', c.id);
     if (!error) setClientes(clientes.map(item => item.id === c.id ? c : item));
   };
   const deleteCliente = async (id: string) => {
@@ -857,12 +870,18 @@ function App() {
 
   const renderContent = () => {
     if (!currentUser) return null;
+
+    // Filter clients: Admins see all, Comercials see only theirs (or clients without user for backward compatibility if desired, but here we strictly match)
+    const filteredClientes = currentUser.rol === 'Admin'
+      ? clientes
+      : clientes.filter(c => c.usuarioId === currentUser.id);
+
     switch (activeTab) {
       case 'clientes':
-        return <ClientesModule clientes={clientes} onAdd={addCliente} onUpdate={updateCliente} onDelete={deleteCliente} />;
+        return <ClientesModule clientes={filteredClientes} onAdd={addCliente} onUpdate={updateCliente} onDelete={deleteCliente} />;
       case 'cotizaciones':
         return <CotizacionesModule
-          clientes={clientes}
+          clientes={filteredClientes}
           productos={productos}
           proveedores={proveedores}
           cotizaciones={cotizaciones}
