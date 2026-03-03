@@ -13,6 +13,7 @@ import AdminModule from './modules/Admin'
 import Login from './modules/Login'
 import VendedoresModule from './modules/Vendedores'
 import { supabase } from './lib/supabaseClient'
+import { logoBase64 } from './assets/logoBase64'
 
 // Types for shared data
 export interface AppUser {
@@ -1148,8 +1149,8 @@ function App() {
       <aside className="sidebar">
         <div className="logo-container">
           <div className="brand-box">
-            <span className="logo-icon">🚀</span>
-            <span className="logo-text">CRM Appenvios</span>
+            <img src={logoBase64} alt="CRM HELP SOLUCIONES" style={{ width: '80%', maxWidth: '160px', borderRadius: '8px', objectFit: 'contain', background: 'white', padding: '10px' }} />
+            <span className="logo-text" style={{ marginTop: '0.5rem', fontWeight: 'bold' }}>CRM HELP SOLUCIONES</span>
             <div
               title="Click para reconectar"
               onClick={() => window.location.reload()}
