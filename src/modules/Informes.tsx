@@ -26,13 +26,14 @@ const InformesModule: React.FC<IProps> = ({ cotizaciones, budgets, currentUser, 
     const today = new Date().toISOString().split('T')[0];
     const [fechaInicio, setFechaInicio] = useState(today);
     const [fechaFin, setFechaFin] = useState(today);
+    const [selectedClienteId, setSelectedClienteId] = useState('');
 
     // Month for budget comparison
     const currentMonth = new Date().getMonth();
     const currentYear = new Date().getFullYear();
 
-    // State for dates that are actually being used for filtering
-    const [appliedDates, setAppliedDates] = useState({ inicio: today, fin: today });
+    // State for dates/filters that are actually being used for filtering
+    const [appliedFilters, setAppliedFilters] = useState({ inicio: today, fin: today, clienteId: '' });
 
     // Edit modal state
     const [editingQuote, setEditingQuote] = useState<Cotizacion | null>(null);
@@ -40,14 +41,17 @@ const InformesModule: React.FC<IProps> = ({ cotizaciones, budgets, currentUser, 
     const [editClienteId, setEditClienteId] = useState('');
 
     const handleSearch = () => {
-        setAppliedDates({ inicio: fechaInicio, fin: fechaFin });
+        setAppliedFilters({ inicio: fechaInicio, fin: fechaFin, clienteId: selectedClienteId });
     };
 
     const filteredQuotes = cotizaciones.filter(q => {
-        return q.fecha >= appliedDates.inicio && q.fecha <= appliedDates.fin;
+        const dateMatch = q.fecha >= appliedFilters.inicio && q.fecha <= appliedFilters.fin;
+        const clientMatch = appliedFilters.clienteId ? q.clienteId === appliedFilters.clienteId : true;
+        return dateMatch && clientMatch;
     });
 
     const totalVendido = filteredQuotes.reduce((acc, q) => acc + q.total, 0);
+    const totalUtilidad = filteredQuotes.reduce((acc, q) => acc + (q.utilidadTotal || 0), 0);
 
     // Monthly performance for cards
     const monthlySales = cotizaciones.filter(c => {
@@ -155,6 +159,22 @@ const InformesModule: React.FC<IProps> = ({ cotizaciones, budgets, currentUser, 
         closeEditModal();
     };
 
+    // --- Profit Analysis Grouping ---
+    const profitByClient = filteredQuotes.reduce((acc: Record<string, { nombre: string, total: number, profit: number }>, q) => {
+        if (!acc[q.clienteId]) acc[q.clienteId] = { nombre: q.clienteNombre, total: 0, profit: 0 };
+        acc[q.clienteId].total += q.total;
+        acc[q.clienteId].profit += (q.utilidadTotal || 0);
+        return acc;
+    }, {});
+
+    const profitByMonth = filteredQuotes.reduce((acc: Record<string, { total: number, profit: number }>, q) => {
+        const month = q.fecha.substring(0, 7); // YYYY-MM
+        if (!acc[month]) acc[month] = { total: 0, profit: 0 };
+        acc[month].total += q.total;
+        acc[month].profit += (q.utilidadTotal || 0);
+        return acc;
+    }, {});
+
     return (
         <div className="reports-container">
             <div className="card filters-card">
@@ -176,6 +196,11 @@ const InformesModule: React.FC<IProps> = ({ cotizaciones, budgets, currentUser, 
                         <div className="stat-trend" style={{ background: difference >= 0 ? '#059669' : '#991b1b' }}>
                             {difference >= 0 ? `+ $${difference.toLocaleString()}` : `- $${Math.abs(difference).toLocaleString()}`}
                         </div>
+                    </div>
+                    <div className="stat-card profit-summary-card">
+                        <div className="stat-label">Utilidad General (Rango)</div>
+                        <div className="stat-value">${totalUtilidad.toLocaleString()}</div>
+                        <div className="stat-trend">Margen Bruto</div>
                     </div>
                 </div>
             </div>
@@ -199,6 +224,20 @@ const InformesModule: React.FC<IProps> = ({ cotizaciones, budgets, currentUser, 
                             onChange={(e) => setFechaFin(e.target.value)}
                         />
                     </div>
+                    <div className="input-box" style={{ flex: 2 }}>
+                        <label>Cliente</label>
+                        <select
+                            className="input-field"
+                            style={{ width: '100%', height: '42px', padding: '0 0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)' }}
+                            value={selectedClienteId}
+                            onChange={e => setSelectedClienteId(e.target.value)}
+                        >
+                            <option value="">-- Todos los Clientes --</option>
+                            {clientes.map(c => (
+                                <option key={c.id} value={c.id}>{c.nombre}</option>
+                            ))}
+                        </select>
+                    </div>
                     <div className="button-box">
                         <button className="btn btn-primary btn-search" onClick={handleSearch}>
                             🔍 Buscar
@@ -212,8 +251,70 @@ const InformesModule: React.FC<IProps> = ({ cotizaciones, budgets, currentUser, 
                     <h4>Total en el Rango</h4>
                     <p className="stat-value">${totalVendido.toLocaleString()}</p>
                     <span className="stat-label">
-                        {appliedDates.inicio} al {appliedDates.fin} • {filteredQuotes.length} cotizaciones
+                        {appliedFilters.inicio} al {appliedFilters.fin} {appliedFilters.clienteId ? `• ${clientes.find(c => c.id === appliedFilters.clienteId)?.nombre}` : ''} • {filteredQuotes.length} cotizaciones
                     </span>
+                </div>
+                <div className="card stat-card" style={{ background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', color: 'white' }}>
+                    <h4>Utilidad en el Rango</h4>
+                    <p className="stat-value" style={{ color: 'white' }}>${totalUtilidad.toLocaleString()}</p>
+                    <span className="stat-label" style={{ color: 'rgba(255,255,255,0.8)' }}>
+                        Margen de ganancia acumulado
+                    </span>
+                </div>
+            </div>
+
+            {/* ========== PROFIT ANALYSIS SECTION ========== */}
+            <div className="dashboard-grid">
+                <div className="card">
+                    <h3>Utilidad por Cliente</h3>
+                    <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                        <table className="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Cliente</th>
+                                    <th className="text-right">Ventas</th>
+                                    <th className="text-right">Utilidad</th>
+                                    <th className="text-right">%</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {Object.values(profitByClient).sort((a, b) => b.profit - a.profit).map((c, i) => (
+                                    <tr key={i}>
+                                        <td>{c.nombre}</td>
+                                        <td className="text-right">${c.total.toLocaleString()}</td>
+                                        <td className="text-right" style={{ color: 'var(--success)', fontWeight: 'bold' }}>${c.profit.toLocaleString()}</td>
+                                        <td className="text-right">{(c.profit / (c.total || 1) * 100).toFixed(1)}%</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div className="card">
+                    <h3>Utilidad por Mes</h3>
+                    <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                        <table className="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Mes</th>
+                                    <th className="text-right">Ventas</th>
+                                    <th className="text-right">Utilidad</th>
+                                    <th className="text-right">%</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {Object.entries(profitByMonth).sort((a, b) => b[0].localeCompare(a[0])).map(([month, data], i) => (
+                                    <tr key={i}>
+                                        <td>{month}</td>
+                                        <td className="text-right">${data.total.toLocaleString()}</td>
+                                        <td className="text-right" style={{ color: 'var(--success)', fontWeight: 'bold' }}>${data.profit.toLocaleString()}</td>
+                                        <td className="text-right">{(data.profit / (data.total || 1) * 100).toFixed(1)}%</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
@@ -227,6 +328,7 @@ const InformesModule: React.FC<IProps> = ({ cotizaciones, budgets, currentUser, 
                                 <th style={{ minWidth: '120px' }}>Consecutivo</th>
                                 <th style={{ minWidth: '200px' }}>Cliente</th>
                                 <th className="text-right" style={{ minWidth: '110px' }}>Subtotal</th>
+                                <th className="text-right" style={{ minWidth: '100px' }}>Utilidad</th>
                                 <th className="text-right" style={{ minWidth: '100px' }}>IVA</th>
                                 <th className="text-right" style={{ minWidth: '120px' }}>Total</th>
                                 <th style={{ minWidth: '150px' }}>Ejecutivo</th>
@@ -242,6 +344,7 @@ const InformesModule: React.FC<IProps> = ({ cotizaciones, budgets, currentUser, 
                                         <td><strong>{q.consecutivo}</strong></td>
                                         <td>{q.clienteNombre}</td>
                                         <td className="text-right">${q.subtotal.toLocaleString()}</td>
+                                        <td className="text-right" style={{ color: 'var(--success)', fontWeight: 'bold' }}>${(q.utilidadTotal || 0).toLocaleString()}</td>
                                         <td className="text-right">${q.iva.toLocaleString()}</td>
                                         <td className="text-right"><strong>${q.total.toLocaleString()}</strong></td>
                                         <td>{q.ejecutivo}</td>
@@ -405,6 +508,7 @@ const InformesModule: React.FC<IProps> = ({ cotizaciones, budgets, currentUser, 
                 .budget-card { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); }
                 .sales-card { background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); }
                 .percent-card { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+                .profit-summary-card { background: linear-gradient(135deg, #059669 0%, #10b981 100%); }
                 .stat-label { font-size: 0.85rem; opacity: 0.9; }
                 .stat-value { font-size: 1.5rem; font-weight: 800; }
                 .stat-trend { font-size: 0.75rem; background: rgba(255,255,255,0.2); padding: 0.2rem 0.6rem; border-radius: 20px; align-self: flex-start; }

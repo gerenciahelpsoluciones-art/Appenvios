@@ -120,6 +120,7 @@ export interface Cotizacion {
   subtotal: number;
   iva: number;
   total: number;
+  utilidadTotal: number;
   ejecutivo: string;
   ejecutivoEmail: string;
   ejecutivoTelefono?: string;
@@ -264,7 +265,8 @@ function App() {
           contactoTesoreria: c.contacto_tesoreria,
           contactoContabilidad: c.contacto_contabilidad,
           poseeCredito: !!c.posee_credito,
-          cupoCredito: c.cupo_credito
+          cupoCredito: c.cupo_credito,
+          utilidadTotal: Number(c.utilidad_total || 0)
         })));
       }
 
@@ -657,7 +659,8 @@ function App() {
       cliente_nombre: c.clienteNombre,
       ejecutivo_email: c.ejecutivoEmail,
       ejecutivo_telefono: c.ejecutivoTelefono,
-      usuario_id: c.usuarioId
+      usuario_id: c.usuarioId,
+      utilidad_total: c.utilidadTotal
     }]).select();
     if (error) {
       alert('Error al añadir cotización: ' + error.message);
@@ -669,7 +672,8 @@ function App() {
         clienteNombre: dbC.cliente_nombre,
         ejecutivoEmail: dbC.ejecutivo_email,
         ejecutivoTelefono: dbC.ejecutivo_telefono,
-        usuarioId: dbC.usuario_id
+        usuarioId: dbC.usuario_id,
+        utilidadTotal: Number(dbC.utilidad_total || 0)
       } as Cotizacion, ...prev]);
     }
   };
@@ -689,7 +693,8 @@ function App() {
       ejecutivo_email: c.ejecutivoEmail,
       ejecutivo_telefono: c.ejecutivoTelefono,
       usuario_id: c.usuarioId,
-      estado: c.estado
+      estado: c.estado,
+      utilidad_total: c.utilidadTotal
     };
 
     const { error: updateError } = await supabase.from('cotizaciones').update(quotePayload).eq('id', c.id);

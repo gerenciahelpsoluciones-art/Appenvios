@@ -91,6 +91,10 @@ const CotizacionesModule: React.FC<IProps> = ({
         return item.costoUnitario * (1 + item.utilidad / 100);
     };
 
+    const calculateMarginTotal = (item: QuoteItem) => {
+        return (calculateVenta(item) - item.costoUnitario) * item.cantidad;
+    };
+
     const calculateSubtotalItem = (item: QuoteItem) => {
         return calculateVenta(item) * item.cantidad;
     };
@@ -106,6 +110,7 @@ const CotizacionesModule: React.FC<IProps> = ({
     const subtotalGeneral = items.reduce((acc, item) => acc + calculateSubtotalItem(item), 0);
     const ivaGeneral = items.reduce((acc, item) => acc + calculateIVAItem(item), 0);
     const grandTotal = subtotalGeneral + ivaGeneral;
+    const profitTotal = items.reduce((acc, item) => acc + calculateMarginTotal(item), 0);
 
     const generatePDF = () => {
         try {
@@ -275,6 +280,7 @@ const CotizacionesModule: React.FC<IProps> = ({
                     subtotal: subtotalGeneral,
                     iva: ivaGeneral,
                     total: grandTotal,
+                    utilidadTotal: profitTotal,
                     ejecutivo: ejecutivo.nombre,
                     ejecutivoEmail: ejecutivo.correo,
                     ejecutivoTelefono: ejecutivo.telefono,
@@ -387,6 +393,7 @@ const CotizacionesModule: React.FC<IProps> = ({
                             <th>Costo</th>
                             <th style={{ width: '70px' }}>Util%</th>
                             <th>Venta (Unit)</th>
+                            <th>Ut. ($)</th>
                             <th>Total (c/IVA)</th>
                             <th></th>
                         </tr>
@@ -430,6 +437,9 @@ const CotizacionesModule: React.FC<IProps> = ({
                                 <td><input className="table-input num" type="number" value={item.costoUnitario} onChange={e => updateItem(item.id, 'costoUnitario', Number(e.target.value))} /></td>
                                 <td><input className="table-input num" type="number" value={item.utilidad} onChange={e => updateItem(item.id, 'utilidad', Number(e.target.value))} /></td>
                                 <td className="read-only">${calculateVenta(item).toLocaleString()}</td>
+                                <td className="read-only font-bold" style={{ color: 'var(--success)' }}>
+                                    ${calculateMarginTotal(item).toLocaleString()}
+                                </td>
                                 <td className="read-only font-bold">${calculateTotalItem(item).toLocaleString()}</td>
                                 <td>
                                     <button className="btn-delete" onClick={() => setItems(items.filter(i => i.id !== item.id))}>×</button>
@@ -439,17 +449,22 @@ const CotizacionesModule: React.FC<IProps> = ({
                     </tbody>
                     <tfoot>
                         <tr>
-                            <td colSpan={7} style={{ textAlign: 'right', padding: '0.5rem 1rem' }}>SUBTOTAL:</td>
+                            <td colSpan={8} style={{ textAlign: 'right', padding: '0.5rem 1rem' }}>SUBTOTAL:</td>
                             <td style={{ textAlign: 'right', padding: '0.5rem 1rem' }}>${subtotalGeneral.toLocaleString()}</td>
                             <td></td>
                         </tr>
                         <tr>
-                            <td colSpan={7} style={{ textAlign: 'right', padding: '0.5rem 1rem' }}>IVA TOTAL:</td>
+                            <td colSpan={8} style={{ textAlign: 'right', padding: '0.5rem 1rem' }}>UTILIDAD BRUTA ($):</td>
+                            <td style={{ textAlign: 'right', padding: '0.5rem 1rem', color: 'var(--success)', fontWeight: 'bold' }}>${profitTotal.toLocaleString()}</td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td colSpan={8} style={{ textAlign: 'right', padding: '0.5rem 1rem' }}>IVA TOTAL:</td>
                             <td style={{ textAlign: 'right', padding: '0.5rem 1rem' }}>${ivaGeneral.toLocaleString()}</td>
                             <td></td>
                         </tr>
                         <tr>
-                            <td colSpan={7} style={{ textAlign: 'right', padding: '1rem', fontWeight: 'bold' }}>TOTAL COTIZACIÓN:</td>
+                            <td colSpan={8} style={{ textAlign: 'right', padding: '1rem', fontWeight: 'bold' }}>TOTAL COTIZACIÓN:</td>
                             <td style={{ padding: '1rem', fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--primary-blue)', textAlign: 'right' }}>
                                 ${grandTotal.toLocaleString()}
                             </td>
