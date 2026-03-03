@@ -36,8 +36,12 @@ export interface Cliente {
   direccion: string;
   coordenadas?: string;
   usuarioId?: string;
-  contactoTesoreria?: string;
-  contactoContabilidad?: string;
+  tesoreriaNombre?: string;
+  tesoreriaTelefono?: string;
+  tesoreriaEmail?: string;
+  contabilidadNombre?: string;
+  contabilidadTelefono?: string;
+  contabilidadEmail?: string;
   poseeCredito: boolean;
   cupoCredito?: number;
 }
@@ -406,8 +410,12 @@ function App() {
     const dbClient = {
       ...newC,
       usuario_id: currentUser.id, // Force assign to current user
-      contacto_tesoreria: c.contactoTesoreria,
-      contacto_contabilidad: c.contactoContabilidad,
+      tesoreria_nombre: c.tesoreriaNombre,
+      tesoreria_telefono: c.tesoreriaTelefono,
+      tesoreria_email: c.tesoreriaEmail,
+      contabilidad_nombre: c.contabilidadNombre,
+      contabilidad_telefono: c.contabilidadTelefono,
+      contabilidad_email: c.contabilidadEmail,
       posee_credito: c.poseeCredito,
       cupo_credito: c.cupoCredito
     };
@@ -426,8 +434,12 @@ function App() {
       setClientes([...clientes, {
         ...data[0],
         usuarioId: data[0].usuario_id,
-        contactoTesoreria: data[0].contacto_tesoreria,
-        contactoContabilidad: data[0].contacto_contabilidad,
+        tesoreriaNombre: data[0].tesoreria_nombre,
+        tesoreriaTelefono: data[0].tesoreria_telefono,
+        tesoreriaEmail: data[0].tesoreria_email,
+        contabilidadNombre: data[0].contabilidad_nombre,
+        contabilidadTelefono: data[0].contabilidad_telefono,
+        contabilidadEmail: data[0].contabilidad_email,
         poseeCredito: data[0].posee_credito,
         cupoCredito: data[0].cupo_credito
       } as Cliente]);
@@ -436,12 +448,22 @@ function App() {
 
   const updateCliente = async (c: Cliente) => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { usuarioId, contactoTesoreria, contactoContabilidad, poseeCredito, cupoCredito, ...rest } = c; // Don't send the frontend-only property
+    const {
+      usuarioId,
+      tesoreriaNombre, tesoreriaTelefono, tesoreriaEmail,
+      contabilidadNombre, contabilidadTelefono, contabilidadEmail,
+      poseeCredito, cupoCredito,
+      ...rest
+    } = c; // Don't send the frontend-only property
     const { error } = await supabase.from('clientes').update({
       ...rest,
       usuario_id: usuarioId,
-      contacto_tesoreria: contactoTesoreria,
-      contacto_contabilidad: contactoContabilidad,
+      tesoreria_nombre: tesoreriaNombre,
+      tesoreria_telefono: tesoreriaTelefono,
+      tesoreria_email: tesoreriaEmail,
+      contabilidad_nombre: contabilidadNombre,
+      contabilidad_telefono: contabilidadTelefono,
+      contabilidad_email: contabilidadEmail,
       posee_credito: poseeCredito,
       cupo_credito: cupoCredito
     }).eq('id', c.id);

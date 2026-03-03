@@ -56,8 +56,25 @@ const ClientesModule: React.FC<IProps> = ({ clientes, onAdd, onUpdate, onDelete 
             <input className="input-field" placeholder="Correo" value={formData.correo || ''} onChange={e => setFormData({ ...formData, correo: e.target.value })} />
             <input className="input-field" placeholder="Dirección" value={formData.direccion || ''} onChange={e => setFormData({ ...formData, direccion: e.target.value })} />
             <input className="input-field" placeholder="Coordenadas (Lat, Long)" value={formData.coordenadas || ''} onChange={e => setFormData({ ...formData, coordenadas: e.target.value })} />
-            <input className="input-field" placeholder="Contacto de Tesorería" value={formData.contactoTesoreria || ''} onChange={e => setFormData({ ...formData, contactoTesoreria: e.target.value })} />
-            <input className="input-field" placeholder="Contacto de Contabilidad" value={formData.contactoContabilidad || ''} onChange={e => setFormData({ ...formData, contactoContabilidad: e.target.value })} />
+
+            <div className="contact-section" style={{ gridColumn: 'span 2', background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+              <h4 style={{ margin: '0 0 1rem 0', color: 'var(--primary-blue)' }}>💰 Datos de Tesorería</h4>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+                <input className="input-field" placeholder="Nombre Tesorería" value={formData.tesoreriaNombre || ''} onChange={e => setFormData({ ...formData, tesoreriaNombre: e.target.value })} />
+                <input className="input-field" placeholder="Teléfono" value={formData.tesoreriaTelefono || ''} onChange={e => setFormData({ ...formData, tesoreriaTelefono: e.target.value })} />
+                <input className="input-field" placeholder="Correo Electrónico" value={formData.tesoreriaEmail || ''} onChange={e => setFormData({ ...formData, tesoreriaEmail: e.target.value })} />
+              </div>
+            </div>
+
+            <div className="contact-section" style={{ gridColumn: 'span 2', background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+              <h4 style={{ margin: '0 0 1rem 0', color: 'var(--primary-blue)' }}>📊 Datos de Contabilidad</h4>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+                <input className="input-field" placeholder="Nombre Contabilidad" value={formData.contabilidadNombre || ''} onChange={e => setFormData({ ...formData, contabilidadNombre: e.target.value })} />
+                <input className="input-field" placeholder="Teléfono" value={formData.contabilidadTelefono || ''} onChange={e => setFormData({ ...formData, contabilidadTelefono: e.target.value })} />
+                <input className="input-field" placeholder="Correo Electrónico" value={formData.contabilidadEmail || ''} onChange={e => setFormData({ ...formData, contabilidadEmail: e.target.value })} />
+              </div>
+            </div>
+
             <div className="form-group-checkbox" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', gridColumn: 'span 2' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 'bold' }}>
                 <input
@@ -107,10 +124,22 @@ const ClientesModule: React.FC<IProps> = ({ clientes, onAdd, onUpdate, onDelete 
                   <td>{c.nit}</td>
                   <td>{c.contacto}<br /><small>{c.telefono}</small></td>
                   <td>
-                    <div style={{ fontSize: '0.85rem' }}>
-                      {c.contactoTesoreria && <div>💰 Tes: {c.contactoTesoreria}</div>}
-                      {c.contactoContabilidad && <div>📊 Cont: {c.contactoContabilidad}</div>}
-                      {!c.contactoTesoreria && !c.contactoContabilidad && <span style={{ opacity: 0.3 }}>N/A</span>}
+                    <div style={{ fontSize: '0.82rem', lineHeight: '1.4' }}>
+                      {(formData.tesoreriaNombre || c.tesoreriaNombre) && (
+                        <div style={{ marginBottom: '0.5rem', borderLeft: '3px solid #10b981', paddingLeft: '0.5rem' }}>
+                          <strong style={{ display: 'block' }}>💰 {c.tesoreriaNombre}</strong>
+                          <span style={{ display: 'block', color: '#64748b' }}>📞 {c.tesoreriaTelefono || 'N/A'}</span>
+                          <span style={{ display: 'block', color: '#64748b' }}>📧 {c.tesoreriaEmail || 'N/A'}</span>
+                        </div>
+                      )}
+                      {(formData.contabilidadNombre || c.contabilidadNombre) && (
+                        <div style={{ borderLeft: '3px solid #3b82f6', paddingLeft: '0.5rem' }}>
+                          <strong style={{ display: 'block' }}>📊 {c.contabilidadNombre}</strong>
+                          <span style={{ display: 'block', color: '#64748b' }}>📞 {c.contabilidadTelefono || 'N/A'}</span>
+                          <span style={{ display: 'block', color: '#64748b' }}>📧 {c.contabilidadEmail || 'N/A'}</span>
+                        </div>
+                      )}
+                      {!c.tesoreriaNombre && !c.contabilidadNombre && <span style={{ opacity: 0.3 }}>Sin contactos</span>}
                     </div>
                   </td>
                   <td>
