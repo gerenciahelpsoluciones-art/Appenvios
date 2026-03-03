@@ -33,6 +33,8 @@ const ConductoresModule: React.FC<IProps> = ({
     const [formData, setFormData] = useState<Partial<Conductor>>({});
     const [viewingRoutesId, setViewingRoutesId] = useState<string | null>(null);
     const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
+    const [verifyingOC, setVerifyingOC] = useState<OrdenCompra | null>(null);
+    const [verificationMatches, setVerificationMatches] = useState<{ [key: string]: boolean }>({});
 
     const handleSave = () => {
         if (formData.nombre && formData.cedula) {
@@ -342,6 +344,16 @@ const ConductoresModule: React.FC<IProps> = ({
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                                             <button className="btn-geo" onClick={() => openMap(oc.nombreProveedor)} title="Mapa">📍 Localizar</button>
                                             <button
+                                                className="btn-verify"
+                                                onClick={() => {
+                                                    setVerifyingOC(oc);
+                                                    setVerificationMatches({});
+                                                }}
+                                                title="Verificar items vs OC"
+                                            >
+                                                🔍 Verificar
+                                            </button>
+                                            <button
                                                 className="btn-complete"
                                                 onClick={() => markAsCompleted(oc, true)}
                                                 disabled={oc.estado === 'Recogido'}
@@ -370,7 +382,99 @@ const ConductoresModule: React.FC<IProps> = ({
                 </div>
             )}
 
+            {verifyingOC && (
+                <div className="modal-overlay animate-fade-in">
+                    <div className="modal-content card" style={{ maxWidth: '600px', width: '90%' }}>
+                        <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '1rem' }}>
+                            <h3 style={{ margin: 0 }}>Verificación de Mercancía: {verifyingOC.consecutivo}</h3>
+                            <button className="btn-close" onClick={() => setVerifyingOC(null)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#64748b' }}>×</button>
+                        </div>
+                        <div className="verification-body">
+                            <p style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '1rem' }}>Coteje los productos físicos contra la orden de compra:</p>
+                            <table className="inner-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                <thead>
+                                    <tr style={{ background: '#f8fafc' }}>
+                                        <th style={{ padding: '0.75rem', textAlign: 'left', fontSize: '0.8rem' }}>Producto</th>
+                                        <th style={{ padding: '0.75rem', textAlign: 'center', fontSize: '0.8rem' }}>Cant.</th>
+                                        <th style={{ padding: '0.75rem', textAlign: 'center', fontSize: '0.8rem' }}>Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {verifyingOC.items.map((item, idx) => (
+                                        <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                            <td style={{ padding: '0.75rem', fontSize: '0.85rem' }}>
+                                                <strong>{item.nombreProducto}</strong><br />
+                                                <small style={{ color: '#94a3b8' }}>{item.numPart}</small>
+                                            </td>
+                                            <td style={{ padding: '0.75rem', textAlign: 'center', fontSize: '0.85rem' }}>{item.cantidad}</td>
+                                            <td style={{ padding: '0.75rem', textAlign: 'center' }}>
+                                                <button
+                                                    className={`btn-check ${verificationMatches[idx] ? 'matched' : ''}`}
+                                                    onClick={() => setVerificationMatches({
+                                                        ...verificationMatches,
+                                                        [idx]: !verificationMatches[idx]
+                                                    })}
+                                                    style={{
+                                                        padding: '0.4rem 0.8rem',
+                                                        borderRadius: '6px',
+                                                        border: '1px solid #e2e8f0',
+                                                        fontSize: '0.75rem',
+                                                        cursor: 'pointer',
+                                                        background: verificationMatches[idx] ? '#ecfdf5' : 'white',
+                                                        color: verificationMatches[idx] ? '#059669' : '#64748b',
+                                                        borderColor: verificationMatches[idx] ? '#10b981' : '#e2e8f0',
+                                                        fontWeight: '600',
+                                                        transition: 'all 0.2s'
+                                                    }}
+                                                >
+                                                    {verificationMatches[idx] ? '✅ Recibido' : '⬜ Pendiente'}
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div className="modal-actions" style={{ marginTop: '2rem' }}>
+                            <button
+                                className="btn-success"
+                                style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', fontSize: '0.9rem', fontWeight: '700' }}
+                                onClick={() => {
+                                    onUpdateOC({ ...verifyingOC, verificada: true });
+                                    setVerifyingOC(null);
+                                    alert('Mercancía marcada como verificada.');
+                                }}
+                            >
+                                Confirmar Verificación Completa
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <style>{`
+                .modal-overlay {
+                    position: fixed;
+                    top: 0; left: 0; right: 0; bottom: 0;
+                    background: rgba(0,0,0,0.5);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 1000;
+                    backdrop-filter: blur(4px);
+                }
+                .btn-verify {
+                    background: #fdf2f8;
+                    color: #be185d;
+                    border: 1px solid #fbcfe8;
+                    padding: 0.3rem 0.6rem;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-weight: 600;
+                    font-size: 0.8rem;
+                }
+                .btn-verify:hover { background: #fce7f3; }
+                .btn-check.matched { transform: scale(1.05); }
                 .form-group label { font-size: 0.8rem; color: var(--text-muted); font-weight: 600; margin-bottom: 0.25rem; }
                 .file-input-wrapper { display: flex; flex-direction: column; gap: 0.25rem; }
                 .file-input-wrapper input { font-size: 0.8rem; }

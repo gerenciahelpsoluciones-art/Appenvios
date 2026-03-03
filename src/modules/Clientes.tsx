@@ -56,6 +56,28 @@ const ClientesModule: React.FC<IProps> = ({ clientes, onAdd, onUpdate, onDelete 
             <input className="input-field" placeholder="Correo" value={formData.correo || ''} onChange={e => setFormData({ ...formData, correo: e.target.value })} />
             <input className="input-field" placeholder="Dirección" value={formData.direccion || ''} onChange={e => setFormData({ ...formData, direccion: e.target.value })} />
             <input className="input-field" placeholder="Coordenadas (Lat, Long)" value={formData.coordenadas || ''} onChange={e => setFormData({ ...formData, coordenadas: e.target.value })} />
+            <input className="input-field" placeholder="Contacto de Tesorería" value={formData.contactoTesoreria || ''} onChange={e => setFormData({ ...formData, contactoTesoreria: e.target.value })} />
+            <input className="input-field" placeholder="Contacto de Contabilidad" value={formData.contactoContabilidad || ''} onChange={e => setFormData({ ...formData, contactoContabilidad: e.target.value })} />
+            <div className="form-group-checkbox" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', gridColumn: 'span 2' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 'bold' }}>
+                <input
+                  type="checkbox"
+                  checked={formData.poseeCredito || false}
+                  onChange={e => setFormData({ ...formData, poseeCredito: e.target.checked })}
+                />
+                ¿Posee Crédito?
+              </label>
+              {formData.poseeCredito && (
+                <input
+                  className="input-field"
+                  type="number"
+                  placeholder="Cupo de Crédito ($)"
+                  style={{ width: '200px' }}
+                  value={formData.cupoCredito || ''}
+                  onChange={e => setFormData({ ...formData, cupoCredito: Number(e.target.value) })}
+                />
+              )}
+            </div>
           </div>
           <div className="form-actions" style={{ marginTop: '1rem', display: 'flex', gap: '1rem' }}>
             <button onClick={handleSave} className="btn-success">{editingId ? 'Actualizar' : 'Guardar'}</button>
@@ -71,9 +93,10 @@ const ClientesModule: React.FC<IProps> = ({ clientes, onAdd, onUpdate, onDelete 
               <tr>
                 <th style={{ minWidth: '180px' }}>Nombre Cliente</th>
                 <th style={{ minWidth: '120px' }}>NIT</th>
-                <th style={{ minWidth: '150px' }}>Contacto</th>
+                <th style={{ minWidth: '150px' }}>Contacto Comercial</th>
+                <th style={{ minWidth: '180px' }}>Contactos Financieros</th>
+                <th style={{ minWidth: '150px' }}>Crédito</th>
                 <th style={{ minWidth: '120px' }}>Dirección</th>
-                <th style={{ minWidth: '150px' }}>Coordenadas</th>
                 <th className="text-center" style={{ minWidth: '100px' }}>Acciones</th>
               </tr>
             </thead>
@@ -83,8 +106,23 @@ const ClientesModule: React.FC<IProps> = ({ clientes, onAdd, onUpdate, onDelete 
                   <td><strong>{c.nombre}</strong><br /><small>{c.correo}</small></td>
                   <td>{c.nit}</td>
                   <td>{c.contacto}<br /><small>{c.telefono}</small></td>
-                  <td>{c.direccion}</td>
-                  <td><code style={{ fontSize: '0.8rem' }}>{c.coordenadas || 'N/A'}</code></td>
+                  <td>
+                    <div style={{ fontSize: '0.85rem' }}>
+                      {c.contactoTesoreria && <div>💰 Tes: {c.contactoTesoreria}</div>}
+                      {c.contactoContabilidad && <div>📊 Cont: {c.contactoContabilidad}</div>}
+                      {!c.contactoTesoreria && !c.contactoContabilidad && <span style={{ opacity: 0.3 }}>N/A</span>}
+                    </div>
+                  </td>
+                  <td>
+                    {c.poseeCredito ? (
+                      <span className="doc-badge active" title={`Cupo: $${c.cupoCredito}`}>
+                        💳 ${c.cupoCredito?.toLocaleString()}
+                      </span>
+                    ) : (
+                      <span className="doc-badge" style={{ opacity: 0.3 }}>Sin Crédito</span>
+                    )}
+                  </td>
+                  <td>{c.direccion}<br /><small><code>{c.coordenadas || ''}</code></small></td>
                   <td className="text-center">
                     <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
                       <button className="btn-edit" onClick={() => startEdit(c)}>✏️</button>

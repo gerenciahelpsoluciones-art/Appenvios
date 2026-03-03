@@ -36,6 +36,10 @@ export interface Cliente {
   direccion: string;
   coordenadas?: string;
   usuarioId?: string;
+  contactoTesoreria?: string;
+  contactoContabilidad?: string;
+  poseeCredito: boolean;
+  cupoCredito?: number;
 }
 
 export interface Proveedor {
@@ -249,7 +253,14 @@ function App() {
           clienteNombre: c.cliente_nombre,
           ejecutivoEmail: c.ejecutivo_email,
           ejecutivoTelefono: c.ejecutivo_telefono,
-          usuarioId: c.usuario_id
+          usuarioId: c.usuario_id,
+          direccion: c.direccion,
+          coordenadas: c.coordenadas,
+          usuario_id: c.usuario_id,
+          contactoTesoreria: c.contacto_tesoreria,
+          contactoContabilidad: c.contacto_contabilidad,
+          poseeCredito: !!c.posee_credito,
+          cupoCredito: c.cupo_credito
         })));
       }
 
@@ -394,7 +405,11 @@ function App() {
     const { id, usuarioId, ...newC } = c; // Don't send camelCase or temporary ID
     const dbClient = {
       ...newC,
-      usuario_id: currentUser.id // Force assign to current user
+      usuario_id: currentUser.id, // Force assign to current user
+      contacto_tesoreria: c.contactoTesoreria,
+      contacto_contabilidad: c.contactoContabilidad,
+      posee_credito: c.poseeCredito,
+      cupo_credito: c.cupoCredito
     };
 
     console.log('Intentando añadir cliente:', dbClient);
@@ -408,14 +423,28 @@ function App() {
         alert('Error al añadir cliente: ' + error.message);
       }
     } else if (data) {
-      setClientes([...clientes, { ...data[0], usuarioId: data[0].usuario_id } as Cliente]);
+      setClientes([...clientes, {
+        ...data[0],
+        usuarioId: data[0].usuario_id,
+        contactoTesoreria: data[0].contacto_tesoreria,
+        contactoContabilidad: data[0].contacto_contabilidad,
+        poseeCredito: data[0].posee_credito,
+        cupoCredito: data[0].cupo_credito
+      } as Cliente]);
     }
   };
 
   const updateCliente = async (c: Cliente) => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { usuarioId, ...rest } = c; // Don't send the frontend-only property
-    const { error } = await supabase.from('clientes').update(rest).eq('id', c.id);
+    const { usuarioId, contactoTesoreria, contactoContabilidad, poseeCredito, cupoCredito, ...rest } = c; // Don't send the frontend-only property
+    const { error } = await supabase.from('clientes').update({
+      ...rest,
+      usuario_id: usuarioId,
+      contacto_tesoreria: contactoTesoreria,
+      contacto_contabilidad: contactoContabilidad,
+      posee_credito: poseeCredito,
+      cupo_credito: cupoCredito
+    }).eq('id', c.id);
     if (error) {
       console.error('Error al actualizar cliente:', error);
       alert('Error al actualizar cliente: ' + error.message);
