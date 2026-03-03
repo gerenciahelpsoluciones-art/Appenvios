@@ -21,6 +21,7 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenes
     const [observaciones, setObservaciones] = useState('');
     const [items, setItems] = useState<OrdenCompraItem[]>([]);
     const [editingId, setEditingId] = useState<string | null>(null);
+    const [tipo, setTipo] = useState<'Recogida' | 'Inventario'>('Recogida');
 
     // Form for new item
     const [selectedProdId, setSelectedProdId] = useState('');
@@ -80,6 +81,8 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenes
             condicionesComerciales: condiciones,
             observaciones: observaciones,
             usuarioId: currentUser.id,
+            tipo: tipo,
+            verificada: editingId ? (ordenesCompra.find(oc => oc.id === editingId)?.verificada || false) : false,
             estado: editingId ? (ordenesCompra.find(oc => oc.id === editingId)?.estado || 'Pendiente') : 'Pendiente'
         };
 
@@ -108,6 +111,7 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenes
         setCondiciones(oc.condicionesComerciales);
         setObservaciones(oc.observaciones);
         setItems(oc.items);
+        setTipo(oc.tipo || 'Recogida');
         setIsAdding(true);
     };
 
@@ -259,6 +263,17 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenes
                                     <option value="60 días">60 días</option>
                                 </select>
                             </div>
+                            <div className="form-group flex-1">
+                                <label>Tipo de Orden</label>
+                                <select
+                                    className="input-field"
+                                    value={tipo}
+                                    onChange={e => setTipo(e.target.value as any)}
+                                >
+                                    <option value="Recogida">Recogida (Logística)</option>
+                                    <option value="Inventario">Inventario (Bodega)</option>
+                                </select>
+                            </div>
                         </div>
 
                         <div className="item-selection card" style={{ background: 'var(--background-light)', marginTop: '1rem' }}>
@@ -371,8 +386,10 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenes
                             <tr>
                                 <th style={{ minWidth: '140px' }}>Consecutivo</th>
                                 <th style={{ minWidth: '110px' }}>Fecha</th>
-                                <th style={{ minWidth: '300px' }}>Proveedor</th>
+                                <th style={{ minWidth: '150px' }}>Proveedor</th>
+                                <th className="text-center" style={{ minWidth: '100px' }}>Tipo</th>
                                 <th className="text-right" style={{ minWidth: '120px' }}>Total</th>
+                                <th className="text-center" style={{ minWidth: '100px' }}>Verificada</th>
                                 <th className="text-center" style={{ minWidth: '150px' }}>Acciones</th>
                             </tr>
                         </thead>
@@ -382,8 +399,32 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenes
                                     <td><strong>{oc.consecutivo}</strong></td>
                                     <td>{oc.fecha}</td>
                                     <td>{oc.nombreProveedor}</td>
+                                    <td className="text-center">
+                                        <span className={`tag-${oc.tipo?.toLowerCase() || 'recogida'}`} style={{
+                                            padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 'bold',
+                                            background: oc.tipo === 'Inventario' ? '#e0f2fe' : '#fef3c7',
+                                            color: oc.tipo === 'Inventario' ? '#0369a1' : '#92400e'
+                                        }}>
+                                            {oc.tipo || 'Recogida'}
+                                        </span>
+                                    </td>
                                     <td className="text-right" style={{ color: 'var(--primary-blue)', fontWeight: 'bold', fontFamily: 'Courier New, monospace' }}>
                                         ${oc.total.toLocaleString()}
+                                    </td>
+                                    <td className="text-center">
+                                        {oc.verificada ? (
+                                            <span style={{ color: 'var(--success)', fontWeight: 'bold' }}>✅ SI</span>
+                                        ) : (
+                                            oc.tipo === 'Recogida' ? (
+                                                <button
+                                                    onClick={() => onUpdateOC({ ...oc, verificada: true })}
+                                                    style={{ fontSize: '0.75rem', padding: '2px 6px' }}
+                                                    className="btn-success"
+                                                >
+                                                    Verificar
+                                                </button>
+                                            ) : 'N/A'
+                                        )}
                                     </td>
                                     <td className="text-center">
                                         <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>

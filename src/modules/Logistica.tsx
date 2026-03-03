@@ -28,10 +28,19 @@ const LogisticaModule: React.FC<IProps> = ({
         : despachos.filter(d => d.estado === filterEstado);
 
     const filteredRecogidas = filterEstado === 'Todos'
-        ? ordenesCompra
-        : ordenesCompra.filter(oc => oc.estado === filterEstado);
+        ? ordenesCompra.filter(oc => oc.tipo === 'Recogida')
+        : ordenesCompra.filter(oc => oc.estado === filterEstado && oc.tipo === 'Recogida');
 
     // Handlers
+    const downloadFile = (url: string, fileName: string) => {
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     const handleStatusChange = (d: Despacho, newStatus: Despacho['estado']) => {
         onUpdateDespacho({ ...d, estado: newStatus });
     };
@@ -181,9 +190,22 @@ const LogisticaModule: React.FC<IProps> = ({
                                                 ${d.total.toLocaleString()}
                                             </td>
                                             <td className="text-center">
-                                                <div style={{ display: 'flex', gap: '0.3rem', justifyContent: 'center' }}>
-                                                    <span title="Foto Entrega" style={{ opacity: d.fotoEntrega ? 1 : 0.2 }}>📸</span>
-                                                    <span title="Remisión" style={{ opacity: d.fotoRemision ? 1 : 0.2 }}>📄</span>
+                                                <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
+                                                    {d.fotoEntrega ? (
+                                                        <button
+                                                            className="btn-download"
+                                                            onClick={() => downloadFile(d.fotoEntrega!, `Entrega_${d.consecutivoCotizacion}.jpg`)}
+                                                            title="Descargar Foto Entrega"
+                                                        >📸</button>
+                                                    ) : <span style={{ opacity: 0.2 }}>📸</span>}
+
+                                                    {d.fotoRemision ? (
+                                                        <button
+                                                            className="btn-download"
+                                                            onClick={() => downloadFile(d.fotoRemision!, `Remision_${d.consecutivoCotizacion}.pdf`)}
+                                                            title="Descargar Remisión"
+                                                        >📄</button>
+                                                    ) : <span style={{ opacity: 0.2 }}>📄</span>}
                                                 </div>
                                             </td>
                                             <td className="text-center">
@@ -203,7 +225,7 @@ const LogisticaModule: React.FC<IProps> = ({
                                         </tr>
                                         {expandedId === d.id && (
                                             <tr className="detail-row">
-                                                <td colSpan={8}>
+                                                <td colSpan={10}>
                                                     <div className="product-details-box animate-fade-in">
                                                         <h4>🔍 Detalles de Entrega: {d.direccion}</h4>
                                                         <table className="inner-table">
@@ -245,6 +267,7 @@ const LogisticaModule: React.FC<IProps> = ({
                                     <th style={{ minWidth: '200px' }}>Conductor</th>
                                     <th className="text-right" style={{ minWidth: '110px' }}>Total</th>
                                     <th className="text-center" style={{ minWidth: '100px' }}>Pruebas</th>
+                                    <th className="text-center" style={{ minWidth: '100px' }}>Verif</th>
                                     <th className="text-center" style={{ minWidth: '120px' }}>Estado</th>
                                     <th className="text-center" style={{ minWidth: '160px' }}>Acciones</th>
                                 </tr>
@@ -286,10 +309,30 @@ const LogisticaModule: React.FC<IProps> = ({
                                                 ${oc.total.toLocaleString()}
                                             </td>
                                             <td className="text-center">
-                                                <div style={{ display: 'flex', gap: '0.3rem', justifyContent: 'center' }}>
-                                                    <span title="Foto Recogida" style={{ opacity: oc.fotoEntrega ? 1 : 0.2 }}>📸</span>
-                                                    <span title="Remisión Prov" style={{ opacity: oc.fotoRemision ? 1 : 0.2 }}>📄</span>
+                                                <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
+                                                    {oc.fotoEntrega ? (
+                                                        <button
+                                                            className="btn-download"
+                                                            onClick={() => downloadFile(oc.fotoEntrega!, `Recogida_${oc.consecutivo}.jpg`)}
+                                                            title="Descargar Foto"
+                                                        >📸</button>
+                                                    ) : <span style={{ opacity: 0.2 }}>📸</span>}
+
+                                                    {oc.fotoRemision ? (
+                                                        <button
+                                                            className="btn-download"
+                                                            onClick={() => downloadFile(oc.fotoRemision!, `Remision_${oc.consecutivo}.pdf`)}
+                                                            title="Descargar Remisión Prov"
+                                                        >📄</button>
+                                                    ) : <span style={{ opacity: 0.2 }}>📄</span>}
                                                 </div>
+                                            </td>
+                                            <td className="text-center">
+                                                {oc.verificada ? (
+                                                    <span style={{ color: 'var(--success)', fontWeight: 'bold', fontSize: '1.2rem' }} title="OC Verificada">🛡️</span>
+                                                ) : (
+                                                    <span style={{ opacity: 0.2 }} title="Sin Verificar">🛡️</span>
+                                                )}
                                             </td>
                                             <td className="text-center">
                                                 <span className={`status-badge status-${(oc.estado || 'Pendiente').toLowerCase().replace(' ', '-')}`}>
@@ -390,6 +433,21 @@ const LogisticaModule: React.FC<IProps> = ({
                     border-radius: 6px; font-size: 1rem;
                 }
                 .btn-status:hover:not(:disabled) { background: #f1f5f9; border-color: var(--primary-blue); }
+                
+                .btn-download {
+                    background: none;
+                    border: 1px solid #e2e8f0;
+                    cursor: pointer;
+                    padding: 2px 5px;
+                    border-radius: 4px;
+                    font-size: 0.9rem;
+                    transition: all 0.2s;
+                }
+                .btn-download:hover {
+                    background: #f1f5f9;
+                    border-color: var(--primary-blue);
+                    transform: scale(1.1);
+                }
 
                 .sla-indicator {
                     width: 28px;

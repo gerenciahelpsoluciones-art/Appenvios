@@ -87,6 +87,8 @@ export interface OrdenCompra {
   fotoRemision?: string;
   georeferencia?: string;
   usuarioId: string;
+  tipo: 'Recogida' | 'Inventario';
+  verificada: boolean;
 }
 
 export interface CotizacionItem {
@@ -262,7 +264,9 @@ function App() {
           conductorNombre: o.conductor_nombre,
           fotoEntrega: o.foto_entrega,
           fotoRemision: o.foto_remision,
-          usuarioId: o.usuario_id
+          usuarioId: o.usuario_id,
+          tipo: o.tipo || 'Recogida', // Default to Recogida for existing ones
+          verificada: !!o.verificada
         })));
       }
 
@@ -381,29 +385,53 @@ function App() {
 
   // Update handlers
   const addCliente = async (c: Cliente) => {
+    if (!currentUser) {
+      alert('Error: Debe iniciar sesión para añadir un cliente.');
+      return;
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, usuarioId, ...newC } = c; // Don't send camelCase or temporary ID
     const dbClient = {
       ...newC,
-      usuario_id: currentUser?.id // Force assign to current user
+      usuario_id: currentUser.id // Force assign to current user
     };
+
+    console.log('Intentando añadir cliente:', dbClient);
 
     const { data, error } = await supabase.from('clientes').insert([dbClient]).select();
     if (error) {
-      alert('Error al añadir cliente: ' + error.message);
+      console.error('Error al añadir cliente:', error);
+      if (error.code === '23503') {
+        alert('Error de base de datos (FK): El usuario actual no existe en la tabla de referencia. Por favor, ejecute el script SQL de corrección de base de datos.');
+      } else {
+        alert('Error al añadir cliente: ' + error.message);
+      }
     } else if (data) {
-      setClientes([...clientes, data[0] as Cliente]);
+      setClientes([...clientes, { ...data[0], usuarioId: data[0].usuario_id } as Cliente]);
     }
   };
+
   const updateCliente = async (c: Cliente) => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { usuarioId, ...rest } = c; // Don't send the frontend-only property
     const { error } = await supabase.from('clientes').update(rest).eq('id', c.id);
-    if (!error) setClientes(clientes.map(item => item.id === c.id ? c : item));
+    if (error) {
+      console.error('Error al actualizar cliente:', error);
+      alert('Error al actualizar cliente: ' + error.message);
+    } else {
+      setClientes(clientes.map(item => item.id === c.id ? c : item));
+    }
   };
+
   const deleteCliente = async (id: string) => {
     const { error } = await supabase.from('clientes').delete().eq('id', id);
-    if (!error) setClientes(clientes.filter(c => c.id !== id));
+    if (error) {
+      console.error('Error al eliminar cliente:', error);
+      alert('Error al eliminar cliente: ' + error.message);
+    } else {
+      setClientes(clientes.filter(c => c.id !== id));
+    }
   };
 
   const addProveedor = async (p: Proveedor) => {
@@ -708,7 +736,9 @@ function App() {
       conductor_nombre: oc.conductorNombre,
       foto_entrega: oc.fotoEntrega,
       foto_remision: oc.fotoRemision,
-      usuario_id: oc.usuarioId
+      usuario_id: oc.usuarioId,
+      tipo: oc.tipo || 'Recogida',
+      verificada: oc.verificada || false
     }]).select();
     if (error) {
       alert('Error al añadir O.C.: ' + error.message);
@@ -723,7 +753,9 @@ function App() {
         conductorNombre: dbO.conductor_nombre,
         fotoEntrega: dbO.foto_entrega,
         fotoRemision: dbO.foto_remision,
-        usuarioId: dbO.usuario_id
+        usuarioId: dbO.usuario_id,
+        tipo: dbO.tipo,
+        verificada: dbO.verificada
       } as OrdenCompra, ...prev]);
     }
   };
@@ -739,7 +771,9 @@ function App() {
       conductor_nombre: oc.conductorNombre,
       foto_entrega: oc.fotoEntrega,
       foto_remision: oc.fotoRemision,
-      usuario_id: oc.usuarioId
+      usuario_id: oc.usuarioId,
+      tipo: oc.tipo,
+      verificada: oc.verificada
     }).eq('id', oc.id);
     if (!error) setOrdenesCompra(ordenesCompra.map(item => item.id === oc.id ? oc : item));
   };
