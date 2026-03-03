@@ -1022,6 +1022,10 @@ function App() {
           onUpdateDespacho={updateDespacho}
           onDeleteDespacho={deleteDespacho}
           onUpdateOC={updateOrdenCompra}
+          onAddOC={addOrdenCompra}
+          proveedores={proveedores}
+          productos={productos}
+          currentUser={currentUser!}
         />;
       case 'reparaciones':
         return <ReparacionesModule

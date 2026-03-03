@@ -1,26 +1,44 @@
 import React, { useState } from 'react';
-import type { Despacho, OrdenCompra, Conductor } from '../App';
+import type { Despacho, OrdenCompra, Conductor, Proveedor, Producto, AppUser } from '../App';
 
 interface IProps {
     despachos: Despacho[];
     ordenesCompra: OrdenCompra[];
     conductores: Conductor[];
+    proveedores: Proveedor[];
+    productos: Producto[];
+    currentUser: AppUser;
     onUpdateDespacho: (d: Despacho) => void;
     onDeleteDespacho: (id: string) => void;
     onUpdateOC: (oc: OrdenCompra) => void;
+    onAddOC: (oc: OrdenCompra) => void;
 }
 
 const LogisticaModule: React.FC<IProps> = ({
     despachos,
     ordenesCompra,
     conductores,
+    proveedores,
+    productos,
+    currentUser,
     onUpdateDespacho,
     onDeleteDespacho,
-    onUpdateOC
+    onUpdateOC,
+    onAddOC
 }) => {
     const [activeTab, setActiveTab] = useState<'despachos' | 'recogidas'>('despachos');
     const [filterEstado, setFilterEstado] = useState<string>('Todos');
     const [expandedId, setExpandedId] = useState<string | null>(null);
+
+    // Manual Pickup Modal State
+    const [isAddManualOpen, setIsAddManualOpen] = useState(false);
+    const [selectedProvId, setSelectedProvId] = useState('');
+    const [manualItems, setManualItems] = useState<{ productoId: string, nombreProducto: string, numPart: string, cantidad: number }[]>([]);
+    const [obs, setObs] = useState('');
+
+    // Manual Item Entry
+    const [selProdId, setSelProdId] = useState('');
+    const [selCant, setSelCant] = useState(1);
 
     // Filter Logic
     const filteredDespachos = filterEstado === 'Todos'
@@ -69,6 +87,60 @@ const LogisticaModule: React.FC<IProps> = ({
 
     const toggleExpand = (id: string) => {
         setExpandedId(expandedId === id ? null : id);
+    };
+
+    const handleAddManualItem = () => {
+        const prod = productos.find(p => p.id === selProdId);
+        if (prod && selCant > 0) {
+            setManualItems([...manualItems, {
+                productoId: prod.id,
+                nombreProducto: prod.nombre,
+                numPart: prod.numPart,
+                cantidad: selCant
+            }]);
+            setSelProdId('');
+            setSelCant(1);
+        }
+    };
+
+    const handleSaveManualRecogida = () => {
+        const prov = proveedores.find(p => p.id === selectedProvId);
+        if (!prov || manualItems.length === 0) {
+            alert('Seleccione un proveedor y añada al menos un producto');
+            return;
+        }
+
+        const newRecogida: OrdenCompra = {
+            id: Date.now().toString(),
+            consecutivo: `REC-M-${(ordenesCompra.length + 1).toString().padStart(4, '0')}`,
+            fecha: new Date().toISOString().split('T')[0],
+            proveedorId: prov.id,
+            nombreProveedor: prov.nombre,
+            items: manualItems.map(item => ({
+                id: Math.random().toString(36).substr(2, 9),
+                productoId: item.productoId,
+                nombreProducto: item.nombreProducto,
+                numPart: item.numPart,
+                cantidad: item.cantidad,
+                precioUnitario: 0
+            })),
+            subtotal: 0,
+            iva: 0,
+            total: 0,
+            condicionesComerciales: 'Recogida Manual',
+            observaciones: obs,
+            estado: 'Pendiente',
+            usuarioId: currentUser.id,
+            tipo: 'Recogida',
+            verificada: false
+        };
+
+        onAddOC(newRecogida);
+        setIsAddManualOpen(false);
+        // Reset
+        setSelectedProvId('');
+        setManualItems([]);
+        setObs('');
     };
 
     const calculateSLA = (dateStr: string, estado: string) => {
@@ -131,6 +203,11 @@ const LogisticaModule: React.FC<IProps> = ({
                             </>
                         )}
                     </select>
+                    {activeTab === 'recogidas' && (
+                        <button className="btn btn-primary" onClick={() => setIsAddManualOpen(true)}>
+                            + Nueva Recogida Manual
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -377,6 +454,87 @@ const LogisticaModule: React.FC<IProps> = ({
                 </div>
             )}
 
+            {/* MANUAL PICKUP MODAL */}
+            {isAddManualOpen && (
+                <div className="modal-overlay">
+                    <div className="modal-content card" style={{ maxWidth: '800px', width: '90%' }}>
+                        <h3>Nueva Recogida Manual</h3>
+                        <div className="form-grid-modern">
+                            <div className="form-group">
+                                <label>Proveedor</label>
+                                <select
+                                    className="input-field"
+                                    value={selectedProvId}
+                                    onChange={e => setSelectedProvId(e.target.value)}
+                                >
+                                    <option value="">-- Seleccionar Proveedor --</option>
+                                    {proveedores.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+                                </select>
+                            </div>
+
+                            <div className="item-entry-box card" style={{ background: '#f1f5f9', padding: '1rem', marginTop: '1rem' }}>
+                                <h4>Añadir Productos</h4>
+                                <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
+                                    <div className="form-group" style={{ flex: 3 }}>
+                                        <label>Producto</label>
+                                        <select
+                                            className="input-field"
+                                            value={selProdId}
+                                            onChange={e => setSelProdId(e.target.value)}
+                                        >
+                                            <option value="">-- Seleccionar Producto --</option>
+                                            {productos.map(p => <option key={p.id} value={p.id}>[{p.numPart}] {p.nombre}</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="form-group" style={{ flex: 1 }}>
+                                        <label>Cant</label>
+                                        <input
+                                            type="number"
+                                            className="input-field"
+                                            value={selCant}
+                                            onChange={e => setSelCant(Number(e.target.value))}
+                                        />
+                                    </div>
+                                    <button className="btn btn-success" onClick={handleAddManualItem} style={{ height: '42px' }}>Añadir</button>
+                                </div>
+                            </div>
+
+                            <table className="inner-table" style={{ width: '100%', marginTop: '1rem' }}>
+                                <thead>
+                                    <tr><th>Producto</th><th>Cant</th><th></th></tr>
+                                </thead>
+                                <tbody>
+                                    {manualItems.map((item, i) => (
+                                        <tr key={i}>
+                                            <td>{item.nombreProducto} ({item.numPart})</td>
+                                            <td>{item.cantidad}</td>
+                                            <td>
+                                                <button className="btn-delete" onClick={() => setManualItems(manualItems.filter((_, idx) => idx !== i))}>🗑️</button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+
+                            <div className="form-group" style={{ marginTop: '1rem' }}>
+                                <label>Observaciones</label>
+                                <textarea
+                                    className="input-field"
+                                    value={obs}
+                                    onChange={e => setObs(e.target.value)}
+                                    placeholder="Notas adicionales..."
+                                />
+                            </div>
+                        </div>
+
+                        <div className="modal-actions" style={{ marginTop: '2rem', display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+                            <button className="btn-secondary" onClick={() => setIsAddManualOpen(false)}>Cancelar</button>
+                            <button className="btn-primary" onClick={handleSaveManualRecogida}>Crear Recogida</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <style>{`
                 .btn-tab {
                     padding: 0.6rem 1.2rem;
@@ -467,6 +625,13 @@ const LogisticaModule: React.FC<IProps> = ({
 
                 .animate-fade-in { animation: fadeIn 0.3s ease-out; }
                 @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+
+                .modal-overlay {
+                    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+                    background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;
+                    z-index: 1000;
+                }
+                .modal-content { max-height: 90vh; overflow-y: auto; }
             `}</style>
         </div>
     );
