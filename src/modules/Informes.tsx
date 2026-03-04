@@ -553,7 +553,7 @@ const InformesModule: React.FC<IProps> = ({
                                                 >
                                                     ✅
                                                 </button>
-                                                {(currentUser.rol === 'Admin' || (currentUser.cargo?.toLowerCase().includes('gerente comercial'))) && q.requiereAutorizacion && !q.autorizada && (
+                                                {(currentUser.rol === 'Admin' || currentUser.cargo?.toLowerCase().includes('gerente comercial')) && q.requiereAutorizacion && !q.autorizada && (
                                                     <button
                                                         className="btn-status btn-authorize"
                                                         onClick={() => authorizeQuote(q)}

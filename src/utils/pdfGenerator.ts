@@ -96,7 +96,8 @@ export const generateQuotationPDF = (data: PDFData) => {
         if (docAny.lastAutoTable && docAny.lastAutoTable.cursor) {
             finalY = docAny.lastAutoTable.cursor.y;
         } else {
-            finalY = 85 + (tableBody.length * 10) + 15;
+            // Fallback calculation
+            finalY = 85 + (tableBody.length * 7) + 15;
         }
 
         // Totals
@@ -145,16 +146,20 @@ export const generateQuotationPDF = (data: PDFData) => {
         doc.setFont("helvetica", "bold");
         doc.setTextColor(0, 0, 0);
         doc.text("ATENTAMENTE,", 14, currentY + 10);
-        doc.text((data.ejecutivo.nombre || 'ADMIN').toUpperCase(), 14, currentY + 30);
-        doc.setFont("helvetica", "normal");
-        doc.text(data.ejecutivo.cargo || 'Ejecutivo Comercial', 14, currentY + 35);
-        doc.text(`Tel: ${data.ejecutivo.telefono || ''}`, 14, currentY + 40);
-        doc.text(`Email: ${data.ejecutivo.correo || ''}`, 14, currentY + 45);
 
-        const fileName = `COTIZACION HELP SOLUCIONES - ${(data.cliente.nombre || 'CLIENTE').toUpperCase()} - ${data.consecutivo}.pdf`;
+        const ejecutivoNombre = (data.ejecutivo?.nombre || 'ADMIN').toUpperCase();
+        doc.text(ejecutivoNombre, 14, currentY + 30);
+
+        doc.setFont("helvetica", "normal");
+        doc.text(data.ejecutivo?.cargo || 'Ejecutivo Comercial', 14, currentY + 35);
+        doc.text(`Tel: ${data.ejecutivo?.telefono || ''}`, 14, currentY + 40);
+        doc.text(`Email: ${data.ejecutivo?.correo || ''}`, 14, currentY + 45);
+
+        const safeClientName = (data.cliente?.nombre || 'CLIENTE').toUpperCase();
+        const fileName = `COTIZACION HELP SOLUCIONES - ${safeClientName} - ${data.consecutivo || 'S-N'}.pdf`;
         doc.save(fileName);
     } catch (error: any) {
         console.error("Error generating PDF:", error);
-        alert(`Error al generar el PDF: ${error.message || 'Error desconocido'}. Verifique los datos.`);
+        alert(`Error detallado al generar el PDF: ${error.message || 'Error desconocido'}. Por favor reporte este mensaje.`);
     }
 };
