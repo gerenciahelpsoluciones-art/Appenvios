@@ -239,8 +239,24 @@ function App() {
       if (clientData) {
         setClientes(clientData.map((c: any) => ({
           ...c,
-          usuarioId: c.usuario_id
-        })));
+          id: c.id,
+          nombre: c.nombre,
+          nit: c.nit,
+          contacto: c.contacto,
+          telefono: c.telefono,
+          correo: c.correo,
+          direccion: c.direccion,
+          coordenadas: c.coordenadas,
+          usuarioId: c.usuario_id,
+          tesoreriaNombre: c.tesoreria_nombre || '',
+          tesoreriaTelefono: c.tesoreria_telefono || '',
+          tesoreriaEmail: c.tesoreria_email || '',
+          contabilidadNombre: c.contabilidad_nombre || '',
+          contabilidadTelefono: c.contabilidad_telefono || '',
+          contabilidadEmail: c.contabilidad_email || '',
+          poseeCredito: !!c.posee_credito,
+          cupoCredito: c.cupo_credito || 0
+        } as Cliente)));
       }
 
       const { data: providerData } = await supabase.from('proveedores').select('*');
@@ -413,73 +429,82 @@ function App() {
       return;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { id, usuarioId, ...newC } = c; // Don't send camelCase or temporary ID
+    // Explicitly build the payload for Supabase (snake_case)
     const dbClient = {
-      ...newC,
-      usuario_id: currentUser.id, // Force assign to current user
-      tesoreria_nombre: c.tesoreriaNombre,
-      tesoreria_telefono: c.tesoreriaTelefono,
-      tesoreria_email: c.tesoreriaEmail,
-      contabilidad_nombre: c.contabilidadNombre,
-      contabilidad_telefono: c.contabilidadTelefono,
-      contabilidad_email: c.contabilidadEmail,
-      posee_credito: c.poseeCredito,
-      cupo_credito: c.cupoCredito
+      nombre: c.nombre,
+      nit: c.nit,
+      contacto: c.contacto,
+      telefono: c.telefono,
+      correo: c.correo,
+      direccion: c.direccion,
+      coordenadas: c.coordenadas || '',
+      usuario_id: currentUser.id,
+      tesoreria_nombre: c.tesoreriaNombre || '',
+      tesoreria_telefono: c.tesoreriaTelefono || '',
+      tesoreria_email: c.tesoreriaEmail || '',
+      contabilidad_nombre: c.contabilidadNombre || '',
+      contabilidad_telefono: c.contabilidadTelefono || '',
+      contabilidad_email: c.contabilidadEmail || '',
+      posee_credito: c.poseeCredito || false,
+      cupo_credito: c.cupoCredito || 0
     };
 
-    console.log('Intentando añadir cliente:', dbClient);
+    console.log('Insertando cliente en Supabase:', dbClient);
 
-    const { data, error } = await supabase.from('clientes').insert([dbClient]).select();
-    if (error) {
-      console.error('Error al añadir cliente:', error);
-      if (error.code === '23503') {
-        alert('Error de base de datos (FK): El usuario actual no existe en la tabla de referencia. Por favor, ejecute el script SQL de corrección de base de datos.');
-      } else {
-        alert('Error al añadir cliente: ' + error.message);
-      }
-    } else if (data) {
-      setClientes([...clientes, {
-        ...data[0],
-        usuarioId: data[0].usuario_id,
-        tesoreriaNombre: data[0].tesoreria_nombre,
-        tesoreriaTelefono: data[0].tesoreria_telefono,
-        tesoreriaEmail: data[0].tesoreria_email,
-        contabilidadNombre: data[0].contabilidad_nombre,
-        contabilidadTelefono: data[0].contabilidad_telefono,
-        contabilidadEmail: data[0].contabilidad_email,
-        poseeCredito: data[0].posee_credito,
-        cupoCredito: data[0].cupo_credito
+    const { data: insertData, error: insertError } = await supabase.from('clientes').insert([dbClient]).select();
+
+    if (insertError) {
+      console.error('Error al añadir cliente:', insertError);
+      alert(`Error al añadir cliente: ${insertError.message}. Código: ${insertError.code}`);
+    } else if (insertData && insertData[0]) {
+      const dbObj = insertData[0];
+      setClientes(prev => [...prev, {
+        ...dbObj,
+        usuarioId: dbObj.usuario_id,
+        tesoreriaNombre: dbObj.tesoreria_nombre,
+        tesoreriaTelefono: dbObj.tesoreria_telefono,
+        tesoreriaEmail: dbObj.tesoreria_email,
+        contabilidadNombre: dbObj.contabilidad_nombre,
+        contabilidadTelefono: dbObj.contabilidad_telefono,
+        contabilidadEmail: dbObj.contabilidad_email,
+        poseeCredito: !!dbObj.posee_credito,
+        cupoCredito: dbObj.cupo_credito
       } as Cliente]);
+      alert('Cliente añadido correctamente.');
     }
   };
 
   const updateCliente = async (c: Cliente) => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const {
-      usuarioId,
-      tesoreriaNombre, tesoreriaTelefono, tesoreriaEmail,
-      contabilidadNombre, contabilidadTelefono, contabilidadEmail,
-      poseeCredito, cupoCredito,
-      ...rest
-    } = c; // Don't send the frontend-only property
-    const { error } = await supabase.from('clientes').update({
-      ...rest,
-      usuario_id: usuarioId,
-      tesoreria_nombre: tesoreriaNombre,
-      tesoreria_telefono: tesoreriaTelefono,
-      tesoreria_email: tesoreriaEmail,
-      contabilidad_nombre: contabilidadNombre,
-      contabilidad_telefono: contabilidadTelefono,
-      contabilidad_email: contabilidadEmail,
-      posee_credito: poseeCredito,
-      cupo_credito: cupoCredito
-    }).eq('id', c.id);
-    if (error) {
-      console.error('Error al actualizar cliente:', error);
-      alert('Error al actualizar cliente: ' + error.message);
+    // Explicitly build the payload for Update (snake_case)
+    const payload = {
+      nombre: c.nombre,
+      nit: c.nit,
+      contacto: c.contacto,
+      telefono: c.telefono,
+      correo: c.correo,
+      direccion: c.direccion,
+      coordenadas: c.coordenadas || '',
+      usuario_id: c.usuarioId,
+      tesoreria_nombre: c.tesoreriaNombre || '',
+      tesoreria_telefono: c.tesoreriaTelefono || '',
+      tesoreria_email: c.tesoreriaEmail || '',
+      contabilidad_nombre: c.contabilidadNombre || '',
+      contabilidad_telefono: c.contabilidadTelefono || '',
+      contabilidad_email: c.contabilidadEmail || '',
+      posee_credito: c.poseeCredito || false,
+      cupo_credito: c.cupoCredito || 0
+    };
+
+    console.log('Actualizando cliente en Supabase:', payload);
+
+    const { error: updateError } = await supabase.from('clientes').update(payload).eq('id', c.id);
+
+    if (updateError) {
+      console.error('Error al actualizar cliente:', updateError);
+      alert(`Error al actualizar cliente: ${updateError.message}`);
     } else {
-      setClientes(clientes.map(item => item.id === c.id ? c : item));
+      setClientes(prev => prev.map(item => item.id === c.id ? c : item));
+      alert('Cambios guardados correctamente.');
     }
   };
 
