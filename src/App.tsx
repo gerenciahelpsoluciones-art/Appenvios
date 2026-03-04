@@ -667,16 +667,17 @@ function App() {
     if (!error) setReparaciones(prev => prev.filter(r => r.id !== id));
   };
 
-  // Notification Helper (Simulated)
   const sendEmailNotification = (to: string, subject: string, body: string) => {
-    console.log(`[EMAIL] To: ${to}\nSubject: ${subject}\nBody: ${body}`);
-    const mailtoUrl = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    const signature = `\n\n---\nNotificado por: ${currentUser?.nombre || 'Usuario'} (${currentUser?.rol || 'Cargo'})`;
+    const fullBody = body + signature;
+    const mailtoUrl = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(fullBody)}`;
     window.open(mailtoUrl, '_blank');
   };
 
   const sendWhatsAppNotification = (phone: string, message: string) => {
-    console.log(`[SIMULATED WHATSAPP] To: ${phone}\nMessage: ${message}`);
-    const encodedMsg = encodeURIComponent(message);
+    const signature = `\n\n_Enviado por: ${currentUser?.nombre || 'Usuario'}_`;
+    const fullMessage = message + signature;
+    const encodedMsg = encodeURIComponent(fullMessage);
     const url = `https://wa.me/${phone.replace(/\s/g, '')}?text=${encodedMsg}`;
     window.open(url, '_blank');
   };
@@ -893,11 +894,13 @@ function App() {
 
     if (error) {
       console.error('Error en updateOrdenCompra:', error);
-      alert(`Error al actualizar Orden de Compra: ${error.message}`);
+      alert(`Error al actualizar Orden de Compra: ${error.message} (ID: ${oc.id})`);
       return;
     }
 
+    console.log('Orden de Compra actualizada con éxito:', oc.consecutivo);
     setOrdenesCompra(prev => prev.map(item => item.id === oc.id ? oc : item));
+    // Optional: alert('Estado actualizado correctamente.');
   };
   const deleteOrdenCompra = async (id: string) => {
     const { error } = await supabase.from('ordenes_compra').delete().eq('id', id);
