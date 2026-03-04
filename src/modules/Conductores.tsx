@@ -141,8 +141,15 @@ const ConductoresModule: React.FC<IProps> = ({
         }
     };
 
-    const assignedDespachos = viewingRoutesId ? despachos.filter(d => d.conductorId === viewingRoutesId) : [];
-    const assignedOCs = viewingRoutesId ? ordenesCompra.filter(oc => oc.conductorId === viewingRoutesId) : [];
+    const allAssignedDespachos = viewingRoutesId ? despachos.filter(d => d.conductorId === viewingRoutesId) : [];
+    const allAssignedOCs = viewingRoutesId ? ordenesCompra.filter(oc => oc.conductorId === viewingRoutesId) : [];
+
+    const pendingDespachos = allAssignedDespachos.filter(d => d.estado !== 'Entregado');
+    const completedDespachos = allAssignedDespachos.filter(d => d.estado === 'Entregado');
+
+    const pendingOCs = allAssignedOCs.filter(oc => oc.estado !== 'Recogido');
+    const completedOCs = allAssignedOCs.filter(oc => oc.estado === 'Recogido');
+
     const currentConductor = conductores.find(c => c.id === viewingRoutesId);
 
     return (
@@ -277,8 +284,8 @@ const ConductoresModule: React.FC<IProps> = ({
 
                     <div className="tasks-grid">
                         <div className="task-column">
-                            <h4>📦 Entregas (Ventas)</h4>
-                            {assignedDespachos.length > 0 ? assignedDespachos.map(d => (
+                            <h4>📦 Entregas Pendientes</h4>
+                            {pendingDespachos.length > 0 ? pendingDespachos.map(d => (
                                 <div key={d.id} className={`task-card ${selectedTasks.includes(d.id) ? 'selected-task' : ''}`}>
                                     <div className="task-main">
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -323,8 +330,8 @@ const ConductoresModule: React.FC<IProps> = ({
                         </div>
 
                         <div className="task-column">
-                            <h4>🏭 Recogidas (Compras)</h4>
-                            {assignedOCs.length > 0 ? assignedOCs.map(oc => (
+                            <h4>🏭 Recogidas Pendientes</h4>
+                            {pendingOCs.length > 0 ? pendingOCs.map(oc => (
                                 <div key={oc.id} className={`task-card oc-task ${selectedTasks.includes(oc.id) ? 'selected-task' : ''}`}>
                                     <div className="task-main">
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -379,6 +386,47 @@ const ConductoresModule: React.FC<IProps> = ({
                             )) : <p className="empty-msg">No tiene recogidas asignadas.</p>}
                         </div>
                     </div>
+
+                    {(completedDespachos.length > 0 || completedOCs.length > 0) && (
+                        <div className="completed-section animate-fade-in" style={{ marginTop: '3rem', borderTop: '2px dashed #cbd5e1', paddingTop: '2rem' }}>
+                            <h3 style={{ color: '#059669', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
+                                ✅ Tareas Finalizadas ({completedDespachos.length + completedOCs.length})
+                            </h3>
+                            <div className="completed-grid" style={{ overflowX: 'auto' }}>
+                                <table className="data-table" style={{ background: '#f8fafc' }}>
+                                    <thead style={{ background: '#f1f5f9' }}>
+                                        <tr>
+                                            <th>Tipo</th>
+                                            <th>Consecutivo</th>
+                                            <th>Cliente / Proveedor</th>
+                                            <th>Dirección / Ubicación</th>
+                                            <th className="text-center">Estado</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {completedDespachos.map(d => (
+                                            <tr key={d.id} style={{ opacity: 0.8 }}>
+                                                <td><span className="badge-type delivery">Venta</span></td>
+                                                <td><strong>{d.consecutivoCotizacion}</strong></td>
+                                                <td>{d.clienteNombre}</td>
+                                                <td><small>{d.direccion}</small></td>
+                                                <td className="text-center"><span className="status-tag status-entregado">ENTREGADO</span></td>
+                                            </tr>
+                                        ))}
+                                        {completedOCs.map(oc => (
+                                            <tr key={oc.id} style={{ opacity: 0.8 }}>
+                                                <td><span className="badge-type pickup">Compra</span></td>
+                                                <td><strong>{oc.consecutivo}</strong></td>
+                                                <td>{oc.nombreProveedor}</td>
+                                                <td><small>Bodega Proveedor</small></td>
+                                                <td className="text-center"><span className="status-tag status-recogido">RECOGIDO</span></td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -493,6 +541,11 @@ const ConductoresModule: React.FC<IProps> = ({
                 .selected-task { border: 2px solid var(--primary-blue); background: #f0f7ff; }
                 .btn-complete { background: #059669; color: white; border: none; padding: 0.5rem; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem; }
                 .btn-complete:disabled { background: #cbd5e1; cursor: not-allowed; }
+                .badge-type { padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; }
+                .badge-type.delivery { background: #dcfce7; color: #15803d; }
+                .badge-type.pickup { background: #f3e8ff; color: #7e22ce; }
+                .status-tag.status-entregado { background: #dcfce7; color: #15803d; padding: 0.2rem 0.6rem; border-radius: 20px; font-size: 0.75rem; font-weight: 800; }
+                .status-tag.status-recogido { background: #f3e8ff; color: #7e22ce; padding: 0.2rem 0.6rem; border-radius: 20px; font-size: 0.75rem; font-weight: 800; }
                 .upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
                 .btn-geo { background: #3b82f6; }
                 .upload-group label { display: block; font-size: 0.75rem; font-weight: 700; margin-bottom: 0.2rem; color: var(--text-muted); }
