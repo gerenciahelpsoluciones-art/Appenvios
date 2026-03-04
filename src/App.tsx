@@ -667,10 +667,15 @@ function App() {
     if (!error) setReparaciones(prev => prev.filter(r => r.id !== id));
   };
 
-  const sendEmailNotification = (to: string, subject: string, body: string) => {
-    const signature = `\n\n---\nNotificado por: ${currentUser?.nombre || 'Usuario'} (${currentUser?.rol || 'Cargo'})`;
-    const fullBody = body + signature;
-    const mailtoUrl = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(fullBody)}`;
+  const sendEmailNotification = (to: string, subject: string, body: string, cc?: string) => {
+    const header = `*** CRM HELP SOLUCIONES - NOTIFICACIÓN AUTOMÁTICA ***\n\n`;
+    const signature = `\n\nCordialmente,\n\n${currentUser?.nombre || 'Equipo Help Soluciones'}\n${currentUser?.cargo || 'Sistema de Gestión'}\nHelp Soluciones Informáticas\n\n---\nEste mensaje fue generado automáticamente por el sistema de Appenvios.`;
+
+    const fullBody = header + body + signature;
+
+    let mailtoUrl = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(fullBody)}`;
+    if (cc) mailtoUrl += `&cc=${encodeURIComponent(cc)}`;
+
     window.open(mailtoUrl, '_blank');
   };
 
@@ -759,11 +764,11 @@ function App() {
 
     // 3. Trigger Outlook Email & Logistics Automation if Won
     if (c.estado === 'Ganado') {
-      // Outlook Integration
-      const subject = encodeURIComponent(`NUEVO PEDIDO GANADO - ${c.consecutivo}`);
-      const body = encodeURIComponent(`Hola Logística,\n\nSe ha ganado la cotización ${c.consecutivo}.\nCliente: ${c.clienteNombre}\nTotal: $${Math.round(c.total).toLocaleString()}\n\nFavor proceder con el despacho.`);
-      const mailtoUrl = `mailto:logistica@helpsoluciones.com.co?cc=facturacion@helpsoluciones.com.co&subject=${subject}&body=${body}`;
-      window.open(mailtoUrl, '_blank');
+      // Outlook Integration via Template
+      const emailSubject = `NUEVO PEDIDO GANADO - ${c.consecutivo}`;
+      const emailBody = `Hola equipo de Logística/Facturación,\n\nSe ha confirmado una nueva venta ganada:\n\n- Cotización: ${c.consecutivo}\n- Cliente: ${c.clienteNombre}\n- Valor Total: $${Math.round(c.total).toLocaleString()}\n\nPor favor, proceder con el despacho y la facturación correspondiente.`;
+
+      sendEmailNotification('logistica@helpsoluciones.com.co', emailSubject, emailBody, 'facturacion@helpsoluciones.com.co');
 
       // Create Logistics record if it doesn't exist
       if (!despachos.some(d => d.cotizacionId === c.id)) {
