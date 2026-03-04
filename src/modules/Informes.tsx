@@ -368,86 +368,88 @@ const InformesModule: React.FC<IProps> = ({
                 </div>
 
                 {/* ========== LOGISTICS ANALYSIS SECTION ========== */}
-                <div className="card" style={{ marginTop: '1.5rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                        <h3 style={{ margin: 0 }}>📊 Informe de Logística</h3>
-                        <span className="text-muted" style={{ fontSize: '0.85rem' }}>Basado en filtros aplicados</span>
-                    </div>
+                {(currentUser.rol === 'Admin' || currentUser.rol === 'Logistica' || currentUser.cargo?.toLowerCase().includes('administrador')) && (
+                    <div className="card" style={{ marginTop: '1.5rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                            <h3 style={{ margin: 0 }}>📊 Informe de Logística</h3>
+                            <span className="text-muted" style={{ fontSize: '0.85rem' }}>Basado en filtros aplicados</span>
+                        </div>
 
-                    <div className="stats-grid" style={{ marginBottom: '1.5rem' }}>
-                        <div className="stat-card" style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' }}>
-                            <div className="stat-label">Total Entregas (Despachos)</div>
-                            <div className="stat-value">
-                                {despachos.filter(d =>
-                                    d.fechaSolicitud >= appliedFilters.inicio &&
-                                    d.fechaSolicitud <= appliedFilters.fin &&
-                                    (appliedFilters.asesorId ? d.usuarioId === appliedFilters.asesorId : true) &&
-                                    (appliedFilters.clienteId ? d.clienteId === appliedFilters.clienteId : true)
-                                ).length}
+                        <div className="stats-grid" style={{ marginBottom: '1.5rem' }}>
+                            <div className="stat-card" style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' }}>
+                                <div className="stat-label">Total Entregas (Despachos)</div>
+                                <div className="stat-value">
+                                    {despachos.filter(d =>
+                                        d.fechaSolicitud >= appliedFilters.inicio &&
+                                        d.fechaSolicitud <= appliedFilters.fin &&
+                                        (appliedFilters.asesorId ? d.usuarioId === appliedFilters.asesorId : true) &&
+                                        (appliedFilters.clienteId ? d.clienteId === appliedFilters.clienteId : true)
+                                    ).length}
+                                </div>
+                                <div className="stat-trend">En el periodo</div>
                             </div>
-                            <div className="stat-trend">En el periodo</div>
-                        </div>
-                        <div className="stat-card" style={{ background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)' }}>
-                            <div className="stat-label">Total Recogidas (Logística)</div>
-                            <div className="stat-value">
-                                {ordenesCompra.filter(oc =>
-                                    oc.tipo === 'Recogida' &&
-                                    oc.fecha >= appliedFilters.inicio &&
-                                    oc.fecha <= appliedFilters.fin &&
-                                    (appliedFilters.asesorId ? oc.usuarioId === appliedFilters.asesorId : true)
-                                ).length}
+                            <div className="stat-card" style={{ background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)' }}>
+                                <div className="stat-label">Total Recogidas (Logística)</div>
+                                <div className="stat-value">
+                                    {ordenesCompra.filter(oc =>
+                                        oc.tipo === 'Recogida' &&
+                                        oc.fecha >= appliedFilters.inicio &&
+                                        oc.fecha <= appliedFilters.fin &&
+                                        (appliedFilters.asesorId ? oc.usuarioId === appliedFilters.asesorId : true)
+                                    ).length}
+                                </div>
+                                <div className="stat-trend">En el periodo</div>
                             </div>
-                            <div className="stat-trend">En el periodo</div>
+                        </div>
+
+                        <div className="card" style={{ padding: '0', border: 'none', boxShadow: 'none' }}>
+                            <h4>Detalle de Logística por Asesor</h4>
+                            <div style={{ overflowX: 'auto' }}>
+                                <table className="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Asesor Comercial</th>
+                                            <th className="text-center">Entregas</th>
+                                            <th className="text-center">Recogidas</th>
+                                            <th className="text-center">Total Operaciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {users.map(user => {
+                                            const userEntregas = despachos.filter(d =>
+                                                d.usuarioId === user.id &&
+                                                d.fechaSolicitud >= appliedFilters.inicio &&
+                                                d.fechaSolicitud <= appliedFilters.fin &&
+                                                (appliedFilters.clienteId ? d.clienteId === appliedFilters.clienteId : true)
+                                            ).length;
+
+                                            const userRecogidas = ordenesCompra.filter(oc =>
+                                                oc.tipo === 'Recogida' &&
+                                                oc.usuarioId === user.id &&
+                                                oc.fecha >= appliedFilters.inicio &&
+                                                oc.fecha <= appliedFilters.fin
+                                            ).length;
+
+                                            if (userEntregas === 0 && userRecogidas === 0) return null;
+                                            if (appliedFilters.asesorId && appliedFilters.asesorId !== user.id) return null;
+
+                                            return (
+                                                <tr key={user.id}>
+                                                    <td><strong>{user.nombre}</strong></td>
+                                                    <td className="text-center">{userEntregas}</td>
+                                                    <td className="text-center">{userRecogidas}</td>
+                                                    <td className="text-center" style={{ fontWeight: 'bold', color: 'var(--primary-blue)' }}>
+                                                        {userEntregas + userRecogidas}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
-
-                    <div className="card" style={{ padding: '0', border: 'none', boxShadow: 'none' }}>
-                        <h4>Detalle de Logística por Asesor</h4>
-                        <div style={{ overflowX: 'auto' }}>
-                            <table className="data-table">
-                                <thead>
-                                    <tr>
-                                        <th>Asesor Comercial</th>
-                                        <th className="text-center">Entregas</th>
-                                        <th className="text-center">Recogidas</th>
-                                        <th className="text-center">Total Operaciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {users.map(user => {
-                                        const userEntregas = despachos.filter(d =>
-                                            d.usuarioId === user.id &&
-                                            d.fechaSolicitud >= appliedFilters.inicio &&
-                                            d.fechaSolicitud <= appliedFilters.fin &&
-                                            (appliedFilters.clienteId ? d.clienteId === appliedFilters.clienteId : true)
-                                        ).length;
-
-                                        const userRecogidas = ordenesCompra.filter(oc =>
-                                            oc.tipo === 'Recogida' &&
-                                            oc.usuarioId === user.id &&
-                                            oc.fecha >= appliedFilters.inicio &&
-                                            oc.fecha <= appliedFilters.fin
-                                        ).length;
-
-                                        if (userEntregas === 0 && userRecogidas === 0) return null;
-                                        if (appliedFilters.asesorId && appliedFilters.asesorId !== user.id) return null;
-
-                                        return (
-                                            <tr key={user.id}>
-                                                <td><strong>{user.nombre}</strong></td>
-                                                <td className="text-center">{userEntregas}</td>
-                                                <td className="text-center">{userRecogidas}</td>
-                                                <td className="text-center" style={{ fontWeight: 'bold', color: 'var(--primary-blue)' }}>
-                                                    {userEntregas + userRecogidas}
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
+                )}
 
                 <div className="card">
                     <h3>Utilidad por Mes</h3>
@@ -553,7 +555,7 @@ const InformesModule: React.FC<IProps> = ({
                                                 >
                                                     ✅
                                                 </button>
-                                                {(currentUser.rol === 'Admin' || currentUser.cargo?.toLowerCase().includes('gerente comercial')) && q.requiereAutorizacion && !q.autorizada && (
+                                                {(currentUser.rol === 'Admin' || currentUser.cargo?.toLowerCase().includes('gerente') || currentUser.cargo?.toLowerCase().includes('administrador')) && q.requiereAutorizacion && !q.autorizada && (
                                                     <button
                                                         className="btn-status btn-authorize"
                                                         onClick={() => authorizeQuote(q)}
