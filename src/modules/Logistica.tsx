@@ -40,9 +40,9 @@ const LogisticaModule: React.FC<IProps> = ({
     const [selProdId, setSelProdId] = useState('');
     const [selCant, setSelCant] = useState(1);
 
-    // Sort by date (oldest first, so the first requests are at the top)
-    const sortedDespachos = [...despachos].sort((a, b) => new Date(a.fechaSolicitud).getTime() - new Date(b.fechaSolicitud).getTime());
-    const sortedOC = [...ordenesCompra].sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime());
+    // Sort by date (newest first, so the latest requests are at the top)
+    const sortedDespachos = [...despachos].sort((a, b) => new Date(b.fechaSolicitud).getTime() - new Date(a.fechaSolicitud).getTime());
+    const sortedOC = [...ordenesCompra].sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
 
     // Filter Logic
     const filteredDespachos = filterEstado === 'Todos'
