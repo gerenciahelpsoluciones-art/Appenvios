@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { AppUser } from '../App';
+import { logoBase64 } from '../assets/logoBase64';
 
 interface IProps {
     users: AppUser[];
@@ -29,8 +30,8 @@ const Login: React.FC<IProps> = ({ users, onLogin }) => {
         <div className="login-wrapper">
             <div className="login-card animate-scale-in">
                 <div className="login-logo">
-                    <span className="logo-emoji">🚀</span>
-                    <h1>CRM Appenvios</h1>
+                    <img src={logoBase64} alt="CRM HELP SOLUCIONES" className="logo-image" />
+                    <h1>CRM HELP SOLUCIONES</h1>
                     <p>Gestión de Logística y Ventas</p>
                 </div>
 
@@ -96,10 +97,13 @@ const Login: React.FC<IProps> = ({ users, onLogin }) => {
                     margin-bottom: 2.5rem;
                 }
 
-                .logo-emoji {
-                    font-size: 3.5rem;
-                    display: block;
+                .logo-image {
+                    width: 120px;
+                    height: auto;
                     margin-bottom: 1rem;
+                    border-radius: 12px;
+                    padding: 8px;
+                    background: white;
                 }
 
                 .login-logo h1 {
