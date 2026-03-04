@@ -1098,6 +1098,7 @@ function App() {
           onUpdateOC={updateOrdenCompra}
           onDeleteOC={deleteOrdenCompra}
           currentUser={currentUser}
+          totalOrdenes={ordenesCompra.length}
         />;
       case 'productos':
         return <ProductosModule productos={productos} onAdd={addProducto} onUpdate={updateProducto} onDelete={deleteProducto} />;

@@ -12,9 +12,10 @@ interface IProps {
     onUpdateOC: (oc: OrdenCompra) => Promise<boolean | void>;
     onDeleteOC: (id: string) => void;
     currentUser: AppUser;
+    totalOrdenes?: number;
 }
 
-const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenesCompra, onAddOC, onUpdateOC, onDeleteOC, currentUser }) => {
+const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenesCompra, onAddOC, onUpdateOC, onDeleteOC, currentUser, totalOrdenes }) => {
     const [isAdding, setIsAdding] = useState(false);
     const [selectedProveedor, setSelectedProveedor] = useState<string>('');
     const [condiciones, setCondiciones] = useState('Contado');
@@ -61,7 +62,8 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenes
             return;
         }
 
-        const nextConsecutivoValue = ordenesCompra.length + 1;
+        const baseLength = totalOrdenes !== undefined ? totalOrdenes : ordenesCompra.length;
+        const nextConsecutivoValue = baseLength + 1;
         const nextConsecutivo = editingId
             ? ordenesCompra.find(oc => oc.id === editingId)?.consecutivo || ''
             : `OC-${nextConsecutivoValue.toString().padStart(4, '0')}`;
