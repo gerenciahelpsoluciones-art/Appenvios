@@ -96,6 +96,114 @@ const ClientesModule: React.FC<IProps> = ({ clientes, onAdd, onUpdate, onDelete 
                 />
               )}
             </div>
+
+            {/* SECCIÓN MÚLTIPLES COMPRADORES */}
+            <div className="contact-section animate-scale-in" style={{ gridColumn: 'span 2', background: '#f8fafc', padding: '1.5rem', borderRadius: '8px', border: '1px solid #cbd5e1', marginTop: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h4 style={{ margin: 0, color: 'var(--primary-blue)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  👥 Contactos de Compras (Compradores)
+                </h4>
+                <button
+                  type="button"
+                  className="btn-primary"
+                  style={{ padding: '0.4rem 0.8rem', fontSize: '0.9rem' }}
+                  onClick={() => setFormData({
+                    ...formData,
+                    compradores: [...(formData.compradores || []), { id: Date.now().toString(), nombre: '', cargo: '', telefono: '', correo: '' }]
+                  })}
+                >
+                  + Añadir Comprador
+                </button>
+              </div>
+
+              {(!formData.compradores || formData.compradores.length === 0) ? (
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontStyle: 'italic', margin: 0 }}>No hay compradores registrados. Haz clic en "Añadir Comprador".</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {formData.compradores.map((comp, idx) => (
+                    <div key={comp.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(150px, 1fr) minmax(150px, 1fr) 150px minmax(150px, 1fr) 40px', gap: '0.5rem', alignItems: 'center', background: 'white', padding: '0.5rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                      <input className="input-field" placeholder="Nombre Completo" value={comp.nombre} onChange={e => {
+                        const newComps = [...(formData.compradores || [])];
+                        newComps[idx].nombre = e.target.value;
+                        setFormData({ ...formData, compradores: newComps });
+                      }} />
+                      <input className="input-field" placeholder="Cargo" value={comp.cargo} onChange={e => {
+                        const newComps = [...(formData.compradores || [])];
+                        newComps[idx].cargo = e.target.value;
+                        setFormData({ ...formData, compradores: newComps });
+                      }} />
+                      <input className="input-field" placeholder="Teléfono" value={comp.telefono} onChange={e => {
+                        const newComps = [...(formData.compradores || [])];
+                        newComps[idx].telefono = e.target.value;
+                        setFormData({ ...formData, compradores: newComps });
+                      }} />
+                      <input className="input-field" placeholder="Correo" value={comp.correo} onChange={e => {
+                        const newComps = [...(formData.compradores || [])];
+                        newComps[idx].correo = e.target.value;
+                        setFormData({ ...formData, compradores: newComps });
+                      }} />
+                      <button className="btn-delete" onClick={() => {
+                        const newComps = [...(formData.compradores || [])];
+                        newComps.splice(idx, 1);
+                        setFormData({ ...formData, compradores: newComps });
+                      }} title="Eliminar Comprador">🗑️</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* SECCIÓN MÚLTIPLES SEDES */}
+            <div className="contact-section animate-scale-in" style={{ gridColumn: 'span 2', background: '#f8fafc', padding: '1.5rem', borderRadius: '8px', border: '1px solid #cbd5e1', marginTop: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h4 style={{ margin: 0, color: 'var(--primary-blue)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  🏢 Sedes / Locaciones
+                </h4>
+                <button
+                  type="button"
+                  className="btn-primary"
+                  style={{ padding: '0.4rem 0.8rem', fontSize: '0.9rem' }}
+                  onClick={() => setFormData({
+                    ...formData,
+                    sedes: [...(formData.sedes || []), { id: Date.now().toString(), nombre: '', direccion: '', ciudad: '' }]
+                  })}
+                >
+                  + Añadir Sede
+                </button>
+              </div>
+
+              {(!formData.sedes || formData.sedes.length === 0) ? (
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontStyle: 'italic', margin: 0 }}>No hay sedes registradas. Haz clic en "Añadir Sede".</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {formData.sedes.map((sede, idx) => (
+                    <div key={sede.id} style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 1fr 40px', gap: '0.5rem', alignItems: 'center', background: 'white', padding: '0.5rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                      <input className="input-field" placeholder="Nombre Sede (Ej: Sede Norte)" value={sede.nombre} onChange={e => {
+                        const newSedes = [...(formData.sedes || [])];
+                        newSedes[idx].nombre = e.target.value;
+                        setFormData({ ...formData, sedes: newSedes });
+                      }} />
+                      <input className="input-field" placeholder="Dirección Completa" value={sede.direccion} onChange={e => {
+                        const newSedes = [...(formData.sedes || [])];
+                        newSedes[idx].direccion = e.target.value;
+                        setFormData({ ...formData, sedes: newSedes });
+                      }} />
+                      <input className="input-field" placeholder="Ciudad" value={sede.ciudad} onChange={e => {
+                        const newSedes = [...(formData.sedes || [])];
+                        newSedes[idx].ciudad = e.target.value;
+                        setFormData({ ...formData, sedes: newSedes });
+                      }} />
+                      <button className="btn-delete" onClick={() => {
+                        const newSedes = [...(formData.sedes || [])];
+                        newSedes.splice(idx, 1);
+                        setFormData({ ...formData, sedes: newSedes });
+                      }} title="Eliminar Sede">🗑️</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
           </div>
           <div className="form-actions" style={{ marginTop: '1rem', display: 'flex', gap: '1rem' }}>
             <button onClick={handleSave} className="btn-success">{editingId ? 'Actualizar' : 'Guardar'}</button>
@@ -125,22 +233,37 @@ const ClientesModule: React.FC<IProps> = ({ clientes, onAdd, onUpdate, onDelete 
                   <td>{c.nit}</td>
                   <td>{c.contacto}<br /><small>{c.telefono}</small></td>
                   <td>
-                    <div style={{ fontSize: '0.82rem', lineHeight: '1.4' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.82rem', lineHeight: '1.4' }}>
+                      {/* Mostrar Compradores */}
+                      {c.compradores && c.compradores.length > 0 && (
+                        <div style={{ borderLeft: '3px solid #6366f1', paddingLeft: '0.5rem' }}>
+                          <strong style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#4338ca' }}>
+                            👥 Compradores ({c.compradores.length})
+                          </strong>
+                          {c.compradores.map(comp => (
+                            <div key={comp.id} style={{ marginTop: '4px', paddingBottom: '4px', borderBottom: '1px dashed #e2e8f0' }}>
+                              <span style={{ fontWeight: 'bold' }}>{comp.nombre}</span> <span style={{ color: '#64748b' }}>({comp.cargo})</span><br />
+                              <span style={{ color: '#64748b' }}>📞 {comp.telefono} | 📧 {comp.correo}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
                       {(formData.tesoreriaNombre || c.tesoreriaNombre) && (
-                        <div style={{ marginBottom: '0.5rem', borderLeft: '3px solid #10b981', paddingLeft: '0.5rem' }}>
-                          <strong style={{ display: 'block' }}>💰 {c.tesoreriaNombre}</strong>
+                        <div style={{ borderLeft: '3px solid #10b981', paddingLeft: '0.5rem' }}>
+                          <strong style={{ display: 'block' }}>💰 Tesorería: {c.tesoreriaNombre}</strong>
                           <span style={{ display: 'block', color: '#64748b' }}>📞 {c.tesoreriaTelefono || 'N/A'}</span>
                           <span style={{ display: 'block', color: '#64748b' }}>📧 {c.tesoreriaEmail || 'N/A'}</span>
                         </div>
                       )}
                       {(formData.contabilidadNombre || c.contabilidadNombre) && (
                         <div style={{ borderLeft: '3px solid #3b82f6', paddingLeft: '0.5rem' }}>
-                          <strong style={{ display: 'block' }}>📊 {c.contabilidadNombre}</strong>
+                          <strong style={{ display: 'block' }}>📊 Contabilidad: {c.contabilidadNombre}</strong>
                           <span style={{ display: 'block', color: '#64748b' }}>📞 {c.contabilidadTelefono || 'N/A'}</span>
                           <span style={{ display: 'block', color: '#64748b' }}>📧 {c.contabilidadEmail || 'N/A'}</span>
                         </div>
                       )}
-                      {!c.tesoreriaNombre && !c.contabilidadNombre && <span style={{ opacity: 0.3 }}>Sin contactos</span>}
+                      {(!c.compradores?.length) && !c.tesoreriaNombre && !c.contabilidadNombre && <span style={{ opacity: 0.3 }}>Sin contactos</span>}
                     </div>
                   </td>
                   <td>
@@ -152,7 +275,23 @@ const ClientesModule: React.FC<IProps> = ({ clientes, onAdd, onUpdate, onDelete 
                       <span className="doc-badge" style={{ opacity: 0.3 }}>Sin Crédito</span>
                     )}
                   </td>
-                  <td>{c.direccion}<br /><small><strong>{c.ciudad || ''}</strong></small><br /><small><code>{c.coordenadas || ''}</code></small></td>
+                  <td>
+                    {c.direccion}<br />
+                    <small><strong>{c.ciudad || ''}</strong></small><br />
+                    <small><code>{c.coordenadas || ''}</code></small>
+
+                    {/* Mostrar Sedes */}
+                    {c.sedes && c.sedes.length > 0 && (
+                      <div style={{ marginTop: '8px', fontSize: '0.82rem', borderLeft: '3px solid #f59e0b', paddingLeft: '0.5rem' }}>
+                        <strong style={{ color: '#b45309', display: 'block', marginBottom: '4px' }}>🏢 Sedes Adicionales ({c.sedes.length})</strong>
+                        {c.sedes.map(sede => (
+                          <div key={sede.id} style={{ marginBottom: '4px', lineHeight: '1.3' }}>
+                            <strong>{sede.nombre}:</strong> {sede.direccion} <span style={{ color: '#64748b' }}>({sede.ciudad})</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </td>
                   <td className="text-center">
                     <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
                       <button className="btn-edit" onClick={() => startEdit(c)}>✏️</button>

@@ -27,6 +27,21 @@ export interface AppUser {
   permisos: string[]; // List of module IDs
   password?: string;
 }
+export interface Comprador {
+  id: string;
+  nombre: string;
+  cargo: string;
+  telefono: string;
+  correo: string;
+}
+
+export interface Sede {
+  id: string;
+  nombre: string;
+  direccion: string;
+  ciudad: string;
+}
+
 export interface Cliente {
   id: string;
   nombre: string;
@@ -36,6 +51,8 @@ export interface Cliente {
   correo: string;
   direccion: string;
   ciudad?: string;
+  compradores?: Comprador[];
+  sedes?: Sede[];
   coordenadas?: string;
   usuarioId?: string;
   tesoreriaNombre?: string;
@@ -249,6 +266,8 @@ function App() {
           correo: c.correo,
           direccion: c.direccion,
           ciudad: c.ciudad || '',
+          compradores: c.compradores || [],
+          sedes: c.sedes || [],
           coordenadas: c.coordenadas,
           usuarioId: c.usuario_id,
           tesoreriaNombre: c.tesoreria_nombre || '',
@@ -467,6 +486,8 @@ function App() {
         ...dbObj,
         usuarioId: dbObj.usuario_id,
         ciudad: dbObj.ciudad,
+        compradores: dbObj.compradores || [],
+        sedes: dbObj.sedes || [],
         tesoreriaNombre: dbObj.tesoreria_nombre,
         tesoreriaTelefono: dbObj.tesoreria_telefono,
         tesoreriaEmail: dbObj.tesoreria_email,
