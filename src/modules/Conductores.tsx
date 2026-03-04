@@ -126,18 +126,12 @@ const ConductoresModule: React.FC<IProps> = ({
             const despacho = item as Despacho;
             onUpdateDespacho({ ...despacho, estado: 'Entregado' });
 
-            // WhatsApp Automation
-            const logisticsPhone = '+573001234567'; // Area Logistica placeholder
-            const message = `✅ *Entrega Realizada*\n\nOrden: ${despacho.consecutivoCotizacion}\nCliente: ${despacho.clienteNombre}\nEstado: ENTREGADO\nConductor: ${currentConductor?.nombre || 'N/A'}`;
+            // WhatsApp notification to the person who created the quotation
+            const message = `✅ *Entrega Realizada*\n\nOrden: ${despacho.consecutivoCotizacion}\nCliente: ${despacho.clienteNombre}\nDirección: ${despacho.direccion || 'N/A'}\nEstado: ENTREGADO\nConductor: ${currentConductor?.nombre || 'N/A'}`;
 
-            // Notify Logistics
-            onSendWhatsApp(logisticsPhone, `LOGÍSTICA: ${message}`);
-
-            // Notify Commercial (if phone exists)
+            // Notify the quote creator (ejecutivo) via WhatsApp
             if (despacho.ejecutivoTelefono) {
-                setTimeout(() => {
-                    onSendWhatsApp(despacho.ejecutivoTelefono!, `COMERCIAL: ${message}`);
-                }, 1000);
+                onSendWhatsApp(despacho.ejecutivoTelefono, message);
             }
         }
     };

@@ -609,11 +609,20 @@ function App() {
     setDespachos(despachos.map(item => item.id === d.id ? d : item));
 
     if (oldDespacho && oldDespacho.estado !== d.estado) {
+      // Email to the person who created the quotation
       sendEmailNotification(
         d.ejecutivoEmail,
         `Cambio de Estado Pedido: ${d.consecutivoCotizacion}`,
-        `Hola, el pedido asociado a la cotización ${d.consecutivoCotizacion} ha cambiado su estado de "${oldDespacho.estado}" a "${d.estado}".`
+        `Hola,\n\nLe informamos que el pedido asociado a la cotización ${d.consecutivoCotizacion} ha cambiado su estado:\n\n- Estado Anterior: ${oldDespacho.estado}\n- Nuevo Estado: ${d.estado}\n- Cliente: ${d.clienteNombre}\n- Dirección: ${d.direccion || 'N/A'}\n\nPor favor, tome las acciones correspondientes.`
       );
+
+      // WhatsApp to the person who created the quotation
+      if (d.ejecutivoTelefono) {
+        sendWhatsAppNotification(
+          d.ejecutivoTelefono,
+          `📦 *Actualización de Pedido*\n\nCotización: ${d.consecutivoCotizacion}\nCliente: ${d.clienteNombre}\nEstado: ${oldDespacho.estado} → *${d.estado}*`
+        );
+      }
     }
   };
   const deleteDespacho = async (id: string) => {
