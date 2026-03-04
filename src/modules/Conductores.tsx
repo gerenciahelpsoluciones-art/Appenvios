@@ -95,6 +95,7 @@ const ConductoresModule: React.FC<IProps> = ({
         const selectedOCs = ordenesCompra.filter(oc => selectedTasks.includes(oc.id));
 
         const routePoints = [
+            "Help Soluciones Informáticas", // Punto de partida (Sede Empresa)
             ...selectedDespachos.map(d => {
                 // Priority: georeferencia (captured) > client coordinates > textual address
                 const client = clientes.find(c => c.id === d.clienteId);
