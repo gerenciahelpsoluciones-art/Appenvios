@@ -114,3 +114,132 @@ button:active {
 .text-left {
   text-align: left;
 }
+
+/* --- Responsive Design --- */
+
+/* Tablet and smaller */
+@media (max-width: 1024px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .app-container {
+    flex-direction: column;
+  }
+
+  /* Make sidebar horizontal or a top bar */
+  .sidebar {
+    width: 100% !important;
+    padding: 1rem !important;
+    flex-direction: row !important;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    height: auto;
+  }
+
+  .brand-box {
+    border-bottom: none !important;
+    padding-bottom: 0 !important;
+    flex-direction: row !important;
+    align-items: center;
+    margin-right: auto;
+  }
+
+  .brand-box img {
+    width: 40px !important;
+  }
+
+  .logo-text {
+    font-size: 1rem !important;
+    margin-top: 0 !important;
+  }
+
+  .nav-menu {
+    flex-direction: row !important;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 0 !important;
+    padding: 0.5rem !important;
+  }
+
+  .nav-item {
+    width: auto !important;
+    padding: 0.5rem !important;
+    font-size: 0.85rem;
+  }
+
+  .nav-icon {
+    display: none;
+    /* Hide icons on mobile to save space if desired, or keep them */
+  }
+
+  .main-content {
+    width: 100%;
+  }
+
+  .top-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 1rem !important;
+    gap: 1rem;
+  }
+
+  .user-info {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .content-area {
+    padding: 1rem !important;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .wide-card {
+    grid-column: span 1 !important;
+  }
+
+  /* Make tables responsive */
+  .table-card {
+    padding: 1rem 0 !important;
+    /* give scroll room */
+  }
+
+  .data-table,
+  .inner-table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .module-header {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 1rem;
+  }
+
+  .header-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .header-actions button,
+  .header-actions select {
+    flex: 1;
+    min-width: 120px;
+  }
+
+  /* Grid layouts in cards */
+  div[style*="grid-template-columns: 1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+}

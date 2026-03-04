@@ -110,8 +110,10 @@ const CotizacionesModule: React.FC<IProps> = ({
     const subtotalGeneral = items.reduce((acc, item) => acc + calculateSubtotalItem(item), 0);
     const ivaGeneral = items.reduce((acc, item) => acc + calculateIVAItem(item), 0);
     const grandTotal = subtotalGeneral + ivaGeneral;
+
+    // Average margin percent is weighted by subtotal
     const profitTotal = items.reduce((acc, item) => acc + calculateMarginTotal(item), 0);
-    const marginPercent = subtotalGeneral > 0 ? (profitTotal / subtotalGeneral) * 100 : 0;
+    const marginPercent = items.reduce((acc, item) => acc + item.utilidad, 0) / (items.length || 1);
 
     const generatePDF = () => {
         if (!selectedCliente) {
