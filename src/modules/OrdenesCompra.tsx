@@ -8,8 +8,8 @@ interface IProps {
     proveedores: Proveedor[];
     productos: Producto[];
     ordenesCompra: OrdenCompra[];
-    onAddOC: (oc: OrdenCompra) => void;
-    onUpdateOC: (oc: OrdenCompra) => void;
+    onAddOC: (oc: OrdenCompra) => Promise<boolean | void>;
+    onUpdateOC: (oc: OrdenCompra) => Promise<boolean | void>;
     onDeleteOC: (id: string) => void;
     currentUser: AppUser;
 }
@@ -54,7 +54,7 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenes
     const iva = subtotal * 0.19;
     const total = subtotal + iva;
 
-    const handleGenerateOC = () => {
+    const handleGenerateOC = async () => {
         const prov = proveedores.find(p => p.id === selectedProveedor);
         if (!prov || items.length === 0) {
             alert('Seleccione un proveedor y añada al menos un producto');
@@ -87,9 +87,11 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenes
         };
 
         if (editingId) {
-            onUpdateOC(ocData);
+            const success = await onUpdateOC(ocData);
+            if (success === false) return; // DB Error
         } else {
-            onAddOC(ocData);
+            const success = await onAddOC(ocData);
+            if (success === false) return; // DB Error
         }
 
         generatePDF(ocData, prov);

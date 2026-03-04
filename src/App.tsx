@@ -852,24 +852,34 @@ function App() {
     }
   };
 
-  const addOrdenCompra = async (oc: OrdenCompra) => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { id, proveedorId, nombreProveedor, condicionesComerciales, conductorId, conductorNombre, fotoEntrega, fotoRemision, usuarioId, ...cleanOC } = oc;
-    const { data, error } = await supabase.from('ordenes_compra').insert([{
-      ...cleanOC,
+  const addOrdenCompra = async (oc: OrdenCompra): Promise<boolean> => {
+    const payload = {
+      consecutivo: oc.consecutivo,
+      fecha: oc.fecha,
       proveedor_id: oc.proveedorId,
       nombre_proveedor: oc.nombreProveedor,
+      items: oc.items,
+      subtotal: oc.subtotal,
+      iva: oc.iva,
+      total: oc.total,
       condiciones_comerciales: oc.condicionesComerciales,
+      observaciones: oc.observaciones,
+      estado: oc.estado,
       conductor_id: oc.conductorId,
       conductor_nombre: oc.conductorNombre,
       foto_entrega: oc.fotoEntrega,
       foto_remision: oc.fotoRemision,
+      georeferencia: oc.georeferencia,
       usuario_id: oc.usuarioId,
       tipo: oc.tipo || 'Recogida',
       verificada: oc.verificada || false
-    }]).select();
+    };
+
+    const { data, error } = await supabase.from('ordenes_compra').insert([payload]).select();
     if (error) {
+      console.error('Error insertando Orden de Compra:', error);
       alert('Error al añadir O.C.: ' + error.message);
+      return false;
     } else if (data) {
       const dbO = data[0];
       setOrdenesCompra(prev => [{
@@ -885,9 +895,11 @@ function App() {
         tipo: dbO.tipo,
         verificada: dbO.verificada
       } as OrdenCompra, ...prev]);
+      return true;
     }
+    return false;
   };
-  const updateOrdenCompra = async (oc: OrdenCompra) => {
+  const updateOrdenCompra = async (oc: OrdenCompra): Promise<boolean> => {
     console.log('Intentando actualizar OC (mapa explícito):', oc);
 
     // Explicit mapping to match database schema and avoid type/column issues
@@ -918,11 +930,12 @@ function App() {
     if (error) {
       console.error('Error en updateOrdenCompra:', error);
       alert(`Error al actualizar Orden de Compra: ${error.message} (ID: ${oc.id})`);
-      return;
+      return false;
     }
 
     console.log('Orden de Compra actualizada con éxito:', oc.consecutivo);
     setOrdenesCompra(prev => prev.map(item => item.id === oc.id ? oc : item));
+    return true;
     // Optional: alert('Estado actualizado correctamente.');
   };
   const deleteOrdenCompra = async (id: string) => {

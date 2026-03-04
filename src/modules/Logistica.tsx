@@ -10,8 +10,8 @@ interface IProps {
     currentUser: AppUser;
     onUpdateDespacho: (d: Despacho) => void;
     onDeleteDespacho: (id: string) => void;
-    onUpdateOC: (oc: OrdenCompra) => void;
-    onAddOC: (oc: OrdenCompra) => void;
+    onUpdateOC: (oc: OrdenCompra) => Promise<boolean | void>;
+    onAddOC: (oc: OrdenCompra) => Promise<boolean | void>;
 }
 
 const LogisticaModule: React.FC<IProps> = ({
@@ -109,7 +109,7 @@ const LogisticaModule: React.FC<IProps> = ({
         }
     };
 
-    const handleSaveManualRecogida = () => {
+    const handleSaveManualRecogida = async () => {
         const prov = proveedores.find(p => p.id === selectedProvId);
         if (!prov || manualItems.length === 0) {
             alert('Seleccione un proveedor y añada al menos un producto');
@@ -141,7 +141,9 @@ const LogisticaModule: React.FC<IProps> = ({
             verificada: false
         };
 
-        onAddOC(newRecogida);
+        const success = await onAddOC(newRecogida);
+        if (success === false) return; // DB Error
+
         setIsAddManualOpen(false);
         // Reset
         setSelectedProvId('');
