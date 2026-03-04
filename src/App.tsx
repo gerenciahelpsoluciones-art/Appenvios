@@ -609,11 +609,14 @@ function App() {
     setDespachos(despachos.map(item => item.id === d.id ? d : item));
 
     if (oldDespacho && oldDespacho.estado !== d.estado) {
-      // Email to the person who created the quotation
+      // Email FROM facturacion TO the person who created the quotation
       sendEmailNotification(
         d.ejecutivoEmail,
         `Cambio de Estado Pedido: ${d.consecutivoCotizacion}`,
-        `Hola,\n\nLe informamos que el pedido asociado a la cotización ${d.consecutivoCotizacion} ha cambiado su estado:\n\n- Estado Anterior: ${oldDespacho.estado}\n- Nuevo Estado: ${d.estado}\n- Cliente: ${d.clienteNombre}\n- Dirección: ${d.direccion || 'N/A'}\n\nPor favor, tome las acciones correspondientes.`
+        `Hola,\n\nLe informamos que el pedido asociado a la cotización ${d.consecutivoCotizacion} ha cambiado su estado:\n\n- Estado Anterior: ${oldDespacho.estado}\n- Nuevo Estado: ${d.estado}\n- Cliente: ${d.clienteNombre}\n- Dirección: ${d.direccion || 'N/A'}\n\nPor favor, tome las acciones correspondientes.`,
+        undefined,
+        'Área de Facturación',
+        'facturacion@helpsoluciones.com.co'
       );
 
       // WhatsApp to the person who created the quotation
@@ -676,14 +679,20 @@ function App() {
     if (!error) setReparaciones(prev => prev.filter(r => r.id !== id));
   };
 
-  const sendEmailNotification = (to: string, subject: string, body: string, cc?: string) => {
+  const sendEmailNotification = (to: string, subject: string, body: string, cc?: string, senderName?: string, senderEmail?: string) => {
+    const fromName = senderName || currentUser?.nombre || 'Equipo Help Soluciones';
+    const fromCargo = senderName ? '' : (currentUser?.cargo || 'Sistema de Gestión');
+    const fromEmail = senderEmail || currentUser?.email || '';
+
     const header = `*** CRM HELP SOLUCIONES - NOTIFICACIÓN AUTOMÁTICA ***\n\n`;
-    const signature = `\n\nCordialmente,\n\n${currentUser?.nombre || 'Equipo Help Soluciones'}\n${currentUser?.cargo || 'Sistema de Gestión'}\nHelp Soluciones Informáticas\n\n---\nEste mensaje fue generado automáticamente por el sistema de Appenvios.`;
+    const signature = `\n\nCordialmente,\n\n${fromName}${fromCargo ? '\n' + fromCargo : ''}${fromEmail ? '\n' + fromEmail : ''}\nHelp Soluciones Informáticas\n\n---\nEste mensaje fue generado automáticamente por el sistema de Appenvios.`;
 
     const fullBody = header + body + signature;
 
+    // If senderEmail is provided, add it as a hint for Outlook to select the sending account
     let mailtoUrl = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(fullBody)}`;
     if (cc) mailtoUrl += `&cc=${encodeURIComponent(cc)}`;
+    if (senderEmail) mailtoUrl += `&from=${encodeURIComponent(senderEmail)}`;
 
     window.open(mailtoUrl, '_blank');
   };
