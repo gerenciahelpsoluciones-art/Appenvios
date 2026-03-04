@@ -89,7 +89,14 @@ export const generateQuotationPDF = (data: PDFData) => {
             margin: { top: 85 }
         });
 
-        let finalY = (doc as any).lastAutoTable.cursor.y || 85;
+        // Safe way to get final Y position
+        let finalY = 85;
+        const docAny = doc as any;
+        if (docAny.lastAutoTable && docAny.lastAutoTable.cursor) {
+            finalY = docAny.lastAutoTable.cursor.y;
+        } else {
+            finalY = 85 + (tableBody.length * 10) + 15;
+        }
 
         // Totals
         const totalsX = 135;
@@ -99,12 +106,12 @@ export const generateQuotationPDF = (data: PDFData) => {
         doc.setFont("helvetica", "bold");
         doc.text(`SUBTOTAL:`, totalsX, finalY + 15);
         doc.setFont("helvetica", "normal");
-        doc.text(`$${data.subtotal.toLocaleString()}`, valuesX, finalY + 15, { align: 'right' });
+        doc.text(`$${(data.subtotal || 0).toLocaleString()}`, valuesX, finalY + 15, { align: 'right' });
 
         doc.setFont("helvetica", "bold");
         doc.text(`IVA TOTAL:`, totalsX, finalY + 22);
         doc.setFont("helvetica", "normal");
-        doc.text(`$${data.iva.toLocaleString()}`, valuesX, finalY + 22, { align: 'right' });
+        doc.text(`$${(data.iva || 0).toLocaleString()}`, valuesX, finalY + 22, { align: 'right' });
 
         doc.setFillColor(0, 74, 153);
         doc.rect(totalsX - 5, finalY + 28, 70, 12, 'F');
@@ -112,7 +119,7 @@ export const generateQuotationPDF = (data: PDFData) => {
         doc.setFontSize(11);
         doc.setFont("helvetica", "bold");
         doc.text(`VALOR TOTAL:`, totalsX, finalY + 36);
-        doc.text(`$${data.total.toLocaleString()}`, valuesX, finalY + 36, { align: 'right' });
+        doc.text(`$${(data.total || 0).toLocaleString()}`, valuesX, finalY + 36, { align: 'right' });
 
         let currentY = finalY + 45;
 
@@ -135,17 +142,18 @@ export const generateQuotationPDF = (data: PDFData) => {
 
         // Signature
         doc.setFont("helvetica", "bold");
+        doc.setTextColor(0, 0, 0);
         doc.text("ATENTAMENTE,", 14, currentY + 10);
-        doc.text(data.ejecutivo.nombre.toUpperCase(), 14, currentY + 30);
+        doc.text((data.ejecutivo.nombre || 'ADMIN').toUpperCase(), 14, currentY + 30);
         doc.setFont("helvetica", "normal");
-        doc.text(data.ejecutivo.cargo, 14, currentY + 35);
-        doc.text(`Tel: ${data.ejecutivo.telefono}`, 14, currentY + 40);
-        doc.text(`Email: ${data.ejecutivo.correo}`, 14, currentY + 45);
+        doc.text(data.ejecutivo.cargo || 'Ejecutivo Comercial', 14, currentY + 35);
+        doc.text(`Tel: ${data.ejecutivo.telefono || ''}`, 14, currentY + 40);
+        doc.text(`Email: ${data.ejecutivo.correo || ''}`, 14, currentY + 45);
 
-        const fileName = `COTIZACION HELP SOLUCIONES - ${data.cliente.nombre.toUpperCase()} - ${data.consecutivo}.pdf`;
+        const fileName = `COTIZACION HELP SOLUCIONES - ${(data.cliente.nombre || 'CLIENTE').toUpperCase()} - ${data.consecutivo}.pdf`;
         doc.save(fileName);
-    } catch (error) {
-        console.error("Error generating PDF", error);
-        alert("Error al generar el PDF. Verifique los datos.");
+    } catch (error: any) {
+        console.error("Error generating PDF:", error);
+        alert(`Error al generar el PDF: ${error.message || 'Error desconocido'}. Verifique los datos.`);
     }
 };
