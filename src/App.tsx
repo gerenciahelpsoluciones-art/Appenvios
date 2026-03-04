@@ -1049,6 +1049,9 @@ function App() {
           clientes={clientes}
           productos={productos}
           proveedores={proveedores}
+          despachos={despachos}
+          ordenesCompra={ordenesCompra}
+          users={users}
         />;
       case 'admin':
         return <AdminModule

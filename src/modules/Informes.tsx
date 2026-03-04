@@ -9,6 +9,9 @@ interface IProps {
     clientes: Cliente[];
     productos: Producto[];
     proveedores: Proveedor[];
+    despachos: any[];
+    ordenesCompra: any[];
+    users: AppUser[];
 }
 
 interface EditItem {
@@ -22,18 +25,30 @@ interface EditItem {
     iva: number;
 }
 
-const InformesModule: React.FC<IProps> = ({ cotizaciones, budgets, currentUser, onUpdateQuote, clientes, productos, proveedores }) => {
+const InformesModule: React.FC<IProps> = ({
+    cotizaciones,
+    budgets,
+    currentUser,
+    onUpdateQuote,
+    clientes,
+    productos,
+    proveedores,
+    despachos,
+    ordenesCompra,
+    users
+}) => {
     const today = new Date().toISOString().split('T')[0];
     const [fechaInicio, setFechaInicio] = useState(today);
     const [fechaFin, setFechaFin] = useState(today);
     const [selectedClienteId, setSelectedClienteId] = useState('');
+    const [selectedAsesorId, setSelectedAsesorId] = useState('');
 
     // Month for budget comparison
     const currentMonth = new Date().getMonth();
     const currentYear = new Date().getFullYear();
 
     // State for dates/filters that are actually being used for filtering
-    const [appliedFilters, setAppliedFilters] = useState({ inicio: today, fin: today, clienteId: '' });
+    const [appliedFilters, setAppliedFilters] = useState({ inicio: today, fin: today, clienteId: '', asesorId: '' });
 
     // Edit modal state
     const [editingQuote, setEditingQuote] = useState<Cotizacion | null>(null);
@@ -41,7 +56,7 @@ const InformesModule: React.FC<IProps> = ({ cotizaciones, budgets, currentUser, 
     const [editClienteId, setEditClienteId] = useState('');
 
     const handleSearch = () => {
-        setAppliedFilters({ inicio: fechaInicio, fin: fechaFin, clienteId: selectedClienteId });
+        setAppliedFilters({ inicio: fechaInicio, fin: fechaFin, clienteId: selectedClienteId, asesorId: selectedAsesorId });
     };
 
     const filteredQuotes = cotizaciones.filter(q => {
@@ -238,6 +253,20 @@ const InformesModule: React.FC<IProps> = ({ cotizaciones, budgets, currentUser, 
                             ))}
                         </select>
                     </div>
+                    <div className="input-box" style={{ flex: 2 }}>
+                        <label>Asesor Comercial</label>
+                        <select
+                            className="input-field"
+                            style={{ width: '100%', height: '42px', padding: '0 0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)' }}
+                            value={selectedAsesorId}
+                            onChange={e => setSelectedAsesorId(e.target.value)}
+                        >
+                            <option value="">-- Todos los Asesores --</option>
+                            {users.map(u => (
+                                <option key={u.id} value={u.id}>{u.nombre} ({u.rol})</option>
+                            ))}
+                        </select>
+                    </div>
                     <div className="button-box">
                         <button className="btn btn-primary btn-search" onClick={handleSearch}>
                             🔍 Buscar
@@ -288,6 +317,88 @@ const InformesModule: React.FC<IProps> = ({ cotizaciones, budgets, currentUser, 
                                 ))}
                             </tbody>
                         </table>
+                    </div>
+                </div>
+
+                {/* ========== LOGISTICS ANALYSIS SECTION ========== */}
+                <div className="card" style={{ marginTop: '1.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                        <h3 style={{ margin: 0 }}>📊 Informe de Logística</h3>
+                        <span className="text-muted" style={{ fontSize: '0.85rem' }}>Basado en filtros aplicados</span>
+                    </div>
+
+                    <div className="stats-grid" style={{ marginBottom: '1.5rem' }}>
+                        <div className="stat-card" style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' }}>
+                            <div className="stat-label">Total Entregas (Despachos)</div>
+                            <div className="stat-value">
+                                {despachos.filter(d =>
+                                    d.fechaSolicitud >= appliedFilters.inicio &&
+                                    d.fechaSolicitud <= appliedFilters.fin &&
+                                    (appliedFilters.asesorId ? d.usuarioId === appliedFilters.asesorId : true) &&
+                                    (appliedFilters.clienteId ? d.clienteId === appliedFilters.clienteId : true)
+                                ).length}
+                            </div>
+                            <div className="stat-trend">En el periodo</div>
+                        </div>
+                        <div className="stat-card" style={{ background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)' }}>
+                            <div className="stat-label">Total Recogidas (Logística)</div>
+                            <div className="stat-value">
+                                {ordenesCompra.filter(oc =>
+                                    oc.tipo === 'Recogida' &&
+                                    oc.fecha >= appliedFilters.inicio &&
+                                    oc.fecha <= appliedFilters.fin &&
+                                    (appliedFilters.asesorId ? oc.usuarioId === appliedFilters.asesorId : true)
+                                ).length}
+                            </div>
+                            <div className="stat-trend">En el periodo</div>
+                        </div>
+                    </div>
+
+                    <div className="card" style={{ padding: '0', border: 'none', boxShadow: 'none' }}>
+                        <h4>Detalle de Logística por Asesor</h4>
+                        <div style={{ overflowX: 'auto' }}>
+                            <table className="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Asesor Comercial</th>
+                                        <th className="text-center">Entregas</th>
+                                        <th className="text-center">Recogidas</th>
+                                        <th className="text-center">Total Operaciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {users.map(user => {
+                                        const userEntregas = despachos.filter(d =>
+                                            d.usuarioId === user.id &&
+                                            d.fechaSolicitud >= appliedFilters.inicio &&
+                                            d.fechaSolicitud <= appliedFilters.fin &&
+                                            (appliedFilters.clienteId ? d.clienteId === appliedFilters.clienteId : true)
+                                        ).length;
+
+                                        const userRecogidas = ordenesCompra.filter(oc =>
+                                            oc.tipo === 'Recogida' &&
+                                            oc.usuarioId === user.id &&
+                                            oc.fecha >= appliedFilters.inicio &&
+                                            oc.fecha <= appliedFilters.fin
+                                        ).length;
+
+                                        if (userEntregas === 0 && userRecogidas === 0) return null;
+                                        if (appliedFilters.asesorId && appliedFilters.asesorId !== user.id) return null;
+
+                                        return (
+                                            <tr key={user.id}>
+                                                <td><strong>{user.nombre}</strong></td>
+                                                <td className="text-center">{userEntregas}</td>
+                                                <td className="text-center">{userRecogidas}</td>
+                                                <td className="text-center" style={{ fontWeight: 'bold', color: 'var(--primary-blue)' }}>
+                                                    {userEntregas + userRecogidas}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 
