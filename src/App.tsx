@@ -127,6 +127,10 @@ export interface Cotizacion {
   ejecutivoTelefono?: string;
   usuarioId: string;
   estado: 'Seguimiento' | 'Ganado' | 'Perdido';
+  requiereAutorizacion?: boolean;
+  autorizada?: boolean;
+  autorizadoPor?: string;
+  fechaAutorizacion?: string;
 }
 
 export interface Conductor {
@@ -652,16 +656,25 @@ function App() {
   };
 
   const addCotizacion = async (c: Cotizacion) => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { id, clienteId, clienteNombre, ejecutivoEmail, ejecutivoTelefono, usuarioId, utilidadTotal, ...cleanC } = c;
     const { data, error } = await supabase.from('cotizaciones').insert([{
-      ...cleanC,
+      fecha: c.fecha,
+      consecutivo: c.consecutivo,
+      items: c.items,
+      subtotal: c.subtotal,
+      iva: c.iva,
+      total: c.total,
+      ejecutivo: c.ejecutivo,
+      estado: c.estado,
       cliente_id: c.clienteId,
       cliente_nombre: c.clienteNombre,
       ejecutivo_email: c.ejecutivoEmail,
       ejecutivo_telefono: c.ejecutivoTelefono,
       usuario_id: c.usuarioId,
-      utilidad_total: c.utilidadTotal
+      utilidad_total: c.utilidadTotal,
+      requiere_autorizacion: c.requiereAutorizacion || false,
+      autorizada: c.autorizada || false,
+      autorizado_por: c.autorizadoPor,
+      fecha_autorizacion: c.fechaAutorizacion
     }]).select();
     if (error) {
       alert('Error al añadir cotización: ' + error.message);
@@ -674,7 +687,11 @@ function App() {
         ejecutivoEmail: dbC.ejecutivo_email,
         ejecutivoTelefono: dbC.ejecutivo_telefono,
         usuarioId: dbC.usuario_id,
-        utilidadTotal: Number(dbC.utilidad_total || 0)
+        utilidadTotal: Number(dbC.utilidad_total || 0),
+        requiereAutorizacion: dbC.requiere_autorizacion,
+        autorizada: dbC.autorizada,
+        autorizadoPor: dbC.autorizado_por,
+        fechaAutorizacion: dbC.fecha_autorizacion
       } as Cotizacion, ...prev]);
     }
   };
@@ -695,7 +712,11 @@ function App() {
       ejecutivo_telefono: c.ejecutivoTelefono,
       usuario_id: c.usuarioId,
       estado: c.estado,
-      utilidad_total: c.utilidadTotal
+      utilidad_total: c.utilidadTotal,
+      requiere_autorizacion: c.requiereAutorizacion,
+      autorizada: c.autorizada,
+      autorizado_por: c.autorizadoPor,
+      fecha_autorizacion: c.fechaAutorizacion
     };
 
     const { error: updateError } = await supabase.from('cotizaciones').update(quotePayload).eq('id', c.id);
@@ -817,22 +838,40 @@ function App() {
     }
   };
   const updateOrdenCompra = async (oc: OrdenCompra) => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { id, proveedorId, nombreProveedor, condicionesComerciales, conductorId, conductorNombre, fotoEntrega, fotoRemision, usuarioId, ...cleanOC } = oc;
-    const { error } = await supabase.from('ordenes_compra').update({
-      ...cleanOC,
+    console.log('Intentando actualizar OC (mapa explícito):', oc);
+
+    // Explicit mapping to match database schema and avoid type/column issues
+    const payload = {
+      consecutivo: oc.consecutivo,
+      fecha: oc.fecha,
       proveedor_id: oc.proveedorId,
       nombre_proveedor: oc.nombreProveedor,
+      items: oc.items,
+      subtotal: oc.subtotal,
+      iva: oc.iva,
+      total: oc.total,
       condiciones_comerciales: oc.condicionesComerciales,
+      observaciones: oc.observaciones,
+      estado: oc.estado,
       conductor_id: oc.conductorId,
       conductor_nombre: oc.conductorNombre,
       foto_entrega: oc.fotoEntrega,
       foto_remision: oc.fotoRemision,
+      georeferencia: oc.georeferencia,
       usuario_id: oc.usuarioId,
       tipo: oc.tipo,
       verificada: oc.verificada
-    }).eq('id', oc.id);
-    if (!error) setOrdenesCompra(ordenesCompra.map(item => item.id === oc.id ? oc : item));
+    };
+
+    const { error } = await supabase.from('ordenes_compra').update(payload).eq('id', oc.id);
+
+    if (error) {
+      console.error('Error en updateOrdenCompra:', error);
+      alert(`Error al actualizar Orden de Compra: ${error.message}`);
+      return;
+    }
+
+    setOrdenesCompra(prev => prev.map(item => item.id === oc.id ? oc : item));
   };
   const deleteOrdenCompra = async (id: string) => {
     const { error } = await supabase.from('ordenes_compra').delete().eq('id', id);
@@ -977,6 +1016,7 @@ function App() {
           proveedores={proveedores}
           cotizaciones={cotizaciones}
           onAddQuote={addCotizacion}
+          onUpdateQuote={updateCotizacion}
           onSendWhatsApp={sendWhatsAppNotification}
           currentUser={currentUser}
         />;
@@ -1155,8 +1195,72 @@ function App() {
     }
   }
 
+  const [showHelpModal, setShowHelpModal] = useState(false);
+
+  function HelpModal() {
+    if (!showHelpModal) return null;
+
+    const roleContent: Record<string, { title: string, steps: string[] }> = {
+      'Admin': {
+        title: 'Manual de Administrador',
+        steps: [
+          'Gestión de Usuarios: Cree y asigne permisos a módulos específicos.',
+          'Dashboard Global: Monitoree el crecimiento y actividad de toda la empresa.',
+          'Autorización: Apruebe cotizaciones con margen inferior al 10% en el módulo de Informes.',
+          'Base de Datos: Verifique el estado de conexión en tiempo real en el sidebar.'
+        ]
+      },
+      'Comercial': {
+        title: 'Manual de Asesor Comercial',
+        steps: [
+          'Clientes: Cree y gestione sus propios clientes (visibilidad restringida).',
+          'Cotizaciones: Genere PDFs profesionales y envíe recordatorios por WhatsApp.',
+          'Margen: Si su cotización tiene <10% de utilidad, solicite aprobación al gerente.',
+          'Dashboard: Vea sus metas de ventas y cumplimiento mensual.'
+        ]
+      },
+      'Logistica': {
+        title: 'Manual de Operaciones Logísticas',
+        steps: [
+          'Hoja de Ruta: Asigne pedidos y recogidas a conductores disponibles.',
+          'Recogidas Manuales: Registre mercancía que llega sin cita previa.',
+          'Seguimiento: Monitoree en tiempo real las fotos de entrega y remisiones subidas por los conductores.',
+          'Informes: Filtre operaciones por asesor para medir efectividad.'
+        ]
+      },
+      'Tecnico': {
+        title: 'Manual de Servicio Técnico',
+        steps: [
+          'Reparaciones: Registre el ingreso de equipos con fotos y seriales.',
+          'Estado: Actualice el progreso de la reparación para informar al cliente.',
+          'Historial: Consulte reparaciones previas por cliente o equipo.'
+        ]
+      }
+    };
+
+    const content = roleContent[currentUser?.rol || 'Comercial'];
+
+    return (
+      <div className="modal-overlay" onClick={() => setShowHelpModal(false)}>
+        <div className="modal-content animate-fade-in" onClick={e => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+            <h2 style={{ margin: 0, color: 'var(--primary-blue)' }}>{content.title} ❓</h2>
+            <button onClick={() => setShowHelpModal(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
+          </div>
+          <ul style={{ paddingLeft: '1.2rem', lineHeight: '1.6' }}>
+            {content.steps.map((s, i) => <li key={i} style={{ marginBottom: '0.8rem' }}>{s}</li>)}
+          </ul>
+          <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+            <button className="btn-success" onClick={() => setShowHelpModal(false)}>Entendido</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return isLoggedIn ? (
     <div className="app-container">
+      <HelpModal />
       <aside className="sidebar">
         <div className="logo-container">
           <div className="brand-box">
@@ -1214,6 +1318,13 @@ function App() {
             <h1>{menuItems.find(i => i.id === activeTab)?.label || 'Dashboard'}</h1>
           </div>
           <div className="user-info">
+            <button
+              className="btn-help"
+              onClick={() => setShowHelpModal(true)}
+              title="Ayuda / Manual"
+            >
+              ❓
+            </button>
             <span style={{ marginRight: '0.5rem' }}>{currentUser?.rol === 'Admin' ? '👑' : '👤'}</span>
             <span className="user-role">{currentUser?.rol}</span>
             <span className="user-name">{currentUser?.nombre}</span>
@@ -1336,6 +1447,47 @@ function App() {
           padding: 0.2rem 0.6rem;
           border-radius: 20px;
           font-weight: 700;
+        }
+
+        .btn-help {
+          background: var(--secondary-blue);
+          border: 1px solid var(--primary-blue);
+          border-radius: 50%;
+          width: 36px;
+          height: 36px;
+          cursor: pointer;
+          margin-right: 1rem;
+          font-size: 1.2rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .btn-help:hover {
+          background: white;
+          transform: scale(1.1);
+          box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .modal-overlay {
+          position: fixed;
+          top: 0; left: 0; right: 0; bottom: 0;
+          background: rgba(0,0,0,0.5);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 2000;
+          backdrop-filter: blur(4px);
+        }
+
+        .modal-content {
+          background: white;
+          padding: 2rem;
+          border-radius: 16px;
+          box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+          position: relative;
         }
 
         .content-area {

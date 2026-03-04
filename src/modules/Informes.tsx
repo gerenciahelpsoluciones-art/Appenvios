@@ -85,7 +85,23 @@ const InformesModule: React.FC<IProps> = ({
     const difference = monthlySales - activeBudget;
 
     const updateStatus = (quote: Cotizacion, newStatus: 'Seguimiento' | 'Ganado' | 'Perdido') => {
+        if (newStatus === 'Ganado' && quote.requiereAutorizacion && !quote.autorizada) {
+            alert('Esta cotización requiere autorización del Gerente Comercial debido a su bajo margen de utilidad (<10%).');
+            return;
+        }
         onUpdateQuote({ ...quote, estado: newStatus });
+    };
+
+    const authorizeQuote = (quote: Cotizacion) => {
+        if (!window.confirm('¿Está seguro de autorizar esta cotización con margen inferior al 10%?')) return;
+
+        onUpdateQuote({
+            ...quote,
+            autorizada: true,
+            autorizadoPor: currentUser.nombre,
+            fechaAutorizacion: new Date().toISOString()
+        });
+        alert('Cotización autorizada correctamente.');
     };
 
     // --- Edit Modal Helpers ---
@@ -444,7 +460,8 @@ const InformesModule: React.FC<IProps> = ({
                                 <th className="text-right" style={{ minWidth: '120px' }}>Total</th>
                                 <th style={{ minWidth: '150px' }}>Ejecutivo</th>
                                 <th className="text-center" style={{ minWidth: '120px' }}>Estado</th>
-                                <th className="text-center" style={{ minWidth: '180px' }}>Acciones</th>
+                                <th className="text-center" style={{ minWidth: '100px' }}>Autorización</th>
+                                <th className="text-center" style={{ minWidth: '220px' }}>Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -463,6 +480,15 @@ const InformesModule: React.FC<IProps> = ({
                                             <span className={`status-badge status-${(q.estado || 'Seguimiento').toLowerCase()}`}>
                                                 {q.estado || 'Seguimiento'}
                                             </span>
+                                        </td>
+                                        <td className="text-center">
+                                            {q.requiereAutorizacion ? (
+                                                <span className={`auth-badge ${q.autorizada ? 'auth-ok' : 'auth-pending'}`}>
+                                                    {q.autorizada ? '✅ OK' : '⚠️ Pendiente'}
+                                                </span>
+                                            ) : (
+                                                <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>N/A</span>
+                                            )}
                                         </td>
                                         <td className="text-center">
                                             <div className="status-actions">
@@ -484,9 +510,20 @@ const InformesModule: React.FC<IProps> = ({
                                                     className="btn-status btn-ganado"
                                                     onClick={() => updateStatus(q, 'Ganado')}
                                                     title="Ganado"
+                                                    style={{ opacity: (q.requiereAutorizacion && !q.autorizada) ? 0.3 : 1 }}
                                                 >
                                                     ✅
                                                 </button>
+                                                {(currentUser.rol === 'Admin' || (currentUser.cargo && currentUser.cargo.toLowerCase().includes('gerente comercial'))) && q.requiereAutorizacion && !q.autorizada && (
+                                                    <button
+                                                        className="btn-status btn-authorize"
+                                                        onClick={() => authorizeQuote(q)}
+                                                        title="Autorizar Margen"
+                                                        style={{ background: '#dcfce7', border: '1px solid #bbf7d0' }}
+                                                    >
+                                                        🔑
+                                                    </button>
+                                                )}
                                                 <button
                                                     className="btn-status btn-perdido"
                                                     onClick={() => updateStatus(q, 'Perdido')}
@@ -889,6 +926,12 @@ const InformesModule: React.FC<IProps> = ({
                 }
                 .btn-save:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,74,153,0.3); }
                 .btn-save:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+                
+                .auth-badge { font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: bold; display: inline-block; }
+                .auth-ok { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+                .auth-pending { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+                .status-ganado { background: #dcfce7; color: #166534; }
+                .status-perdido { background: #fee2e2; color: #991b1b; }
             `}</style>
         </div>
     );

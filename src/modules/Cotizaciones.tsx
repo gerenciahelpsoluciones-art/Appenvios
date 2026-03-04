@@ -21,6 +21,7 @@ interface IProps {
     proveedores: Proveedor[];
     cotizaciones: Cotizacion[];
     onAddQuote: (c: Cotizacion) => void;
+    onUpdateQuote: (c: Cotizacion) => void;
     onSendWhatsApp: (phone: string, message: string) => void;
     currentUser: AppUser;
 }
@@ -31,6 +32,7 @@ const CotizacionesModule: React.FC<IProps> = ({
     proveedores,
     cotizaciones,
     onAddQuote,
+    onUpdateQuote,
     onSendWhatsApp,
     currentUser
 }) => {
@@ -111,6 +113,7 @@ const CotizacionesModule: React.FC<IProps> = ({
     const ivaGeneral = items.reduce((acc, item) => acc + calculateIVAItem(item), 0);
     const grandTotal = subtotalGeneral + ivaGeneral;
     const profitTotal = items.reduce((acc, item) => acc + calculateMarginTotal(item), 0);
+    const marginPercent = subtotalGeneral > 0 ? (profitTotal / subtotalGeneral) * 100 : 0;
 
     const generatePDF = () => {
         try {
@@ -285,7 +288,9 @@ const CotizacionesModule: React.FC<IProps> = ({
                     ejecutivoEmail: ejecutivo.correo,
                     ejecutivoTelefono: ejecutivo.telefono,
                     usuarioId: currentUser.id,
-                    estado: 'Seguimiento'
+                    estado: 'Seguimiento',
+                    requiereAutorizacion: marginPercent < 10,
+                    autorizada: false
                 });
             }
 
