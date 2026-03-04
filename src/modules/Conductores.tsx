@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { Conductor, Despacho, OrdenCompra, Cliente, Proveedor } from '../App';
+import { supabase } from '../lib/supabaseClient';
 
 interface IProps {
     conductores: Conductor[];
@@ -70,14 +71,40 @@ const ConductoresModule: React.FC<IProps> = ({
         setFormData({});
     };
 
-    const handleProofUpload = (item: any, type: 'fotoEntrega' | 'fotoRemision', isOC: boolean, file: File | null) => {
+    const handleProofUpload = async (item: any, type: 'fotoEntrega' | 'fotoRemision', isOC: boolean, file: File | null) => {
         if (!file) return;
-        const updatedItem = { ...item, [type]: file.name };
+
+        // Generate unique file path
+        const timestamp = Date.now();
+        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const filePath = `${isOC ? 'recogidas' : 'entregas'}/${item.id}/${type}_${timestamp}_${safeName}`;
+
+        // Upload to Supabase Storage
+        const { error: uploadError } = await supabase.storage
+            .from('entregas')
+            .upload(filePath, file, { upsert: true });
+
+        if (uploadError) {
+            console.error('Error subiendo archivo:', uploadError);
+            alert(`Error al subir archivo: ${uploadError.message}`);
+            return;
+        }
+
+        // Get public URL
+        const { data: urlData } = supabase.storage
+            .from('entregas')
+            .getPublicUrl(filePath);
+
+        const publicUrl = urlData?.publicUrl || '';
+
+        const updatedItem = { ...item, [type]: publicUrl };
         if (isOC) {
             onUpdateOC(updatedItem);
         } else {
             onUpdateDespacho(updatedItem);
         }
+
+        alert('✅ Archivo subido exitosamente.');
     };
 
     const openMap = (address: string) => {

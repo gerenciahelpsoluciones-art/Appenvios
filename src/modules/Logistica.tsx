@@ -50,13 +50,19 @@ const LogisticaModule: React.FC<IProps> = ({
         : ordenesCompra.filter(oc => oc.estado === filterEstado && oc.tipo === 'Recogida');
 
     // Handlers
-    const downloadFile = (url: string, fileName: string) => {
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = fileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+    const downloadFile = (url: string, _fileName: string) => {
+        if (!url) {
+            alert('No hay archivo disponible para descargar.');
+            return;
+        }
+
+        // If it's a full URL (from Supabase Storage), open in new tab
+        if (url.startsWith('http://') || url.startsWith('https://')) {
+            window.open(url, '_blank');
+        } else {
+            // Legacy: just a filename, show a message
+            alert(`El archivo "${url}" fue registrado pero no se subió al almacenamiento. Solicite al conductor que lo reenvíe.`);
+        }
     };
 
     const handleStatusChange = (d: Despacho, newStatus: Despacho['estado']) => {
