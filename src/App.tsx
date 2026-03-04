@@ -1072,6 +1072,14 @@ function App() {
           budgets={budgets}
         />;
       case 'dashboard':
+        const dashQuotes = currentUser.rol === 'Admin'
+          ? cotizaciones
+          : cotizaciones.filter(c => c.usuarioId === currentUser.id);
+
+        const dashDespachos = currentUser.rol === 'Admin'
+          ? despachos
+          : despachos.filter(d => d.usuarioId === currentUser.id);
+
         const now = new Date();
         const curMonth = now.getMonth();
         const curYear = now.getFullYear();
@@ -1080,7 +1088,7 @@ function App() {
         const prevMonth = prevMonthDate.getMonth();
         const prevYear = prevMonthDate.getFullYear();
 
-        const getMonthQuotes = (m: number, y: number) => cotizaciones.filter(c => {
+        const getMonthQuotes = (m: number, y: number) => dashQuotes.filter(c => {
           if (!c.fecha) return false;
           const [quoteY, quoteM] = c.fecha.split('-').map(Number);
           return quoteY === y && (quoteM - 1) === m;
@@ -1094,8 +1102,8 @@ function App() {
           : (curMonthQuotes.length > 0 ? 100 : 0);
 
         const wonQuotesMonth = curMonthQuotes.filter(c => c.estado === 'Ganado');
-        const completedTotal = despachos.filter(d => d.estado === 'Entregado').length;
-        const activeLogistics = despachos.filter(d => d.estado !== 'Entregado').length;
+        const completedTotal = dashDespachos.filter(d => d.estado === 'Entregado').length;
+        const activeLogistics = dashDespachos.filter(d => d.estado !== 'Entregado').length;
 
         return (
           <div className="dashboard-grid">
@@ -1121,12 +1129,12 @@ function App() {
             <div className="card wide-card">
               <h3>Actividad Reciente</h3>
               <ul className="activity-list">
-                {cotizaciones.slice(-3).reverse().map(c => (
+                {dashQuotes.slice(-3).reverse().map(c => (
                   <li key={c.id}>
                     {c.estado === 'Ganado' ? '✅' : '📄'} Cotización <strong>{c.consecutivo}</strong> para {c.clienteNombre}
                   </li>
                 ))}
-                {despachos.slice(-2).reverse().map(d => (
+                {dashDespachos.slice(-2).reverse().map(d => (
                   <li key={d.id}>
                     🚚 Despacho de <strong>Cotización {d.consecutivoCotizacion}</strong> - {d.estado}
                   </li>
