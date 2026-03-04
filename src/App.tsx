@@ -653,7 +653,7 @@ function App() {
 
   const addCotizacion = async (c: Cotizacion) => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { id, clienteId, clienteNombre, ejecutivoEmail, ejecutivoTelefono, usuarioId, ...cleanC } = c;
+    const { id, clienteId, clienteNombre, ejecutivoEmail, ejecutivoTelefono, usuarioId, utilidadTotal, ...cleanC } = c;
     const { data, error } = await supabase.from('cotizaciones').insert([{
       ...cleanC,
       cliente_id: c.clienteId,
