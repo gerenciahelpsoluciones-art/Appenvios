@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import type { Cliente, Producto, Proveedor, Cotizacion, AppUser } from '../App';
-import { logoBase64 } from '../assets/logoBase64';
+import { generateQuotationPDF } from '../utils/pdfGenerator';
 
 interface QuoteItem {
     id: string;
@@ -116,192 +114,70 @@ const CotizacionesModule: React.FC<IProps> = ({
     const marginPercent = subtotalGeneral > 0 ? (profitTotal / subtotalGeneral) * 100 : 0;
 
     const generatePDF = () => {
+        if (!selectedCliente) {
+            alert('Seleccione un cliente.');
+            return;
+        }
+
+        if (items.length === 0) {
+            alert('Agregue al menos un producto.');
+            return;
+        }
+
+        // Block PDF generation if margin < 10%
+        if (marginPercent < 10) {
+            alert('🚫 ATENCIÓN: Esta cotización tiene un margen inferior al 10%. No es posible generar el PDF hasta que sea autorizada por el Gerente Comercial. La cotización se guardará en seguimiento.');
+        }
+
         try {
-            const doc = new jsPDF();
-
-            // Branding Header
-            doc.setFillColor(0, 74, 153);
-            doc.rect(0, 0, 210, 40, 'F');
-
-            doc.setFontSize(20);
-            doc.setTextColor(255, 255, 255);
-            doc.setFont("helvetica", "bold");
-
-            // Logo in Header (White background box for cleaner look)
-            try {
-                doc.setFillColor(255, 255, 255);
-                doc.rect(5, 5, 30, 30, 'F');
-                doc.addImage(logoBase64, 'JPEG', 5, 5, 30, 30);
-            } catch (e) {
-                console.error("Error drawing logo in header", e);
-            }
-
-            doc.text("HELP SOLUCIONES INFORMATICAS", 40, 22);
-
-            doc.setFontSize(10);
-            doc.setFont("helvetica", "normal");
-            doc.text(`Cotización N°: ${consecutivo}`, 200, 27, { align: 'right' });
-            doc.text("Expertos en Tecnología | Servicios y Productos", 40, 35);
-
-
-
-            // Client Info Box
-            doc.setTextColor(0, 0, 0);
-            doc.setFontSize(12);
-            doc.setFont("helvetica", "bold");
-            doc.text("INFORMACIÓN DEL CLIENTE", 14, 50);
-            doc.line(14, 52, 100, 52);
-
-            doc.setFontSize(10);
-            doc.setFont("helvetica", "normal");
-            if (selectedCliente) {
-                doc.text(`Nombre: ${selectedCliente.nombre}`, 14, 60);
-                doc.text(`NIT: ${selectedCliente.nit}`, 14, 65);
-                doc.text(`Contacto: ${selectedCliente.contacto}`, 14, 70);
-                doc.text(`Dirección: ${selectedCliente.direccion}`, 14, 75);
-            }
-
-            doc.text(`Fecha: ${new Date().toISOString().split('T')[0]}`, 150, 60);
-            doc.text(`Validez: 15 días calendario`, 150, 65);
-
-            // Table Data
-            const tableData = items.map(item => {
-                const prod = productos.find(p => p.id === item.productoId);
-                return [
-                    prod?.nombre || 'N/A',
-                    prod?.numPart || 'N/A',
-                    item.unidad,
-                    item.cantidad,
-                    `$${calculateVenta(item).toLocaleString()}`,
-                    `$${calculateTotalItem(item).toLocaleString()}`
-                ];
+            // Save to DB
+            onAddQuote({
+                id: Math.random().toString(36).substr(2, 9),
+                fecha: new Date().toISOString().split('T')[0],
+                clienteId: selectedClienteId,
+                clienteNombre: selectedCliente?.nombre || 'N/A',
+                consecutivo: consecutivo,
+                items: items.map(item => ({
+                    id: item.id,
+                    productoId: item.productoId,
+                    proveedorId: item.proveedorId,
+                    unidad: item.unidad,
+                    cantidad: item.cantidad,
+                    costoUnitario: item.costoUnitario,
+                    utilidad: item.utilidad,
+                    iva: item.iva
+                })),
+                subtotal: subtotalGeneral,
+                iva: ivaGeneral,
+                total: grandTotal,
+                utilidadTotal: profitTotal,
+                ejecutivo: ejecutivo.nombre,
+                ejecutivoEmail: ejecutivo.correo,
+                ejecutivoTelefono: ejecutivo.telefono,
+                usuarioId: currentUser.id,
+                estado: 'Seguimiento',
+                requiereAutorizacion: marginPercent < 10,
+                autorizada: false,
+                condiciones: condiciones
             });
 
-            // Using autoTable function directly
-            autoTable(doc, {
-                startY: 85,
-                head: [['Descripción del Producto', 'N° Parte', 'Unidad', 'Cant.', 'Precio Unit.', 'Subtotal']],
-                body: tableData,
-                headStyles: { fillColor: [0, 74, 153], textColor: [255, 255, 255] },
-                alternateRowStyles: { fillColor: [240, 245, 255] },
-                margin: { top: 85 }
-            });
-
-            // Safe way to get final Y position
-            let finalY = 85;
-            const docAny = doc as any;
-            if (docAny.lastAutoTable && docAny.lastAutoTable.cursor) {
-                finalY = docAny.lastAutoTable.cursor.y;
-            } else {
-                // Fallback if autoTable didn't set cursor (e.g. empty table or version issue)
-                finalY = 85 + (tableData.length * 10) + 15;
-            }
-
-            // Totals
-            const totalsX = 135; // Position for labels
-            const valuesX = 195; // Position for values (right-aligned)
-
-            doc.setFontSize(10);
-            doc.setTextColor(0, 0, 0);
-            doc.setFont("helvetica", "bold");
-            doc.text(`SUBTOTAL:`, totalsX, finalY + 15);
-            doc.setFont("helvetica", "normal");
-            doc.text(`$${subtotalGeneral.toLocaleString()}`, valuesX, finalY + 15, { align: 'right' });
-
-            doc.setFont("helvetica", "bold");
-            doc.text(`IVA TOTAL:`, totalsX, finalY + 22);
-            doc.setFont("helvetica", "normal");
-            doc.text(`$${ivaGeneral.toLocaleString()}`, valuesX, finalY + 22, { align: 'right' });
-
-            doc.setFillColor(0, 74, 153);
-            doc.rect(totalsX - 5, finalY + 28, 70, 12, 'F');
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(11);
-            doc.setFont("helvetica", "bold");
-            doc.text(`VALOR TOTAL:`, totalsX, finalY + 36);
-            doc.text(`$${grandTotal.toLocaleString()}`, valuesX, finalY + 36, { align: 'right' });
-
-            let currentY = finalY + 45;
-
-            // Conditions Section
-            if (condiciones) {
-                doc.setTextColor(0, 0, 0);
-                doc.setFontSize(10);
-                doc.setFont("helvetica", "bold");
-                doc.text("CONDICIONES COMERCIALES:", 14, currentY + 5);
-                doc.setFont("helvetica", "normal");
-                const splitCondiciones = doc.splitTextToSize(condiciones, 180);
-                doc.text(splitCondiciones, 14, currentY + 12);
-
-                // Adjust currentY according to how many lines the conditions took
-                currentY += 12 + (splitCondiciones.length * 5);
-            }
-
-            // Page Break if we are too low
-            if (currentY > 240) {
-                doc.addPage();
-                currentY = 20;
-            }
-
-            // Executive Section
-            const execY = currentY + 10;
-            doc.setFont("helvetica", "bold");
-            doc.text("ATENTAMENTE,", 14, execY);
-            doc.text(ejecutivo.nombre, 14, execY + 10);
-            doc.setFont("helvetica", "normal");
-            doc.text(ejecutivo.cargo, 14, execY + 15);
-            doc.text(`Tel: ${ejecutivo.telefono}`, 14, execY + 20);
-            doc.text(`Email: ${ejecutivo.correo}`, 14, execY + 25);
-
-            // Footer branding (applied to all pages)
-            const pageCount = (doc as any).internal.getNumberOfPages();
-            for (let i = 1; i <= pageCount; i++) {
-                doc.setPage(i);
-                doc.setFontSize(8);
-                doc.setTextColor(150, 150, 150);
-                doc.text("HELP SOLUCIONES INFORMATICAS correo:gerencia@helpsoluciones.com.co Tel: 3043358650-3003453610", 105, 290, { align: 'center' });
-            }
-
-            // Trigger global save if callback exists
-            if (onAddQuote) {
-                onAddQuote({
-                    id: Math.random().toString(36).substr(2, 9),
-                    fecha: new Date().toISOString().split('T')[0],
-                    clienteId: selectedClienteId,
-                    clienteNombre: selectedCliente?.nombre || 'N/A',
-                    consecutivo: consecutivo,
-                    items: items.map(item => ({
-                        id: item.id,
-                        productoId: item.productoId,
-                        proveedorId: item.proveedorId,
-                        unidad: item.unidad,
-                        cantidad: item.cantidad,
-                        costoUnitario: item.costoUnitario,
-                        utilidad: item.utilidad,
-                        iva: item.iva
-                    })),
+            // If margin >= 10, generate PDF
+            if (marginPercent >= 10) {
+                generateQuotationPDF({
+                    consecutivo,
+                    cliente: selectedCliente,
+                    items,
+                    productos,
                     subtotal: subtotalGeneral,
                     iva: ivaGeneral,
                     total: grandTotal,
-                    utilidadTotal: profitTotal,
-                    ejecutivo: ejecutivo.nombre,
-                    ejecutivoEmail: ejecutivo.correo,
-                    ejecutivoTelefono: ejecutivo.telefono,
-                    usuarioId: currentUser.id,
-                    estado: 'Seguimiento',
-                    requiereAutorizacion: marginPercent < 10,
-                    autorizada: false
+                    condiciones,
+                    ejecutivo
                 });
             }
-
-            // Save PDF
-            const pdfFileName = selectedCliente
-                ? `COTIZACION HELP SOLUCIONES INFORMATICAS - ${selectedCliente.nombre.toUpperCase()} - ${consecutivo}.pdf`
-                : `COTIZACION HELP SOLUCIONES INFORMATICAS_${consecutivo}.pdf`;
-            doc.save(pdfFileName);
         } catch (error: any) {
-            console.error("Error generating PDF:", error);
-            alert(`Error al generar el PDF: ${error.message || 'Error desconocido'}. Verifique los datos ingresados.`);
+            console.error("Error in generatePDF:", error);
+            alert(`Error inesperado: ${error.message || 'Error desconocido'}`);
         }
     };
 

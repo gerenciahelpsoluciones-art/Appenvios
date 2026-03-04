@@ -131,6 +131,7 @@ export interface Cotizacion {
   autorizada?: boolean;
   autorizadoPor?: string;
   fechaAutorizacion?: string;
+  condiciones?: string;
 }
 
 export interface Conductor {

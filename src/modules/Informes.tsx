@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { Cotizacion, SalesBudget, AppUser, Cliente, Producto, Proveedor } from '../App';
+import { generateQuotationPDF } from '../utils/pdfGenerator';
 
 interface IProps {
     cotizaciones: Cotizacion[];
@@ -102,6 +103,36 @@ const InformesModule: React.FC<IProps> = ({
             fechaAutorizacion: new Date().toISOString()
         });
         alert('Cotización autorizada correctamente.');
+    };
+
+    const handlePrintPDF = (q: Cotizacion) => {
+        if (q.requiereAutorizacion && !q.autorizada) {
+            alert('Esta cotización no puede imprimirse porque tiene un margen inferior al 10% y aún no ha sido autorizada por Gerencia.');
+            return;
+        }
+
+        const client = clientes.find(c => c.id === q.clienteId);
+        if (!client) {
+            alert('Error: No se encontró la información del cliente.');
+            return;
+        }
+
+        generateQuotationPDF({
+            consecutivo: q.consecutivo,
+            cliente: client,
+            items: q.items,
+            productos: productos,
+            subtotal: q.subtotal,
+            iva: q.iva,
+            total: q.total,
+            condiciones: q.condiciones || '1. Forma de pago: Contado.\n2. Tiempo de entrega: 3 a 5 días hábiles.\n3. Garantía: 12 meses por defectos de fábrica.',
+            ejecutivo: {
+                nombre: q.ejecutivo,
+                cargo: 'Ejecutivo Comercial',
+                telefono: q.ejecutivoTelefono || '',
+                correo: q.ejecutivoEmail
+            }
+        });
     };
 
     // --- Edit Modal Helpers ---
@@ -498,6 +529,14 @@ const InformesModule: React.FC<IProps> = ({
                                                     title="Editar Cotización"
                                                 >
                                                     ✏️
+                                                </button>
+                                                <button
+                                                    className="btn-status"
+                                                    style={{ background: '#f1f5f9', color: '#444', border: '1px solid #cbd5e1' }}
+                                                    onClick={() => handlePrintPDF(q)}
+                                                    title="Imprimir PDF"
+                                                >
+                                                    🖨️
                                                 </button>
                                                 <button
                                                     className="btn-status btn-seguimiento"
