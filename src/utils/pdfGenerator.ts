@@ -69,7 +69,8 @@ export const generateQuotationPDF = (data: PDFData) => {
         // Table Data
         const tableBody = data.items.map(item => {
             const prod = data.productos.find(p => p.id === item.productoId);
-            const ventaUnit = item.costoUnitario * (1 + item.utilidad / 100);
+            const margin = Math.min(item.utilidad, 99.99) / 100;
+            const ventaUnit = item.costoUnitario / (1 - margin);
             const subtotal = ventaUnit * item.cantidad;
             return [
                 prod?.nombre || 'N/A',

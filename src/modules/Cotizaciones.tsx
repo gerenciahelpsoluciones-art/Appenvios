@@ -109,7 +109,9 @@ BBVA - Cuenta Corriente No. 390021475`;
     };
 
     const calculateVenta = (item: QuoteItem) => {
-        return item.costoUnitario * (1 + item.utilidad / 100);
+        // Limitar la utilidad máxima al 99.99% para evitar divisiones por cero o negativos.
+        const margin = Math.min(item.utilidad, 99.99) / 100;
+        return item.costoUnitario / (1 - margin);
     };
 
     const calculateMarginTotal = (item: QuoteItem) => {
