@@ -35,6 +35,7 @@ export interface Cliente {
   telefono: string;
   correo: string;
   direccion: string;
+  ciudad?: string;
   coordenadas?: string;
   usuarioId?: string;
   tesoreriaNombre?: string;
@@ -65,6 +66,7 @@ export interface Producto {
   descripcion: string;
   unidad: string;
   precioCompra: number;
+  exentoIva?: boolean;
   history: { date: string; price: number }[];
 }
 
@@ -246,6 +248,7 @@ function App() {
           telefono: c.telefono,
           correo: c.correo,
           direccion: c.direccion,
+          ciudad: c.ciudad || '',
           coordenadas: c.coordenadas,
           usuarioId: c.usuario_id,
           tesoreriaNombre: c.tesoreria_nombre || '',
@@ -268,7 +271,8 @@ function App() {
         setProductos(productData.map((p: any) => ({
           ...p,
           numPart: p.num_part,
-          precioCompra: p.precio_compra
+          precioCompra: p.precio_compra,
+          exentoIva: !!p.exento_iva
         })));
       }
 
@@ -437,6 +441,7 @@ function App() {
       telefono: c.telefono,
       correo: c.correo,
       direccion: c.direccion,
+      ciudad: c.ciudad || '',
       coordenadas: c.coordenadas || '',
       usuario_id: currentUser.id,
       tesoreria_nombre: c.tesoreriaNombre || '',
@@ -461,6 +466,7 @@ function App() {
       setClientes(prev => [...prev, {
         ...dbObj,
         usuarioId: dbObj.usuario_id,
+        ciudad: dbObj.ciudad,
         tesoreriaNombre: dbObj.tesoreria_nombre,
         tesoreriaTelefono: dbObj.tesoreria_telefono,
         tesoreriaEmail: dbObj.tesoreria_email,
@@ -483,6 +489,7 @@ function App() {
       telefono: c.telefono,
       correo: c.correo,
       direccion: c.direccion,
+      ciudad: c.ciudad || '',
       coordenadas: c.coordenadas || '',
       usuario_id: c.usuarioId,
       tesoreria_nombre: c.tesoreriaNombre || '',
@@ -539,11 +546,12 @@ function App() {
 
   const addProducto = async (p: Producto) => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { id, numPart, precioCompra, ...cleanProd } = p;
+    const { id, numPart, precioCompra, exentoIva, ...cleanProd } = p;
     const { data, error } = await supabase.from('productos').insert([{
       ...cleanProd,
       num_part: p.numPart,
-      precio_compra: p.precioCompra
+      precio_compra: p.precioCompra,
+      exento_iva: p.exentoIva || false
     }]).select();
     if (error) {
       alert('Error al añadir producto: ' + error.message);
@@ -552,17 +560,19 @@ function App() {
       setProductos([...productos, {
         ...dbProd,
         numPart: dbProd.num_part,
-        precioCompra: dbProd.precio_compra
+        precioCompra: dbProd.precio_compra,
+        exentoIva: !!dbProd.exento_iva
       } as Producto]);
     }
   };
   const updateProducto = async (p: Producto) => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { id, numPart, precioCompra, ...cleanProd } = p;
+    const { id, numPart, precioCompra, exentoIva, ...cleanProd } = p;
     const { error } = await supabase.from('productos').update({
       ...cleanProd,
       num_part: p.numPart,
-      precio_compra: p.precioCompra
+      precio_compra: p.precioCompra,
+      exento_iva: p.exentoIva || false
     }).eq('id', p.id);
     if (!error) setProductos(productos.map(item => item.id === p.id ? p : item));
   };

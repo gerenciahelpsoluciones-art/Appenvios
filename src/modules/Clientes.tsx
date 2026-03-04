@@ -55,6 +55,7 @@ const ClientesModule: React.FC<IProps> = ({ clientes, onAdd, onUpdate, onDelete 
             <input className="input-field" placeholder="Teléfono" value={formData.telefono || ''} onChange={e => setFormData({ ...formData, telefono: e.target.value })} />
             <input className="input-field" placeholder="Correo" value={formData.correo || ''} onChange={e => setFormData({ ...formData, correo: e.target.value })} />
             <input className="input-field" placeholder="Dirección" value={formData.direccion || ''} onChange={e => setFormData({ ...formData, direccion: e.target.value })} />
+            <input className="input-field" placeholder="Ciudad" value={formData.ciudad || ''} onChange={e => setFormData({ ...formData, ciudad: e.target.value })} />
             <input className="input-field" placeholder="Coordenadas (Lat, Long)" value={formData.coordenadas || ''} onChange={e => setFormData({ ...formData, coordenadas: e.target.value })} />
 
             <div className="contact-section" style={{ gridColumn: 'span 2', background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
@@ -151,7 +152,7 @@ const ClientesModule: React.FC<IProps> = ({ clientes, onAdd, onUpdate, onDelete 
                       <span className="doc-badge" style={{ opacity: 0.3 }}>Sin Crédito</span>
                     )}
                   </td>
-                  <td>{c.direccion}<br /><small><code>{c.coordenadas || ''}</code></small></td>
+                  <td>{c.direccion}<br /><small><strong>{c.ciudad || ''}</strong></small><br /><small><code>{c.coordenadas || ''}</code></small></td>
                   <td className="text-center">
                     <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
                       <button className="btn-edit" onClick={() => startEdit(c)}>✏️</button>

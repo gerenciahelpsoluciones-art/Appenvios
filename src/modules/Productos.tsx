@@ -17,7 +17,8 @@ const ProductosModule: React.FC<IProps> = ({ productos, onAdd, onUpdate, onDelet
         numPart: '',
         descripcion: '',
         unidad: 'Und',
-        precioCompra: 0
+        precioCompra: 0,
+        exentoIva: false
     });
 
     const handleSave = () => {
@@ -40,7 +41,7 @@ const ProductosModule: React.FC<IProps> = ({ productos, onAdd, onUpdate, onDelet
                 onAdd(prod);
                 setIsAdding(false);
             }
-            setFormData({ nombre: '', numPart: '', descripcion: '', unidad: 'Und', precioCompra: 0 });
+            setFormData({ nombre: '', numPart: '', descripcion: '', unidad: 'Und', precioCompra: 0, exentoIva: false });
         }
     };
 
@@ -53,14 +54,14 @@ const ProductosModule: React.FC<IProps> = ({ productos, onAdd, onUpdate, onDelet
     const cancel = () => {
         setIsAdding(false);
         setEditingId(null);
-        setFormData({ nombre: '', numPart: '', descripcion: '', unidad: 'Und', precioCompra: 0 });
+        setFormData({ nombre: '', numPart: '', descripcion: '', unidad: 'Und', precioCompra: 0, exentoIva: false });
     };
 
     return (
         <div className="module-container">
             <div className="module-header">
                 <h2>Catálogo de Productos</h2>
-                <button onClick={() => { setIsAdding(true); setEditingId(null); setFormData({ nombre: '', numPart: '', descripcion: '', unidad: 'Und', precioCompra: 0 }); }}>+ Nuevo Producto</button>
+                <button onClick={() => { setIsAdding(true); setEditingId(null); setFormData({ nombre: '', numPart: '', descripcion: '', unidad: 'Und', precioCompra: 0, exentoIva: false }); }}>+ Nuevo Producto</button>
             </div>
 
             {(isAdding || editingId) && (
@@ -95,6 +96,20 @@ const ProductosModule: React.FC<IProps> = ({ productos, onAdd, onUpdate, onDelet
                                 <input className="input-field" type="number" placeholder="0.00" value={formData.precioCompra} onChange={e => setFormData({ ...formData, precioCompra: Number(e.target.value) })} />
                             </div>
                         </div>
+                        <div className="form-row">
+                            <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem', marginTop: '1rem' }}>
+                                <input
+                                    type="checkbox"
+                                    id="exentoIva"
+                                    checked={formData.exentoIva || false}
+                                    onChange={e => setFormData({ ...formData, exentoIva: e.target.checked })}
+                                    style={{ width: '1.2rem', height: '1.2rem', cursor: 'pointer' }}
+                                />
+                                <label htmlFor="exentoIva" style={{ cursor: 'pointer', margin: 0, textTransform: 'none', fontSize: '0.95rem', color: 'var(--text-main)' }}>
+                                    Producto Exento de IVA
+                                </label>
+                            </div>
+                        </div>
                     </div>
                     <div className="form-actions" style={{ marginTop: '1.5rem', display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
                         <button className="btn-secondary" onClick={cancel}>Cancelar</button>
@@ -119,7 +134,10 @@ const ProductosModule: React.FC<IProps> = ({ productos, onAdd, onUpdate, onDelet
                         <tbody>
                             {productos.map(p => (
                                 <tr key={p.id}>
-                                    <td><strong>{p.nombre}</strong></td>
+                                    <td><strong>
+                                        {p.nombre}
+                                        {p.exentoIva && <span className="exento-badge" style={{ marginLeft: '0.5rem' }}>Sin IVA</span>}
+                                    </strong></td>
                                     <td><code className="part-number-badge">{p.numPart || 'N/A'}</code></td>
                                     <td style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{p.descripcion}</td>
                                     <td>{p.unidad}</td>
@@ -140,25 +158,27 @@ const ProductosModule: React.FC<IProps> = ({ productos, onAdd, onUpdate, onDelet
                 </div>
             </div>
 
-            {selectedProduct && (
-                <div className="modal-overlay" onClick={() => setSelectedProduct(null)}>
-                    <div className="modal-content card" onClick={e => e.stopPropagation()}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                            <h3 style={{ margin: 0 }}>Historial de Precios</h3>
-                            <button className="btn-close" onClick={() => setSelectedProduct(null)}>×</button>
+            {
+                selectedProduct && (
+                    <div className="modal-overlay" onClick={() => setSelectedProduct(null)}>
+                        <div className="modal-content card" onClick={e => e.stopPropagation()}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                                <h3 style={{ margin: 0 }}>Historial de Precios</h3>
+                                <button className="btn-close" onClick={() => setSelectedProduct(null)}>×</button>
+                            </div>
+                            <p style={{ marginBottom: '1rem' }}><strong>Producto:</strong> {selectedProduct.nombre}</p>
+                            <ul className="history-list">
+                                {selectedProduct.history.map((h, i) => (
+                                    <li key={i}>
+                                        <span className="history-date">{h.date}</span>
+                                        <span className="history-price">${h.price.toLocaleString()}</span>
+                                    </li>
+                                ))}
+                            </ul>
                         </div>
-                        <p style={{ marginBottom: '1rem' }}><strong>Producto:</strong> {selectedProduct.nombre}</p>
-                        <ul className="history-list">
-                            {selectedProduct.history.map((h, i) => (
-                                <li key={i}>
-                                    <span className="history-date">{h.date}</span>
-                                    <span className="history-price">${h.price.toLocaleString()}</span>
-                                </li>
-                            ))}
-                        </ul>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             <style>{`
         .form-grid-modern {
@@ -194,6 +214,15 @@ const ProductosModule: React.FC<IProps> = ({ productos, onAdd, onUpdate, onDelet
           border-radius: 4px;
           font-family: monospace;
           font-size: 0.9rem;
+        }
+        .exento-badge {
+          background: #dcfce7;
+          color: #166534;
+          padding: 0.2rem 0.4rem;
+          border-radius: 4px;
+          font-size: 0.75rem;
+          font-weight: bold;
+          vertical-align: middle;
         }
         .price-cell {
           color: var(--primary-blue);
@@ -263,7 +292,7 @@ const ProductosModule: React.FC<IProps> = ({ productos, onAdd, onUpdate, onDelet
         .btn-secondary:hover { background: var(--background-light); }
         .btn-success { background: var(--success); color: white; }
       `}</style>
-        </div>
+        </div >
     );
 };
 

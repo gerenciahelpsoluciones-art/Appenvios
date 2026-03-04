@@ -49,7 +49,28 @@ const CotizacionesModule: React.FC<IProps> = ({
     const [items, setItems] = useState<QuoteItem[]>([]);
     const [selectedClienteId, setSelectedClienteId] = useState('');
     const [consecutivo, setConsecutivo] = useState(generateConsecutivo());
-    const [condiciones, setCondiciones] = useState('1. Forma de pago: Contado.\n2. Tiempo de entrega: 3 a 5 días hábiles.\n3. Garantía: 12 meses por defectos de fábrica.');
+    const initialCondiciones = `1. La descripción del producto y/o servicio, especifica el producto y/o servicio que se va a entregar, el cual incluye características técnicas y especificaciones relevantes. 
+2. El valor unitario y el Valor total se expresa sin tener en cuenta impuestos, el valor del IVA se calcula y se indica en la casilla Valor IVA.
+3. Condiciones y forma de pago: Anticipo ( ) Contado ( ) Crédito 30 días ( ) Crédito 45 días ( )
+4. Los plazos de entrega de mercancía serán contemplados una vez se tenga confirmación de la propuesta o cotización por medio de correo electrónico y/o Orden de Compra: 1 día ( ) 2 días ( ) De 3 a 5 días ( ) de 6 a 10 días ( ) de 11 a 15 días ( ) 15 días o más ( ) Nota: Si son varias referencias se toma el más demorado.
+5. Garantía, nuestros productos están sujetos a la política de garantía descritos en nuestra página WEB: POLITICAS DE GARANTIA
+6. Condiciones de devolución y reembolso, se aceptan devoluciones en un plazo no mayor a 3 días y se debe retornar el producto a las instalaciones de la compañía, con la factura. Ver.
+7. Validez de la cotización: Tiene valides por 1 día ( ) 2 días ( ) 3 días ( ) 5 días ( ) 15 días ( ) 1 mes ( )
+Después de la fecha de creación de este documento, esto significa que las cantidades, descripciones y precios, dependerán de la validez de este documento.
+
+Condiciones comerciales especiales:
+
+Si la entrega de la mercancía se hace en un domicilio diferente al relacionado en los registros del ERP se debe informar y diligenciar y entregar la autorización despacho a terceros.
+
+Proceso de compra:
+1. Aprobación: Confirmación de la cotización o emisión de la orden de compra.
+2. Verificación: Validación de la disponibilidad del producto.
+3. Pago: Realizar el pago únicamente mediante transferencia bancaria a las siguientes cuentas:
+Bancolombia - Cuenta de Ahorros N.º 00900002540
+Davivienda – Cuenta Corriente No. 455469999011
+BBVA - Cuenta Corriente No. 390021475`;
+
+    const [condiciones, setCondiciones] = useState(initialCondiciones);
     const [ejecutivo, setEjecutivo] = useState({
         nombre: currentUser.nombre || '',
         cargo: currentUser.cargo || 'Ejecutivo Comercial',
@@ -78,7 +99,7 @@ const CotizacionesModule: React.FC<IProps> = ({
             if (item.id === id) {
                 if (field === 'productoId') {
                     const prod = productos.find(p => p.id === value);
-                    return { ...item, productoId: value, costoUnitario: prod?.precioCompra || 0, unidad: prod?.unidad || 'Und' };
+                    return { ...item, productoId: value, costoUnitario: prod?.precioCompra || 0, unidad: prod?.unidad || 'Und', iva: prod?.exentoIva ? 0 : 19 };
                 }
                 return { ...item, [field]: value };
             }
@@ -242,7 +263,7 @@ const CotizacionesModule: React.FC<IProps> = ({
                         <h3>Condiciones Comerciales</h3>
                         <textarea
                             className="input-field"
-                            rows={8}
+                            rows={15}
                             style={{ width: '100%', resize: 'vertical', marginTop: '0.5rem' }}
                             placeholder="Escriba aquí las condiciones comerciales..."
                             value={condiciones}

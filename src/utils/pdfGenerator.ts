@@ -129,10 +129,17 @@ export const generateQuotationPDF = (data: PDFData) => {
         if (data.condiciones) {
             doc.setTextColor(0, 0, 0);
             doc.setFontSize(10);
+            const splitConds = doc.splitTextToSize(data.condiciones, 180);
+
+            // Si el bloque de condiciones es muy largo y no cabe en la página actual, saltar de página antes de imprimir
+            if (currentY + 15 + (splitConds.length * 5) > 280) {
+                doc.addPage();
+                currentY = 20;
+            }
+
             doc.setFont("helvetica", "bold");
             doc.text("CONDICIONES COMERCIALES:", 14, currentY + 5);
             doc.setFont("helvetica", "normal");
-            const splitConds = doc.splitTextToSize(data.condiciones, 180);
             doc.text(splitConds, 14, currentY + 12);
             currentY += 12 + (splitConds.length * 5);
         }
