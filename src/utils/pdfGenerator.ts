@@ -21,6 +21,7 @@ export interface PDFData {
 }
 
 export const generateQuotationPDF = (data: PDFData) => {
+    console.log("Generating PDF with data:", data);
     try {
         const doc = new jsPDF();
 
