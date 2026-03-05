@@ -89,13 +89,15 @@ const InventarioModule: React.FC = () => {
                 return;
             }
 
-            const mapped: SiigoProduct[] = data.results.map((p: any) => ({
-                id: p.id,
-                code: p.code,
-                description: p.description,
-                price: p.prices?.[0]?.price_list?.[0]?.value || 0,
-                stock: p.stock_control ? (p.available_quantity || 0) : 0,
-            }));
+            const mapped: SiigoProduct[] = data.results
+                .map((p: any) => ({
+                    id: p.id,
+                    code: p.code,
+                    description: p.description,
+                    price: p.prices?.[0]?.price_list?.[0]?.value || 0,
+                    stock: p.stock_control ? (p.available_quantity || 0) : 0,
+                }))
+                .filter((p: SiigoProduct) => p.stock >= 1);
             setProducts(mapped);
             console.log(`${mapped.length} productos cargados desde Siigo.`);
         } catch (err: any) {
