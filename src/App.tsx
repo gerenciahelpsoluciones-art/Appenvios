@@ -12,6 +12,7 @@ import ReparacionesModule from './modules/Reparaciones'
 import AdminModule from './modules/Admin'
 import Login from './modules/Login'
 import VendedoresModule from './modules/Vendedores'
+import InventarioModule from './modules/Inventario'
 import { supabase } from './lib/supabaseClient'
 import { logoBase64 } from './assets/logoBase64'
 
@@ -1179,6 +1180,7 @@ function App() {
     { id: 'logistica', label: 'Logística', icon: '🚚' },
     { id: 'reparaciones', label: 'Reparaciones', icon: '🛠️' },
     { id: 'informes', label: 'Informes', icon: '📈' },
+    { id: 'inventario', label: 'Inventario Siigo', icon: '🗄️' },
     { id: 'admin', label: 'Administración', icon: '⚙️' },
     { id: 'vendedores', label: 'Vendedores', icon: '👨‍💼' },
   ].filter(item => currentUser?.permisos.includes(item.id));
@@ -1236,6 +1238,8 @@ function App() {
         />;
       case 'productos':
         return <ProductosModule productos={productos} onAdd={addProducto} onUpdate={updateProducto} onDelete={deleteProducto} />;
+      case 'inventario':
+        return <InventarioModule />;
       case 'proveedores':
         return <ProveedoresModule proveedores={proveedores} onAdd={addProveedor} onUpdate={updateProveedor} onDelete={deleteProveedor} />;
       case 'conductores':

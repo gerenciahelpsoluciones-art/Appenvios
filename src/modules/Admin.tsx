@@ -27,6 +27,7 @@ const MODULES = [
     { id: 'logistica', label: 'Logística' },
     { id: 'reparaciones', label: 'Reparaciones' },
     { id: 'informes', label: 'Informes' },
+    { id: 'inventario', label: 'Inventario Siigo' },
     { id: 'admin', label: 'Administración' },
     { id: 'vendedores', label: 'Vendedores' },
 ];
