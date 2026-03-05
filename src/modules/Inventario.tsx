@@ -19,8 +19,8 @@ const InventarioModule: React.FC = () => {
     const [accessKey, setAccessKey] = useState(localStorage.getItem('siigo_access_key') || '');
     const [token, setToken] = useState<string | null>(null);
 
-    // Proxy helper to bypass CORS
-    const PROXY_URL = 'https://api.allorigins.win/raw?url=';
+    // Proxy helper to bypass CORS (corsproxy.io supports POST requests)
+    const PROXY_URL = 'https://corsproxy.io/?';
 
     const authenticate = async () => {
         if (!username || !accessKey) {
@@ -34,8 +34,7 @@ const InventarioModule: React.FC = () => {
             const response = await fetch(authUrl, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ username, access_key: accessKey })
             });
