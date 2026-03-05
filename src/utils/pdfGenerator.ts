@@ -72,18 +72,20 @@ export const generateQuotationPDF = (data: PDFData) => {
             const margin = Math.min(item.utilidad, 99.99) / 100;
             const ventaUnit = item.costoUnitario / (1 - margin);
             const subtotal = ventaUnit * item.cantidad;
+            const valorIVA = subtotal * (item.iva / 100);
             return [
                 prod?.nombre || 'N/A',
                 item.unidad || 'Und',
                 item.cantidad,
                 `$${ventaUnit.toLocaleString()}`,
-                `$${subtotal.toLocaleString()}`
+                `$${subtotal.toLocaleString()}`,
+                `$${valorIVA.toLocaleString()}`
             ];
         });
 
         autoTable(doc, {
             startY: 85,
-            head: [['Descripción del Producto', 'Unidad', 'Cant.', 'Precio Unit.', 'Subtotal']],
+            head: [['Descripción del Producto', 'Unidad', 'Cant.', 'Precio Unit.', 'Subtotal', 'IVA']],
             body: tableBody,
             headStyles: { fillColor: [0, 74, 153], textColor: [255, 255, 255] },
             alternateRowStyles: { fillColor: [240, 245, 255] },

@@ -294,12 +294,12 @@ BBVA - Cuenta Corriente No. 390021475`;
                         <tr>
                             <th>Producto</th>
                             <th>N° Parte</th>
-                            <th>Proveedor</th>
                             <th style={{ width: '70px' }}>Cant</th>
                             <th>Costo</th>
                             <th style={{ width: '70px' }}>Util%</th>
                             <th>Venta (Unit)</th>
-                            <th>Ut. ($)</th>
+                            <th style={{ width: '60px' }}>IVA%</th>
+                            <th>Valor IVA</th>
                             <th>Total (c/IVA)</th>
                             <th></th>
                         </tr>
@@ -329,23 +329,19 @@ BBVA - Cuenta Corriente No. 390021475`;
                                         placeholder="-"
                                     />
                                 </td>
-                                <td>
-                                    <select
-                                        className="table-input"
-                                        value={item.proveedorId}
-                                        onChange={e => updateItem(item.id, 'proveedorId', e.target.value)}
-                                    >
-                                        <option value="">-- Proveedor --</option>
-                                        {proveedores.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
-                                    </select>
-                                </td>
                                 <td><input className="table-input num" type="number" value={item.cantidad} onChange={e => updateItem(item.id, 'cantidad', Number(e.target.value))} /></td>
                                 <td><input className="table-input num" type="number" value={item.costoUnitario} onChange={e => updateItem(item.id, 'costoUnitario', Number(e.target.value))} /></td>
                                 <td><input className="table-input num" type="number" value={item.utilidad} onChange={e => updateItem(item.id, 'utilidad', Number(e.target.value))} /></td>
                                 <td className="read-only">${calculateVenta(item).toLocaleString()}</td>
-                                <td className="read-only font-bold" style={{ color: 'var(--success)' }}>
-                                    ${calculateMarginTotal(item).toLocaleString()}
+                                <td>
+                                    <input
+                                        className="table-input num"
+                                        type="number"
+                                        value={item.iva}
+                                        onChange={e => updateItem(item.id, 'iva', Number(e.target.value))}
+                                    />
                                 </td>
+                                <td className="read-only">${calculateIVAItem(item).toLocaleString()}</td>
                                 <td className="read-only font-bold">${calculateTotalItem(item).toLocaleString()}</td>
                                 <td>
                                     <button className="btn-delete" onClick={() => setItems(items.filter(i => i.id !== item.id))}>×</button>
@@ -360,13 +356,13 @@ BBVA - Cuenta Corriente No. 390021475`;
                             <td></td>
                         </tr>
                         <tr>
-                            <td colSpan={8} style={{ textAlign: 'right', padding: '0.5rem 1rem' }}>UTILIDAD BRUTA ($):</td>
-                            <td style={{ textAlign: 'right', padding: '0.5rem 1rem', color: 'var(--success)', fontWeight: 'bold' }}>${profitTotal.toLocaleString()}</td>
+                            <td colSpan={8} style={{ textAlign: 'right', padding: '0.5rem 1rem' }}>IVA TOTAL:</td>
+                            <td style={{ textAlign: 'right', padding: '0.5rem 1rem' }}>${ivaGeneral.toLocaleString()}</td>
                             <td></td>
                         </tr>
                         <tr>
-                            <td colSpan={8} style={{ textAlign: 'right', padding: '0.5rem 1rem' }}>IVA TOTAL:</td>
-                            <td style={{ textAlign: 'right', padding: '0.5rem 1rem' }}>${ivaGeneral.toLocaleString()}</td>
+                            <td colSpan={8} style={{ textAlign: 'right', padding: '0.5rem 1rem' }}>UTILIDAD BRUTA ($):</td>
+                            <td style={{ textAlign: 'right', padding: '0.5rem 1rem', color: 'var(--success)', fontWeight: 'bold' }}>${profitTotal.toLocaleString()}</td>
                             <td></td>
                         </tr>
                         <tr>
