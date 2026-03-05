@@ -883,6 +883,16 @@ function App() {
     }
   };
 
+  const deleteCotizacion = async (id: string) => {
+    const { error } = await supabase.from('cotizaciones').delete().eq('id', id);
+    if (error) {
+      console.error('Error eliminando cotización:', error);
+      alert('Error al eliminar cotización: ' + error.message);
+      return;
+    }
+    setCotizaciones(prev => prev.filter(c => c.id !== id));
+  };
+
   const addOrdenCompra = async (oc: OrdenCompra): Promise<boolean> => {
     const payload = {
       consecutivo: oc.consecutivo,
@@ -1183,6 +1193,7 @@ function App() {
           budgets={budgets}
           currentUser={currentUser}
           onUpdateQuote={updateCotizacion}
+          onDeleteQuote={deleteCotizacion}
           clientes={clientes}
           productos={productos}
           proveedores={proveedores}

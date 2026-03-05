@@ -7,6 +7,7 @@ interface IProps {
     budgets: SalesBudget[];
     currentUser: AppUser;
     onUpdateQuote: (quote: Cotizacion) => void;
+    onDeleteQuote: (id: string) => void;
     clientes: Cliente[];
     productos: Producto[];
     proveedores: Proveedor[];
@@ -31,6 +32,7 @@ const InformesModule: React.FC<IProps> = ({
     budgets,
     currentUser,
     onUpdateQuote,
+    onDeleteQuote,
     clientes,
     productos,
     proveedores,
@@ -103,6 +105,11 @@ const InformesModule: React.FC<IProps> = ({
             fechaAutorizacion: new Date().toISOString()
         });
         alert('Cotización autorizada correctamente.');
+    };
+
+    const handleDeleteQuote = (q: Cotizacion) => {
+        if (!window.confirm(`¿Está seguro de eliminar de forma permanente la cotización ${q.consecutivo} de ${q.clienteNombre}?`)) return;
+        onDeleteQuote(q.id);
     };
 
     const handlePrintPDF = (q: Cotizacion) => {
@@ -540,6 +547,16 @@ const InformesModule: React.FC<IProps> = ({
                                                 >
                                                     🖨️
                                                 </button>
+                                                {(currentUser.rol === 'Admin' || currentUser.cargo?.toLowerCase().includes('administrador')) && (
+                                                    <button
+                                                        className="btn-status btn-perdido"
+                                                        style={{ background: '#fee2e2', border: '1px solid #fecaca' }}
+                                                        onClick={() => handleDeleteQuote(q)}
+                                                        title="Eliminar Cotización (Sólo Admin)"
+                                                    >
+                                                        🗑️
+                                                    </button>
+                                                )}
                                                 <button
                                                     className="btn-status btn-seguimiento"
                                                     onClick={() => updateStatus(q, 'Seguimiento')}
