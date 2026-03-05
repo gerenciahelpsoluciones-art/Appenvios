@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import type { Conductor, Despacho, OrdenCompra, Cliente, Proveedor } from '../App';
+import type { Conductor, Despacho, OrdenCompra, Cliente, Proveedor, Devolucion } from '../App';
 import { supabase } from '../lib/supabaseClient';
 
 interface IProps {
     conductores: Conductor[];
     despachos: Despacho[];
     ordenesCompra: OrdenCompra[];
+    devoluciones: Devolucion[];
     proveedores: Proveedor[];
     clientes: Cliente[];
     onAdd: (c: Conductor) => void;
@@ -13,6 +14,7 @@ interface IProps {
     onDelete: (id: string) => void;
     onUpdateDespacho: (d: Despacho) => void;
     onUpdateOC: (oc: OrdenCompra) => void;
+    onUpdateDevolucion: (d: Devolucion) => void;
     onSendWhatsApp: (phone: string, message: string) => void;
 }
 
@@ -20,6 +22,7 @@ const ConductoresModule: React.FC<IProps> = ({
     conductores,
     despachos,
     ordenesCompra,
+    devoluciones,
     proveedores,
     clientes,
     onAdd,
@@ -27,6 +30,7 @@ const ConductoresModule: React.FC<IProps> = ({
     onDelete,
     onUpdateDespacho,
     onUpdateOC,
+    onUpdateDevolucion,
     onSendWhatsApp
 }) => {
     const [isAdding, setIsAdding] = useState(false);
@@ -100,6 +104,8 @@ const ConductoresModule: React.FC<IProps> = ({
         const updatedItem = { ...item, [type]: publicUrl };
         if (isOC) {
             onUpdateOC(updatedItem);
+        } else if (updatedItem.consecutivo?.startsWith('DEV')) {
+            onUpdateDevolucion(updatedItem as Devolucion);
         } else {
             onUpdateDespacho(updatedItem);
         }
@@ -132,6 +138,10 @@ const ConductoresModule: React.FC<IProps> = ({
                 // Priority: georeferencia (captured) > provider coordinates > provider address
                 const prov = proveedores.find(p => p.id === oc.proveedorId);
                 return oc.georeferencia || prov?.coordenadas || prov?.direccion || oc.nombreProveedor;
+            }),
+            ...devoluciones.filter(dev => selectedTasks.includes(dev.id)).map(dev => {
+                const prov = proveedores.find(p => p.id === dev.proveedorId);
+                return prov?.coordenadas || prov?.direccion || dev.nombreProveedor;
             })
         ].filter(p => !!p);
 
@@ -149,6 +159,8 @@ const ConductoresModule: React.FC<IProps> = ({
     const markAsCompleted = (item: any, isOC: boolean) => {
         if (isOC) {
             onUpdateOC({ ...item, estado: 'Recogido' });
+        } else if (item.consecutivo?.startsWith('DEV')) {
+            onUpdateDevolucion({ ...item, estado: 'Completado' });
         } else {
             const despacho = item as Despacho;
             onUpdateDespacho({ ...despacho, estado: 'Entregado' });
@@ -165,12 +177,16 @@ const ConductoresModule: React.FC<IProps> = ({
 
     const allAssignedDespachos = viewingRoutesId ? despachos.filter(d => d.conductorId === viewingRoutesId) : [];
     const allAssignedOCs = viewingRoutesId ? ordenesCompra.filter(oc => oc.conductorId === viewingRoutesId) : [];
+    const allAssignedDevs = viewingRoutesId ? devoluciones.filter(dev => dev.conductorId === viewingRoutesId) : [];
 
     const pendingDespachos = allAssignedDespachos.filter(d => d.estado !== 'Entregado');
     const completedDespachos = allAssignedDespachos.filter(d => d.estado === 'Entregado');
 
     const pendingOCs = allAssignedOCs.filter(oc => oc.estado !== 'Recogido');
     const completedOCs = allAssignedOCs.filter(oc => oc.estado === 'Recogido');
+
+    const pendingDevs = allAssignedDevs.filter(dev => dev.estado !== 'Completado');
+    const completedDevs = allAssignedDevs.filter(dev => dev.estado === 'Completado');
 
     const currentConductor = conductores.find(c => c.id === viewingRoutesId);
 
@@ -355,6 +371,7 @@ const ConductoresModule: React.FC<IProps> = ({
                             <h4>🏭 Recogidas Pendientes</h4>
                             {pendingOCs.length > 0 ? pendingOCs.map(oc => (
                                 <div key={oc.id} className={`task-card oc-task ${selectedTasks.includes(oc.id) ? 'selected-task' : ''}`}>
+                                    {/* ... existing OC card content ... */}
                                     <div className="task-main">
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                             <span className={`status-tag status-${oc.estado.toLowerCase().replace(' ', '-')}`}>{oc.estado}</span>
@@ -407,12 +424,59 @@ const ConductoresModule: React.FC<IProps> = ({
                                 </div>
                             )) : <p className="empty-msg">No tiene recogidas asignadas.</p>}
                         </div>
+
+                        <div className="task-column">
+                            <h4>🔙 Devoluciones Pendientes</h4>
+                            {pendingDevs.length > 0 ? pendingDevs.map(dev => (
+                                <div key={dev.id} className={`task-card dev-task ${selectedTasks.includes(dev.id) ? 'selected-task' : ''}`} style={{ borderLeftColor: '#f59e0b' }}>
+                                    <div className="task-main">
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                            <span className={`status-tag status-${dev.estado.toLowerCase().replace(' ', '-')}`} style={{ background: '#fef3c7', color: '#92400e' }}>{dev.estado}</span>
+                                            <input
+                                                type="checkbox"
+                                                className="task-checkbox"
+                                                checked={selectedTasks.includes(dev.id)}
+                                                onChange={() => toggleTaskSelection(dev.id)}
+                                            />
+                                        </div>
+                                        <p>{dev.nombreProveedor}</p>
+                                        <strong>Devolución: {dev.consecutivo}</strong>
+                                        <small>Llevar al proveedor asignado</small>
+                                    </div>
+                                    <div className="task-actions">
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                                            <button className="btn-geo" onClick={() => openMap(dev.nombreProveedor)} title="Mapa">📍 Localizar</button>
+                                            <button
+                                                className="btn-complete"
+                                                onClick={() => markAsCompleted(dev, false)}
+                                                disabled={dev.estado === 'Completado'}
+                                                style={{ backgroundColor: '#f59e0b' }}
+                                            >
+                                                🏁 Entregado
+                                            </button>
+                                        </div>
+                                        <div className="upload-grid">
+                                            <div className="upload-group">
+                                                <label>📸 Foto Entrega</label>
+                                                <input type="file" onChange={(e) => handleProofUpload(dev, 'fotoEntrega', false, e.target.files?.[0] || null)} />
+                                                {(dev as any).fotoEntrega && <span className="upload-success">✅ {(dev as any).fotoEntrega}</span>}
+                                            </div>
+                                            <div className="upload-group">
+                                                <label>📄 Foto Remisión</label>
+                                                <input type="file" onChange={(e) => handleProofUpload(dev, 'fotoRemision', false, e.target.files?.[0] || null)} />
+                                                {(dev as any).fotoRemision && <span className="upload-success">✅ {(dev as any).fotoRemision}</span>}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )) : <p className="empty-msg">No tiene devoluciones asignadas.</p>}
+                        </div>
                     </div>
 
                     {(completedDespachos.length > 0 || completedOCs.length > 0) && (
                         <div className="completed-section animate-fade-in" style={{ marginTop: '3rem', borderTop: '2px dashed #cbd5e1', paddingTop: '2rem' }}>
                             <h3 style={{ color: '#059669', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
-                                ✅ Tareas Finalizadas ({completedDespachos.length + completedOCs.length})
+                                ✅ Tareas Finalizadas ({completedDespachos.length + completedOCs.length + completedDevs.length})
                             </h3>
                             <div className="completed-grid" style={{ overflowX: 'auto' }}>
                                 <table className="data-table" style={{ background: '#f8fafc' }}>
@@ -442,6 +506,15 @@ const ConductoresModule: React.FC<IProps> = ({
                                                 <td>{oc.nombreProveedor}</td>
                                                 <td><small>Bodega Proveedor</small></td>
                                                 <td className="text-center"><span className="status-tag status-recogido">RECOGIDO</span></td>
+                                            </tr>
+                                        ))}
+                                        {completedDevs.map(dev => (
+                                            <tr key={dev.id} style={{ opacity: 0.8 }}>
+                                                <td><span className="badge-type" style={{ background: '#fef3c7', color: '#92400e' }}>Devolución</span></td>
+                                                <td><strong>{dev.consecutivo}</strong></td>
+                                                <td>{dev.nombreProveedor}</td>
+                                                <td><small>Bodega Proveedor</small></td>
+                                                <td className="text-center"><span className="status-tag" style={{ background: '#dcfce7', color: '#15803d' }}>COMPLETADO</span></td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -568,6 +641,7 @@ const ConductoresModule: React.FC<IProps> = ({
                 .badge-type.pickup { background: #f3e8ff; color: #7e22ce; }
                 .status-tag.status-entregado { background: #dcfce7; color: #15803d; padding: 0.2rem 0.6rem; border-radius: 20px; font-size: 0.75rem; font-weight: 800; }
                 .status-tag.status-recogido { background: #f3e8ff; color: #7e22ce; padding: 0.2rem 0.6rem; border-radius: 20px; font-size: 0.75rem; font-weight: 800; }
+                .tasks-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
                 .upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
                 .btn-geo { background: #3b82f6; }
                 .upload-group label { display: block; font-size: 0.75rem; font-weight: 700; margin-bottom: 0.2rem; color: var(--text-muted); }
