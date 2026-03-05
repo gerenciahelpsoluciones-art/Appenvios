@@ -32,7 +32,7 @@ Deno.serve(async (req: Request) => {
 
             console.log(`Autenticando usuario: ${username}`);
 
-            const siigoRes = await fetch(`${SIIGO_BASE_URL}/v1/auth`, {
+            const siigoRes = await fetch(`${SIIGO_BASE_URL}/auth`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
