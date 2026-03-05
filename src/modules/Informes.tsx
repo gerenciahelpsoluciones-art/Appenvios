@@ -11,9 +11,8 @@ interface IProps {
     clientes: Cliente[];
     productos: Producto[];
     proveedores: Proveedor[];
-    despachos: any[];
-    ordenesCompra: any[];
     users: AppUser[];
+    alquileres: any[];
 }
 
 interface EditItem {
@@ -38,7 +37,8 @@ const InformesModule: React.FC<IProps> = ({
     proveedores,
     despachos,
     ordenesCompra,
-    users
+    users,
+    alquileres
 }) => {
     const today = new Date().toISOString().split('T')[0];
     const [fechaInicio, setFechaInicio] = useState(today);

@@ -13,6 +13,7 @@ import AdminModule from './modules/Admin'
 import Login from './modules/Login'
 import VendedoresModule from './modules/Vendedores'
 import InventarioModule from './modules/Inventario'
+import AlquileresModule from './modules/Alquileres'
 import { supabase } from './lib/supabaseClient'
 import { logoBase64 } from './assets/logoBase64'
 
@@ -118,6 +119,19 @@ export interface OrdenCompra {
   usuarioId: string;
   tipo: 'Recogida' | 'Inventario' | 'Oficina';
   verificada: boolean;
+}
+
+export interface Alquiler {
+  id: string;
+  descripcion: string;
+  serial: string;
+  fotoUrl?: string;
+  estado: 'Bodega' | 'Alquilado';
+  clienteId?: string;
+  clienteNombre?: string;
+  fechaInicio?: string;
+  valorMensual: number;
+  usuarioId: string;
 }
 
 export interface CotizacionItem {
@@ -255,6 +269,7 @@ function App() {
   const [ordenesCompra, setOrdenesCompra] = useState<OrdenCompra[]>([]);
   const [despachos, setDespachos] = useState<Despacho[]>([]);
   const [conductores, setConductores] = useState<Conductor[]>([]);
+  const [alquileres, setAlquileres] = useState<Alquiler[]>([]);
   const [reparaciones, setReparaciones] = useState<Reparacion[]>([]);
   const [devoluciones, setDevoluciones] = useState<Devolucion[]>([]);
   const [budgets, setBudgets] = useState<SalesBudget[]>([]);
@@ -387,6 +402,18 @@ function App() {
         })));
       }
 
+      const { data: alquilerData } = await supabase.from('alquileres').select('*');
+      if (alquilerData) {
+        setAlquileres(alquilerData.map((a: any) => ({
+          ...a,
+          clienteId: a.cliente_id,
+          clienteNombre: a.cliente_nombre,
+          fechaInicio: a.fecha_inicio,
+          valorMensual: a.valor_mensual,
+          usuarioId: a.usuario_id
+        })));
+      }
+
       const { data: repairData } = await supabase.from('reparaciones').select('*');
       if (repairData) {
         setReparaciones(repairData.map((r: any) => ({
@@ -448,6 +475,7 @@ function App() {
         .on('postgres_changes', { event: '*', schema: 'public', table: 'ordenes_compra' }, () => fetchInitialData())
         .on('postgres_changes', { event: '*', schema: 'public', table: 'despachos' }, () => fetchInitialData())
         .on('postgres_changes', { event: '*', schema: 'public', table: 'conductores' }, () => fetchInitialData())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'alquileres' }, () => fetchInitialData())
         .on('postgres_changes', { event: '*', schema: 'public', table: 'reparaciones' }, () => fetchInitialData())
         .on('postgres_changes', { event: '*', schema: 'public', table: 'devoluciones' }, () => fetchInitialData())
         .on('postgres_changes', { event: '*', schema: 'public', table: 'budgets' }, () => fetchInitialData())
@@ -1192,6 +1220,48 @@ function App() {
     localStorage.setItem('hs_current_user', JSON.stringify(user));
   };
 
+  const handleAddAlquiler = async (a: Alquiler) => {
+    const payload = {
+      descripcion: a.descripcion,
+      serial: a.serial,
+      fotoUrl: a.fotoUrl,
+      estado: a.estado,
+      cliente_id: a.clienteId,
+      cliente_nombre: a.clienteNombre,
+      fecha_inicio: a.fechaInicio,
+      valor_mensual: a.valorMensual,
+      usuario_id: a.usuarioId,
+    };
+    const { error } = await supabase.from('alquileres').insert([payload]);
+    if (error) { alert('Error guardando equipo: ' + error.message); return false; }
+    fetchInitialData(); // Re-fetch all data to update state
+    return true;
+  }
+
+  const handleUpdateAlquiler = async (a: Alquiler) => {
+    const payload = {
+      descripcion: a.descripcion,
+      serial: a.serial,
+      fotoUrl: a.fotoUrl,
+      estado: a.estado,
+      cliente_id: a.clienteId,
+      cliente_nombre: a.clienteNombre,
+      fecha_inicio: a.fechaInicio,
+      valor_mensual: a.valorMensual,
+      usuario_id: a.usuarioId,
+    };
+    const { error } = await supabase.from('alquileres').update(payload).eq('id', a.id);
+    if (error) { alert('Error actualizando equipo: ' + error.message); return false; }
+    fetchInitialData(); // Re-fetch all data to update state
+    return true;
+  }
+
+  const handleDeleteAlquiler = async (id: string) => {
+    const { error } = await supabase.from('alquileres').delete().eq('id', id);
+    if (error) alert('Error eliminando equipo: ' + error.message);
+    else fetchInitialData(); // Re-fetch all data to update state
+  }
+
   const handleLogout = () => {
     setIsLoggedIn(false);
     setCurrentUser(null);
@@ -1257,6 +1327,15 @@ function App() {
           onUpdateOC={updateOrdenCompra}
           onUpdateDevolucion={updateDevolucion}
           onSendWhatsApp={sendWhatsAppNotification}
+        />;
+      case 'alquileres':
+        return <AlquileresModule
+          alquileres={alquileres}
+          clientes={clientes}
+          onAddAlquiler={handleAddAlquiler}
+          onUpdateAlquiler={handleUpdateAlquiler}
+          onDeleteAlquiler={handleDeleteAlquiler}
+          currentUser={currentUser}
         />;
       case 'logistica':
         return <LogisticaModule
