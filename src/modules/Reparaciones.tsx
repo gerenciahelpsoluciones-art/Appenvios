@@ -45,7 +45,7 @@ const ReparacionesModule: React.FC<IProps> = ({ reparaciones, clientes, proveedo
                 onUpdate({ ...repairData, id: editingId });
                 setEditingId(null);
             } else {
-                onAdd({ ...repairData, id: Date.now().toString() });
+                onAdd({ ...repairData, id: crypto.randomUUID() });
                 setIsAdding(false);
             }
             setFormData({ estado: 'Recibido', tipoServicio: 'HELP SOLUCIONES', fechaIngreso: new Date().toLocaleDateString() });

@@ -125,7 +125,7 @@ const LogisticaModule: React.FC<IProps> = ({
         const prod = productos.find(p => p.id === selProdId);
         if (prod && selCant > 0) {
             setManualItems([...manualItems, {
-                id: Math.random().toString(36).substr(2, 9),
+                id: crypto.randomUUID(),
                 productoId: prod.id,
                 nombreProducto: prod.nombre,
                 numPart: prod.numPart,
@@ -145,13 +145,13 @@ const LogisticaModule: React.FC<IProps> = ({
         }
 
         const newRecogida: OrdenCompra = {
-            id: Date.now().toString(),
+            id: crypto.randomUUID(),
             consecutivo: `REC-M-${(ordenesCompra.length + 1).toString().padStart(4, '0')}`,
             fecha: new Date().toISOString().split('T')[0],
             proveedorId: prov.id,
             nombreProveedor: prov.nombre,
             items: manualItems.map(item => ({
-                id: Math.random().toString(36).substr(2, 9),
+                id: crypto.randomUUID(),
                 productoId: item.productoId,
                 nombreProducto: item.nombreProducto,
                 numPart: item.numPart,
@@ -183,7 +183,7 @@ const LogisticaModule: React.FC<IProps> = ({
         }
 
         const newDevolucion: Devolucion = {
-            id: Date.now().toString(),
+            id: crypto.randomUUID(),
             consecutivo: `DEV-M-${(devoluciones.length + 1).toString().padStart(4, '0')}`,
             fecha: new Date().toISOString().split('T')[0],
             proveedorId: prov.id,

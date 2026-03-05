@@ -11,6 +11,8 @@ interface IProps {
     clientes: Cliente[];
     productos: Producto[];
     proveedores: Proveedor[];
+    despachos: any[];
+    ordenesCompra: any[];
     users: AppUser[];
     alquileres: any[];
 }
@@ -179,7 +181,7 @@ const InformesModule: React.FC<IProps> = ({
 
     const addEditItem = () => {
         setEditItems(prev => [...prev, {
-            id: Date.now().toString(),
+            id: crypto.randomUUID(),
             productoId: '',
             proveedorId: '',
             unidad: 'Und',
@@ -241,6 +243,15 @@ const InformesModule: React.FC<IProps> = ({
         if (!acc[month]) acc[month] = { total: 0, profit: 0 };
         acc[month].total += q.total;
         acc[month].profit += (q.utilidadTotal || 0);
+        return acc;
+    }, {});
+
+    const rentalsByClient = alquileres.reduce((acc: Record<string, { nombre: string, count: number, value: number, items: any[] }>, a) => {
+        if (a.estado !== 'Alquilado') return acc;
+        if (!acc[a.clienteId]) acc[a.clienteId] = { nombre: a.clienteNombre || 'Sin Nombre', count: 0, value: 0, items: [] };
+        acc[a.clienteId].count += 1;
+        acc[a.clienteId].value += (a.valorMensual || 0);
+        acc[a.clienteId].items.push(a);
         return acc;
     }, {});
 

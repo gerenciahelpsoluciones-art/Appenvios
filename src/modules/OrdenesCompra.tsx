@@ -33,7 +33,7 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenes
         const prod = productos.find(p => p.id === selectedProdId);
         if (prod && cantidad > 0) {
             const newItem: OrdenCompraItem = {
-                id: Date.now().toString(),
+                id: crypto.randomUUID(),
                 productoId: prod.id,
                 nombreProducto: prod.nombre,
                 numPart: prod.numPart,
@@ -69,7 +69,7 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenes
             : `OC-${nextConsecutivoValue.toString().padStart(4, '0')}`;
 
         const ocData: OrdenCompra = {
-            id: editingId || Date.now().toString(),
+            id: editingId || crypto.randomUUID(),
             consecutivo: nextConsecutivo,
             fecha: editingId
                 ? ordenesCompra.find(oc => oc.id === editingId)?.fecha || new Date().toISOString().split('T')[0]

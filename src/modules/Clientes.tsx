@@ -6,9 +6,10 @@ interface IProps {
   onAdd: (c: Cliente) => void;
   onUpdate: (c: Cliente) => void;
   onDelete: (id: string) => void;
+  userRole: string;
 }
 
-const ClientesModule: React.FC<IProps> = ({ clientes, onAdd, onUpdate, onDelete }) => {
+const ClientesModule: React.FC<IProps> = ({ clientes, onAdd, onUpdate, onDelete, userRole }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<Cliente>>({});
@@ -26,7 +27,7 @@ const ClientesModule: React.FC<IProps> = ({ clientes, onAdd, onUpdate, onDelete 
         onUpdate({ ...formData, id: editingId } as Cliente);
         setEditingId(null);
       } else {
-        onAdd({ ...formData, id: Date.now().toString() } as Cliente);
+        onAdd({ ...formData, id: crypto.randomUUID() } as Cliente);
         setIsAdding(false);
       }
       setFormData({});
@@ -128,7 +129,7 @@ const ClientesModule: React.FC<IProps> = ({ clientes, onAdd, onUpdate, onDelete 
                   style={{ padding: '0.4rem 0.8rem', fontSize: '0.9rem' }}
                   onClick={() => setFormData({
                     ...formData,
-                    compradores: [...(formData.compradores || []), { id: Date.now().toString(), nombre: '', cargo: '', telefono: '', correo: '' }]
+                    compradores: [...(formData.compradores || []), { id: crypto.randomUUID(), nombre: '', cargo: '', telefono: '', correo: '' }]
                   })}
                 >
                   + Añadir Comprador
@@ -184,7 +185,7 @@ const ClientesModule: React.FC<IProps> = ({ clientes, onAdd, onUpdate, onDelete 
                   style={{ padding: '0.4rem 0.8rem', fontSize: '0.9rem' }}
                   onClick={() => setFormData({
                     ...formData,
-                    sedes: [...(formData.sedes || []), { id: Date.now().toString(), nombre: '', direccion: '', ciudad: '' }]
+                    sedes: [...(formData.sedes || []), { id: crypto.randomUUID(), nombre: '', direccion: '', ciudad: '' }]
                   })}
                 >
                   + Añadir Sede
@@ -314,7 +315,9 @@ const ClientesModule: React.FC<IProps> = ({ clientes, onAdd, onUpdate, onDelete 
                   <td className="text-center">
                     <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
                       <button className="btn-edit" onClick={() => startEdit(c)}>✏️</button>
-                      <button className="btn-delete-icon" onClick={() => { if (window.confirm('¿Eliminar este cliente?')) onDelete(c.id) }}>🗑️</button>
+                      {userRole === 'Admin' && (
+                        <button className="btn-delete-icon" onClick={() => { if (window.confirm('¿Eliminar este cliente?')) onDelete(c.id) }}>🗑️</button>
+                      )}
                     </div>
                   </td>
                 </tr>

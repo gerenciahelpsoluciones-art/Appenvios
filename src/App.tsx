@@ -899,7 +899,7 @@ function App() {
         });
 
         const newDespacho: Despacho = {
-          id: Date.now().toString(), // Temp ID
+          id: crypto.randomUUID(), // Temp ID
           cotizacionId: c.id,
           consecutivoCotizacion: c.consecutivo,
           fechaSolicitud: new Date().toISOString().split('T')[0],
@@ -987,7 +987,7 @@ function App() {
       console.error('Error insertando Orden de Compra:', error);
       alert('Error al añadir O.C.: ' + error.message);
       return false;
-    } else if (data) {
+    } else if (data && data[0]) {
       const dbO = data[0];
       setOrdenesCompra(prev => [{
         ...dbO,
@@ -1130,13 +1130,23 @@ function App() {
       conductor_nombre: d.conductorNombre
     };
 
-    const { error } = await supabase.from('devoluciones').insert([payload]);
+    const { data, error } = await supabase.from('devoluciones').insert([payload]).select();
     if (error) {
       console.error('Error insertando devolución:', error);
       alert('Error en base de datos: ' + error.message);
       return false;
     }
-    setDevoluciones([...devoluciones, d]);
+    if (data && data[0]) {
+      const dbD = data[0];
+      setDevoluciones(prev => [...prev, {
+        ...dbD,
+        proveedorId: dbD.proveedor_id,
+        nombreProveedor: dbD.nombre_proveedor,
+        usuarioId: dbD.usuario_id,
+        conductorId: dbD.conductor_id,
+        conductorNombre: dbD.conductor_nombre
+      } as Devolucion]);
+    }
     return true;
   };
 
@@ -1211,6 +1221,7 @@ function App() {
     { id: 'inventario', label: 'Inventario Siigo', icon: '🗄️' },
     { id: 'admin', label: 'Administración', icon: '⚙️' },
     { id: 'vendedores', label: 'Vendedores', icon: '👨‍💼' },
+    { id: 'alquileres', label: 'Alquileres', icon: '💻' },
   ].filter(item => currentUser?.permisos.includes(item.id));
 
   const handleLogin = (user: AppUser) => {
@@ -1232,9 +1243,19 @@ function App() {
       valor_mensual: a.valorMensual,
       usuario_id: a.usuarioId,
     };
-    const { error } = await supabase.from('alquileres').insert([payload]);
+    const { data, error } = await supabase.from('alquileres').insert([payload]).select();
     if (error) { alert('Error guardando equipo: ' + error.message); return false; }
-    fetchInitialData(); // Re-fetch all data to update state
+    if (data && data[0]) {
+      const dbA = data[0];
+      setAlquileres(prev => [...prev, {
+        ...dbA,
+        clienteId: dbA.cliente_id,
+        clienteNombre: dbA.cliente_nombre,
+        fechaInicio: dbA.fecha_inicio,
+        valorMensual: dbA.valor_mensual,
+        usuarioId: dbA.usuario_id
+      } as Alquiler]);
+    }
     return true;
   }
 
@@ -1279,7 +1300,7 @@ function App() {
 
     switch (activeTab) {
       case 'clientes':
-        return <ClientesModule clientes={filteredClientes} onAdd={addCliente} onUpdate={updateCliente} onDelete={deleteCliente} />;
+        return <ClientesModule clientes={filteredClientes} onAdd={addCliente} onUpdate={updateCliente} onDelete={deleteCliente} userRole={currentUser?.rol || ''} />;
       case 'cotizaciones':
         return <CotizacionesModule
           clientes={filteredClientes}
@@ -1378,6 +1399,7 @@ function App() {
           proveedores={proveedores}
           despachos={despachos}
           ordenesCompra={ordenesCompra}
+          alquileres={alquileres}
           users={users}
         />;
       case 'admin':

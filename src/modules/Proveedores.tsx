@@ -30,7 +30,7 @@ const ProveedoresModule: React.FC<IProps> = ({ proveedores, onAdd, onUpdate, onD
                 onUpdate({ ...proveedorData, id: editingId } as Proveedor);
                 setEditingId(null);
             } else {
-                onAdd({ ...proveedorData, id: Date.now().toString() } as Proveedor);
+                onAdd({ ...proveedorData, id: crypto.randomUUID() } as Proveedor);
                 setIsAdding(false);
             }
             setFormData({});

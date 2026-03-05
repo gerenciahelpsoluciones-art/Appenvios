@@ -82,7 +82,7 @@ BBVA - Cuenta Corriente No. 390021475`;
 
     const addItem = () => {
         const newItem: QuoteItem = {
-            id: Date.now().toString(),
+            id: crypto.randomUUID(),
             productoId: '',
             proveedorId: '',
             unidad: 'Und',
@@ -157,7 +157,7 @@ BBVA - Cuenta Corriente No. 390021475`;
         try {
             // Save to DB
             onAddQuote({
-                id: Math.random().toString(36).substr(2, 9),
+                id: crypto.randomUUID(),
                 fecha: new Date().toISOString().split('T')[0],
                 clienteId: selectedClienteId,
                 clienteNombre: selectedCliente?.nombre || 'N/A',

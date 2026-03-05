@@ -47,7 +47,7 @@ const ConductoresModule: React.FC<IProps> = ({
                 onUpdate({ ...formData, id: editingId } as Conductor);
                 setEditingId(null);
             } else {
-                onAdd({ ...formData, id: Date.now().toString() } as Conductor);
+                onAdd({ ...formData, id: crypto.randomUUID() } as Conductor);
                 setIsAdding(false);
             }
             setFormData({});

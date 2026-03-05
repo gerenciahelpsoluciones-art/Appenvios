@@ -18,11 +18,15 @@ const InventarioModule: React.FC = () => {
     const [username, setUsername] = useState(localStorage.getItem('siigo_username') || '');
     const [accessKey, setAccessKey] = useState(localStorage.getItem('siigo_access_key') || '');
     const [token, setToken] = useState<string | null>(null);
+    const [useDirectConnection, setUseDirectConnection] = useState(false);
 
-    // Proxies Públicos que soportan POST y paso de headers
+    // Proxies Públicos con mayor soporte para POST y Headers
     const FALLBACK_PROXIES = [
-        'https://thingproxy.freeboard.io/fetch/', // Muy confiable para POST
-        'https://corsproxy.io/?'                  // Versátil
+        { name: 'Vite Proxy (Local)', url: '/siigo-api' },
+        { name: 'AllOrigins (CORS Relay)', url: 'https://api.allorigins.win/raw?url=' },
+        { name: 'ThingProxy', url: 'https://thingproxy.freeboard.io/fetch/' },
+        { name: 'CORS Proxy IO', url: 'https://corsproxy.io/?' },
+        { name: 'Direct (No Proxy)', url: '' }
     ];
 
     const authenticate = async () => {
@@ -34,65 +38,61 @@ const InventarioModule: React.FC = () => {
         try {
             setLoading(true);
             setError(null);
-            console.log('--- Iniciando Diagnóstico de Conexión Siigo ---');
+            console.log('--- Iniciando Diagnóstico de Conexión Triple-Route (v6) ---');
 
             const hostname = window.location.hostname;
-            const isLocal = hostname === 'localhost' ||
-                hostname === '127.0.0.1' ||
-                hostname.startsWith('192.168.') ||
-                hostname.startsWith('10.') ||
-                hostname.startsWith('172.');
+            const isLocal = hostname === 'localhost' || hostname === '127.0.0.1';
 
             let response: Response | null = null;
             let lastError: any = null;
-            let usedMethod = 'Vite Proxy';
+            let successMethod = '';
 
-            // Intento 1: Proxy de Vite (Solo en local)
-            if (isLocal) {
+            // Construir lista de intentos basada en configuración
+            const attempts = useDirectConnection
+                ? [FALLBACK_PROXIES[4]] // Solo Directo
+                : isLocal
+                    ? FALLBACK_PROXIES // Todos empezando por local
+                    : FALLBACK_PROXIES.filter(p => p.name !== 'Vite Proxy (Local)'); // Omitir local en prod
+
+            for (const proxy of attempts) {
                 try {
-                    console.log('Probando Proxy local de Vite...');
-                    const res = await fetch('/siigo-api/v1/auth', {
+                    console.log(`Intentando Ruta: ${proxy.name}...`);
+                    const target = 'https://api.siigo.com/v1/auth';
+                    let url = '';
+
+                    if (proxy.name === 'Vite Proxy (Local)') {
+                        url = '/siigo-api/v1/auth';
+                    } else if (proxy.url === '') {
+                        url = target;
+                    } else {
+                        url = proxy.url.includes('?') ? `${proxy.url}${encodeURIComponent(target)}` : `${proxy.url}${target}`;
+                    }
+
+                    const res = await fetch(url, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ username, access_key: accessKey })
                     });
-                    if (res.ok) response = res;
+
+                    if (res.ok) {
+                        response = res;
+                        successMethod = proxy.name;
+                        break;
+                    } else {
+                        console.warn(`${proxy.name} falló con status: ${res.status}`);
+                    }
                 } catch (e: any) {
-                    console.warn('Proxy local fallido:', e.message);
+                    console.error(`Error en ${proxy.name}:`, e.message);
                     lastError = e;
                 }
             }
 
-            // Intento 2: Proxies Públicos (Fallback)
             if (!response || !response.ok) {
-                for (const proxy of FALLBACK_PROXIES) {
-                    try {
-                        console.log(`Probando Proxy Público: ${proxy}`);
-                        const target = 'https://api.siigo.com/v1/auth';
-                        const url = proxy.includes('?') ? `${proxy}${encodeURIComponent(target)}` : `${proxy}${target}`;
-
-                        const res = await fetch(url, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ username, access_key: accessKey })
-                        });
-                        if (res.ok) {
-                            response = res;
-                            break;
-                        }
-                    } catch (e) {
-                        lastError = e;
-                    }
-                }
+                const detail = lastError?.message || 'Error de red / CORS bloqueado';
+                throw new Error(`Falla de conexión Triple-Route. Su red o firewall podría estar bloqueando los canales de conexión. Detalle: ${detail}`);
             }
 
-            if (!response || !response.ok) {
-                const hint = isLocal ? "Asegúrese de que 'npm run dev' esté ejecutándose." : "Su red o firewall podría estar bloqueando los canales de conexión.";
-                throw new Error(`Falla de conexión Triple-Route. ${hint} Detalle: ${lastError?.message || 'Sin respuesta'}`);
-            }
-
-            console.log(`Conexión exitosa vía: ${usedMethod}`);
-
+            console.log(`Conexión exitosa vía: ${successMethod}`);
             const data = await response.json();
             setToken(data.access_token);
             localStorage.setItem('siigo_username', username);
@@ -113,44 +113,47 @@ const InventarioModule: React.FC = () => {
 
             const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
             let response: Response | null = null;
+            let successMethod = '';
 
-            // Intento local
-            if (isLocal) {
+            const attempts = useDirectConnection
+                ? [FALLBACK_PROXIES[4]]
+                : isLocal ? FALLBACK_PROXIES : FALLBACK_PROXIES.filter(p => p.name !== 'Vite Proxy (Local)');
+
+            for (const proxy of attempts) {
                 try {
-                    const res = await fetch('/siigo-api/v1/products', {
-                        headers: { 'Authorization': `Bearer ${accessToken}`, 'Partner-Id': 'AppEnvios' }
+                    const target = 'https://api.siigo.com/v1/products';
+                    let url = '';
+
+                    if (proxy.name === 'Vite Proxy (Local)') {
+                        url = '/siigo-api/v1/products';
+                    } else if (proxy.url === '') {
+                        url = target;
+                    } else {
+                        url = proxy.url.includes('?') ? `${proxy.url}${encodeURIComponent(target)}` : `${proxy.url}${target}`;
+                    }
+
+                    const res = await fetch(url, {
+                        headers: {
+                            'Authorization': `Bearer ${accessToken}`,
+                            'Partner-Id': 'AppEnvios',
+                            'Content-Type': 'application/json'
+                        }
                     });
-                    if (res.ok) response = res;
+
+                    if (res.ok) {
+                        response = res;
+                        successMethod = proxy.name;
+                        break;
+                    }
                 } catch (e) { }
             }
 
-            // Fallback proxy
             if (!response || !response.ok) {
-                for (const proxy of FALLBACK_PROXIES) {
-                    try {
-                        const target = 'https://api.siigo.com/v1/products';
-                        const url = proxy.includes('?') ? `${proxy}${encodeURIComponent(target)}` : `${proxy}${target}`;
-                        const res = await fetch(url, {
-                            headers: { 'Authorization': `Bearer ${accessToken}`, 'Partner-Id': 'AppEnvios' }
-                        });
-                        if (res.ok) {
-                            response = res;
-                            break;
-                        }
-                    } catch (e) { }
-                }
+                throw new Error(`No se pudo obtener el inventario. Verifique su conexión y permisos.`);
             }
 
+            console.log(`Productos obtenidos exitosamente vía: ${successMethod}`);
             const data = await response.json();
-            console.log('Datos raw de Siigo:', data);
-
-            if (!data.results || !data.results.length) {
-                console.warn('La API retornó 0 productos.');
-                setProducts([]);
-                setError('La cuenta de Siigo no tiene productos registrados o la consulta no devolvió resultados.');
-                return;
-            }
-
             const mapped = data.results.map((p: any) => ({
                 id: p.id,
                 code: p.code,
@@ -202,15 +205,15 @@ const InventarioModule: React.FC = () => {
             </div>
 
             {error && (
-                <div className="card" style={{ borderLeft: '4px solid #ef4444', marginBottom: '1.5rem', background: '#fef2f2' }}>
-                    <p style={{ color: '#ef4444', fontWeight: '600' }}>⚠️ {error}</p>
+                <div className="card" style={{ borderLeft: '4px solid #ef4444', marginBottom: '1.5rem', background: '#fef2f2', padding: '1rem' }}>
+                    <p style={{ color: '#ef4444', fontWeight: '600', margin: 0 }}>⚠️ {error}</p>
                 </div>
             )}
 
             {!token && (
                 <div className="card animate-fade-in" style={{ marginBottom: '2rem' }}>
                     <h3>Configuración de API Siigo</h3>
-                    <div className="form-grid">
+                    <div className="form-grid" style={{ marginBottom: '1rem' }}>
                         <div className="form-group">
                             <label>Usuario (Email)</label>
                             <input
@@ -230,7 +233,23 @@ const InventarioModule: React.FC = () => {
                             />
                         </div>
                     </div>
-                    <button onClick={handleRefresh} className="btn-success" style={{ marginTop: '1rem' }} disabled={loading}>
+
+                    <div style={{ padding: '0.75rem', background: '#f8fafc', borderRadius: '8px', marginBottom: '1rem' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', fontSize: '0.9rem' }}>
+                            <input
+                                type="checkbox"
+                                checked={useDirectConnection}
+                                onChange={e => setUseDirectConnection(e.target.checked)}
+                                style={{ width: '18px', height: '18px' }}
+                            />
+                            <strong>Conexión Directa (Omitir Proxies)</strong>
+                            <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                                (Use esta opción si tiene una extensión de navegador para desbloquear CORS)
+                            </span>
+                        </label>
+                    </div>
+
+                    <button onClick={handleRefresh} className="btn-success" disabled={loading}>
                         Conectar y Traer Datos
                     </button>
                 </div>

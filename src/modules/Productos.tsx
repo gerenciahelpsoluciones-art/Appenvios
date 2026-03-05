@@ -36,7 +36,7 @@ const ProductosModule: React.FC<IProps> = ({ productos, onAdd, onUpdate, onDelet
             } else {
                 const prod: Producto = {
                     ...formData as Producto,
-                    id: Date.now().toString(),
+                    id: crypto.randomUUID(),
                     history: [{ date: new Date().toISOString().split('T')[0], price: formData.precioCompra || 0 }]
                 };
                 onAdd(prod);

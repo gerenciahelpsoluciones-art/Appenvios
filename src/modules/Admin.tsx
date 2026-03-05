@@ -71,7 +71,7 @@ const AdminModule: React.FC<IProps> = ({
                 onUpdate({ ...userData, id: editingId });
                 setEditingId(null);
             } else {
-                onAdd({ ...userData, id: Date.now().toString() });
+                onAdd({ ...userData, id: crypto.randomUUID() });
                 setIsAdding(false);
             }
             setFormData({ rol: 'Comercial', permisos: ['dashboard'] });
@@ -121,7 +121,7 @@ const AdminModule: React.FC<IProps> = ({
         } else {
             onAddBudget({
                 ...budgetForm,
-                id: Date.now().toString(),
+                id: crypto.randomUUID(),
                 nombreVendedor: vendor?.nombre || 'N/A'
             });
         }
