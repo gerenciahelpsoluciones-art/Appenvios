@@ -19,6 +19,9 @@ const InventarioModule: React.FC = () => {
     const [accessKey, setAccessKey] = useState(localStorage.getItem('siigo_access_key') || '');
     const [token, setToken] = useState<string | null>(null);
 
+    // Proxy helper to bypass CORS
+    const PROXY_URL = 'https://api.allorigins.win/raw?url=';
+
     const authenticate = async () => {
         if (!username || !accessKey) {
             setError('Por favor ingrese Usuario y Access Key de Siigo.');
@@ -27,9 +30,13 @@ const InventarioModule: React.FC = () => {
 
         try {
             setLoading(true);
-            const response = await fetch('https://api.siigo.com/v1/auth', {
+            const authUrl = `${PROXY_URL}${encodeURIComponent('https://api.siigo.com/v1/auth')}`;
+            const response = await fetch(authUrl, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
                 body: JSON.stringify({ username, access_key: accessKey })
             });
 
@@ -51,11 +58,12 @@ const InventarioModule: React.FC = () => {
     const fetchProducts = async (accessToken: string) => {
         try {
             setLoading(true);
-            const response = await fetch('https://api.siigo.com/v1/products', {
+            const productsUrl = `${PROXY_URL}${encodeURIComponent('https://api.siigo.com/v1/products')}`;
+            const response = await fetch(productsUrl, {
                 headers: {
                     'Authorization': `Bearer ${accessToken}`,
                     'Content-Type': 'application/json',
-                    'Partner-Id': 'AppEnvios' // Custom partner ID if applicable
+                    'Partner-Id': 'AppEnvios'
                 }
             });
 
