@@ -30,6 +30,7 @@ const InventarioModule: React.FC = () => {
 
         try {
             setLoading(true);
+            setError(null);
             const response = await fetch(`${API_BASE_URL}/v1/auth`, {
                 method: 'POST',
                 headers: {
@@ -38,7 +39,14 @@ const InventarioModule: React.FC = () => {
                 body: JSON.stringify({ username, access_key: accessKey })
             });
 
-            if (!response.ok) throw new Error('Error de autenticación con Siigo.');
+            if (!response.ok) {
+                if (response.status === 404) {
+                    throw new Error('Error (404): No se encontró la ruta del Proxy. Asegúrese de estar ejecutando "npm run dev" en desarrollo.');
+                }
+                const errorData = await response.json().catch(() => ({}));
+                console.error('Siigo Auth Error:', errorData);
+                throw new Error(`Error de autenticación (${response.status}): ${errorData.Errors?.[0]?.Message || 'Verifique sus credenciales.'}`);
+            }
 
             const data = await response.json();
             setToken(data.access_token);
@@ -47,6 +55,7 @@ const InventarioModule: React.FC = () => {
             return data.access_token;
         } catch (err: any) {
             setError(err.message);
+            console.error('Auth handler error:', err);
             return null;
         } finally {
             setLoading(false);
