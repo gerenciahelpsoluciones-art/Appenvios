@@ -132,9 +132,16 @@ const InventarioModule: React.FC = () => {
                 }
             }
 
-            if (!response || !response.ok) throw new Error('No se pudieron obtener productos a través de ningún canal.');
-
             const data = await response.json();
+            console.log('Datos raw de Siigo:', data);
+
+            if (!data.results || !data.results.length) {
+                console.warn('La API retornó 0 productos.');
+                setProducts([]);
+                setError('La cuenta de Siigo no tiene productos registrados o la consulta no devolvió resultados.');
+                return;
+            }
+
             const mapped = data.results.map((p: any) => ({
                 id: p.id,
                 code: p.code,
@@ -232,7 +239,7 @@ const InventarioModule: React.FC = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {filteredProducts.map(p => (
+                        {filteredProducts.length > 0 ? filteredProducts.map(p => (
                             <tr key={p.id}>
                                 <td><code>{p.code}</code></td>
                                 <td>{p.description}</td>
@@ -244,7 +251,13 @@ const InventarioModule: React.FC = () => {
                                     </span>
                                 </td>
                             </tr>
-                        ))}
+                        )) : (
+                            <tr>
+                                <td colSpan={5} className="text-center" style={{ padding: '3rem', color: 'var(--text-muted)' }}>
+                                    {loading ? 'Consultando Siigo...' : 'No se encontraron productos. Presione "Sincronizar" para intentar de nuevo.'}
+                                </td>
+                            </tr>
+                        )}
                     </tbody>
                 </table>
             </div>
