@@ -21,7 +21,11 @@ const InventarioModule: React.FC = () => {
 
     // Dynamic API URL with fallback
     const API_BASE_URL = '/siigo-api';
-    const FALLBACK_PROXY = 'https://corsproxy.io/?'; // More reliable for POST with bodies
+    const FALLBACK_PROXIES = [
+        'https://corsproxy.io/?',
+        'https://api.allorigins.win/raw?url=',
+        'https://thingproxy.freeboard.io/fetch/'
+    ];
 
     const authenticate = async () => {
         if (!username || !accessKey) {
@@ -32,43 +36,67 @@ const InventarioModule: React.FC = () => {
         try {
             setLoading(true);
             setError(null);
+            console.log('--- Iniciando Diagnóstico de Conexión Siigo ---');
 
-            let response: Response;
+            let response: Response | null = null;
+            let lastError: any = null;
 
-            // Try 1: Local Vite Proxy
+            // Intento 1: Proxy de Vite (Local)
+            console.log('Paso 1: Probando Proxy local de Vite...');
             try {
-                console.log('Attempting connection via local proxy...');
-                response = await fetch(`${API_BASE_URL}/v1/auth`, {
+                const res = await fetch(`${API_BASE_URL}/v1/auth`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, access_key: accessKey })
                 });
 
-                if (response.status === 404) {
-                    console.warn('Vite proxy (404) not active. Trying public fallback...');
-                    throw new Error('PROXY_404');
+                if (res.status === 404) {
+                    console.warn('Vite proxy (404) no activo.');
+                } else {
+                    response = res;
                 }
             } catch (e: any) {
-                console.warn('Local proxy connection failed:', e.message);
-                console.log('Switching to Fallback Proxy...');
-
-                const targetUrl = 'https://api.siigo.com/v1/auth';
-                const fallbackUrl = `${FALLBACK_PROXY}${encodeURIComponent(targetUrl)}`;
-
-                response = await fetch(fallbackUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({ username, access_key: accessKey })
-                });
+                console.warn('Proxy local no disponible:', e.message);
+                lastError = e;
             }
 
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                console.error('Siigo Auth Error:', errorData);
-                throw new Error(`Error (${response.status}): ${errorData.Errors?.[0]?.Message || 'Verifique sus credenciales.'}`);
+            // Intento 2 y 3: Proxies Públicos si el local falla
+            if (!response || !response.ok) {
+                for (const proxy of FALLBACK_PROXIES) {
+                    console.log(`Paso 2/3: Probando Proxy Público: ${proxy}...`);
+                    try {
+                        const targetUrl = 'https://api.siigo.com/v1/auth';
+                        const url = proxy.includes('allorigins')
+                            ? `${proxy}${encodeURIComponent(targetUrl)}`
+                            : `${proxy}${targetUrl}`;
+
+                        const res = await fetch(url, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify({ username, access_key: accessKey })
+                        });
+
+                        if (res.ok || res.status < 500) {
+                            response = res;
+                            if (res.ok) {
+                                console.log('Proxy público exitoso:', proxy);
+                                break;
+                            }
+                        }
+                    } catch (e: any) {
+                        console.error(`Fallo proxy ${proxy}:`, e.message);
+                        lastError = e;
+                    }
+                }
+            }
+
+            if (!response || !response.ok) {
+                const status = response ? response.status : 'Desconocido';
+                console.error('Error final de conexión:', lastError);
+                throw new Error(`No se pudo conectar con Siigo. Error: ${lastError?.message || 'Falla de Red (CORS/Proxy)'} (Status: ${status}).`);
             }
 
             const data = await response.json();
@@ -88,32 +116,52 @@ const InventarioModule: React.FC = () => {
     const fetchProducts = async (accessToken: string) => {
         try {
             setLoading(true);
-            let response: Response;
+            let response: Response | null = null;
+            let lastError: any = null;
 
+            // Intento local
             try {
-                response = await fetch(`${API_BASE_URL}/v1/products`, {
+                const res = await fetch(`${API_BASE_URL}/v1/products`, {
                     headers: {
                         'Authorization': `Bearer ${accessToken}`,
                         'Content-Type': 'application/json',
                         'Partner-Id': 'AppEnvios'
                     }
                 });
-                if (!response.ok && response.status === 404) throw new Error('404');
+                if (res.status !== 404) response = res;
             } catch (e) {
-                const fallbackUrl = `${FALLBACK_PROXY}${encodeURIComponent('https://api.siigo.com/v1/products')}`;
-                response = await fetch(fallbackUrl, {
-                    headers: {
-                        'Authorization': `Bearer ${accessToken}`,
-                        'Content-Type': 'application/json',
-                        'Partner-Id': 'AppEnvios'
-                    }
-                });
+                lastError = e;
             }
 
-            if (!response.ok) throw new Error(`Error (${response.status}) al obtener productos.`);
+            // Intento Proxies
+            if (!response || !response.ok) {
+                for (const proxy of FALLBACK_PROXIES) {
+                    try {
+                        const targetUrl = 'https://api.siigo.com/v1/products';
+                        const url = proxy.includes('allorigins')
+                            ? `${proxy}${encodeURIComponent(targetUrl)}`
+                            : `${proxy}${targetUrl}`;
+
+                        const res = await fetch(url, {
+                            headers: {
+                                'Authorization': `Bearer ${accessToken}`,
+                                'Content-Type': 'application/json',
+                                'Partner-Id': 'AppEnvios'
+                            }
+                        });
+                        if (res.ok) {
+                            response = res;
+                            break;
+                        }
+                    } catch (e) {
+                        lastError = e;
+                    }
+                }
+            }
+
+            if (!response || !response.ok) throw new Error(`Error al obtener productos de Siigo.`);
 
             const data = await response.json();
-            // Map Siigo data to our interface
             const mapped = data.results.map((p: any) => ({
                 id: p.id,
                 code: p.code,
