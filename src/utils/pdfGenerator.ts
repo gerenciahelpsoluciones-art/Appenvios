@@ -74,7 +74,6 @@ export const generateQuotationPDF = (data: PDFData) => {
             const subtotal = ventaUnit * item.cantidad;
             return [
                 prod?.nombre || 'N/A',
-                prod?.numPart || 'N/A',
                 item.unidad || 'Und',
                 item.cantidad,
                 `$${ventaUnit.toLocaleString()}`,
@@ -84,7 +83,7 @@ export const generateQuotationPDF = (data: PDFData) => {
 
         autoTable(doc, {
             startY: 85,
-            head: [['Descripción del Producto', 'N° Parte', 'Unidad', 'Cant.', 'Precio Unit.', 'Subtotal']],
+            head: [['Descripción del Producto', 'Unidad', 'Cant.', 'Precio Unit.', 'Subtotal']],
             body: tableBody,
             headStyles: { fillColor: [0, 74, 153], textColor: [255, 255, 255] },
             alternateRowStyles: { fillColor: [240, 245, 255] },
