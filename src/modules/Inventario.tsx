@@ -19,8 +19,9 @@ const InventarioModule: React.FC = () => {
     const [accessKey, setAccessKey] = useState(localStorage.getItem('siigo_access_key') || '');
     const [token, setToken] = useState<string | null>(null);
 
-    // Using the local Vite proxy defined in vite.config.ts
+    // Dynamic API URL with fallback
     const API_BASE_URL = '/siigo-api';
+    const FALLBACK_PROXY = 'https://corsproxy.io/?';
 
     const authenticate = async () => {
         if (!username || !accessKey) {
@@ -31,18 +32,26 @@ const InventarioModule: React.FC = () => {
         try {
             setLoading(true);
             setError(null);
-            const response = await fetch(`${API_BASE_URL}/v1/auth`, {
+
+            let url = `${API_BASE_URL}/v1/auth`;
+            let response = await fetch(url, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, access_key: accessKey })
             });
 
+            // If 404, try fallback proxy
+            if (response.status === 404) {
+                console.warn('Local proxy not found, trying fallback...');
+                const fallbackUrl = `${FALLBACK_PROXY}${encodeURIComponent('https://api.siigo.com/v1/auth')}`;
+                response = await fetch(fallbackUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, access_key: accessKey })
+                });
+            }
+
             if (!response.ok) {
-                if (response.status === 404) {
-                    throw new Error('Error (404): No se encontró la ruta del Proxy. Asegúrese de estar ejecutando "npm run dev" en desarrollo.');
-                }
                 const errorData = await response.json().catch(() => ({}));
                 console.error('Siigo Auth Error:', errorData);
                 throw new Error(`Error de autenticación (${response.status}): ${errorData.Errors?.[0]?.Message || 'Verifique sus credenciales.'}`);
@@ -65,13 +74,25 @@ const InventarioModule: React.FC = () => {
     const fetchProducts = async (accessToken: string) => {
         try {
             setLoading(true);
-            const response = await fetch(`${API_BASE_URL}/v1/products`, {
+            let url = `${API_BASE_URL}/v1/products`;
+            let response = await fetch(url, {
                 headers: {
                     'Authorization': `Bearer ${accessToken}`,
                     'Content-Type': 'application/json',
                     'Partner-Id': 'AppEnvios'
                 }
             });
+
+            if (response.status === 404) {
+                const fallbackUrl = `${FALLBACK_PROXY}${encodeURIComponent('https://api.siigo.com/v1/products')}`;
+                response = await fetch(fallbackUrl, {
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`,
+                        'Content-Type': 'application/json',
+                        'Partner-Id': 'AppEnvios'
+                    }
+                });
+            }
 
             if (!response.ok) throw new Error('Error al obtener productos de Siigo.');
 
