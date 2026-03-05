@@ -11,6 +11,7 @@ interface IProps {
 const ProveedoresModule: React.FC<IProps> = ({ proveedores, onAdd, onUpdate, onDelete }) => {
     const [isAdding, setIsAdding] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
     const [formData, setFormData] = useState<Partial<Proveedor>>({});
 
     const handleSave = () => {
@@ -51,7 +52,19 @@ const ProveedoresModule: React.FC<IProps> = ({ proveedores, onAdd, onUpdate, onD
     return (
         <div className="module-container" style={{ maxWidth: '1400px' }}>
             <div className="module-header">
-                <h2>Gestión de Proveedores</h2>
+                <div>
+                    <h2>Gestión de Proveedores</h2>
+                    <div className="search-container" style={{ marginTop: '0.5rem' }}>
+                        <input
+                            type="text"
+                            className="input-field search-input"
+                            placeholder="🔍 Buscar por proveedor, NIT o contacto..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            style={{ width: '350px', borderRadius: '20px', paddingLeft: '2.5rem' }}
+                        />
+                    </div>
+                </div>
                 <button onClick={() => { setIsAdding(true); setEditingId(null); setFormData({}); }}>+ Nuevo Proveedor</button>
             </div>
 
@@ -118,7 +131,11 @@ const ProveedoresModule: React.FC<IProps> = ({ proveedores, onAdd, onUpdate, onD
                         </tr>
                     </thead>
                     <tbody>
-                        {proveedores.map(p => (
+                        {proveedores.filter(p =>
+                            p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            (p.nit || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            (p.contacto || '').toLowerCase().includes(searchTerm.toLowerCase())
+                        ).map(p => (
                             <tr key={p.id}>
                                 <td>
                                     <div className="font-bold">{p.nombre}</div>
@@ -209,6 +226,28 @@ const ProveedoresModule: React.FC<IProps> = ({ proveedores, onAdd, onUpdate, onD
         .btn-success { background: var(--success); color: white; border: none; padding: 0.5rem 1.5rem; border-radius: 6px; cursor: pointer; }
         .font-bold { font-weight: 600; }
         
+        .module-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 2rem;
+        }
+
+        .search-container {
+          position: relative;
+        }
+
+        .search-input {
+          transition: all 0.3s ease;
+          border: 1px solid var(--border-color);
+        }
+
+        .search-input:focus {
+          width: 450px !important;
+          border-color: var(--primary-blue);
+          box-shadow: 0 0 0 4px var(--secondary-blue);
+        }
+
         .data-table th {
             font-size: 0.85rem;
             font-weight: 600;

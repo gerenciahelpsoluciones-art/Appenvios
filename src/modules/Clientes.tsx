@@ -12,6 +12,13 @@ const ClientesModule: React.FC<IProps> = ({ clientes, onAdd, onUpdate, onDelete 
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<Cliente>>({});
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredClientes = clientes.filter(c =>
+    c.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    c.nit.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    c.contacto.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const handleSave = () => {
     if (formData.nombre && formData.nit) {
@@ -41,7 +48,19 @@ const ClientesModule: React.FC<IProps> = ({ clientes, onAdd, onUpdate, onDelete 
   return (
     <div className="module-container">
       <div className="module-header">
-        <h2>Gestión de Clientes</h2>
+        <div>
+          <h2>Gestión de Clientes</h2>
+          <div className="search-container" style={{ marginTop: '0.5rem' }}>
+            <input
+              type="text"
+              className="input-field search-input"
+              placeholder="🔍 Buscar por nombre, NIT o contacto..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{ width: '350px', borderRadius: '20px', paddingLeft: '2.5rem' }}
+            />
+          </div>
+        </div>
         <button onClick={() => { setIsAdding(true); setEditingId(null); setFormData({}); }}>+ Nuevo Cliente</button>
       </div>
 
@@ -227,7 +246,7 @@ const ClientesModule: React.FC<IProps> = ({ clientes, onAdd, onUpdate, onDelete 
               </tr>
             </thead>
             <tbody>
-              {clientes.map(c => (
+              {filteredClientes.map(c => (
                 <tr key={c.id}>
                   <td><strong>{c.nombre}</strong><br /><small>{c.correo}</small></td>
                   <td>{c.nit}</td>
@@ -309,8 +328,23 @@ const ClientesModule: React.FC<IProps> = ({ clientes, onAdd, onUpdate, onDelete 
         .module-header {
           display: flex;
           justify-content: space-between;
-          align-items: center;
+          align-items: flex-start;
           margin-bottom: 2rem;
+        }
+
+        .search-container {
+          position: relative;
+        }
+
+        .search-input {
+          transition: all 0.3s ease;
+          border: 1px solid var(--border-color);
+        }
+
+        .search-input:focus {
+          width: 450px !important;
+          border-color: var(--primary-blue);
+          box-shadow: 0 0 0 4px var(--secondary-blue);
         }
 
         .form-grid {

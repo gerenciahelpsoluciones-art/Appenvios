@@ -12,6 +12,7 @@ const ProductosModule: React.FC<IProps> = ({ productos, onAdd, onUpdate, onDelet
     const [selectedProduct, setSelectedProduct] = useState<Producto | null>(null);
     const [isAdding, setIsAdding] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
     const [formData, setFormData] = useState<Partial<Producto>>({
         nombre: '',
         numPart: '',
@@ -60,7 +61,19 @@ const ProductosModule: React.FC<IProps> = ({ productos, onAdd, onUpdate, onDelet
     return (
         <div className="module-container">
             <div className="module-header">
-                <h2>Catálogo de Productos</h2>
+                <div>
+                    <h2>Catálogo de Productos</h2>
+                    <div className="search-container" style={{ marginTop: '0.5rem' }}>
+                        <input
+                            type="text"
+                            className="input-field search-input"
+                            placeholder="🔍 Buscar por nombre o N° Parte..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            style={{ width: '350px', borderRadius: '20px', paddingLeft: '2.5rem' }}
+                        />
+                    </div>
+                </div>
                 <button onClick={() => { setIsAdding(true); setEditingId(null); setFormData({ nombre: '', numPart: '', descripcion: '', unidad: 'Und', precioCompra: 0, exentoIva: false }); }}>+ Nuevo Producto</button>
             </div>
 
@@ -132,7 +145,10 @@ const ProductosModule: React.FC<IProps> = ({ productos, onAdd, onUpdate, onDelet
                             </tr>
                         </thead>
                         <tbody>
-                            {productos.map(p => (
+                            {productos.filter(p =>
+                                p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                (p.numPart || '').toLowerCase().includes(searchTerm.toLowerCase())
+                            ).map(p => (
                                 <tr key={p.id}>
                                     <td><strong>
                                         {p.nombre}
@@ -245,6 +261,28 @@ const ProductosModule: React.FC<IProps> = ({ productos, onAdd, onUpdate, onDelet
         .btn-edit:hover { color: var(--primary-blue); border-color: var(--primary-blue); }
         .btn-delete:hover { color: var(--error); border-color: var(--error); background: #fff5f5; }
         
+        .module-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 2rem;
+        }
+
+        .search-container {
+          position: relative;
+        }
+
+        .search-input {
+          transition: all 0.3s ease;
+          border: 1px solid var(--border-color);
+        }
+
+        .search-input:focus {
+          width: 450px !important;
+          border-color: var(--primary-blue);
+          box-shadow: 0 0 0 4px var(--secondary-blue);
+        }
+
         .modal-overlay {
           position: fixed;
           top: 0; left: 0; right: 0; bottom: 0;
