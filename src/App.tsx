@@ -211,6 +211,27 @@ export interface Reparacion {
   fechaIngreso: string;
 }
 
+export interface DevolucionItem {
+  id: string;
+  productoId: string;
+  nombreProducto: string;
+  numPart: string;
+  serial: string;
+  cantidad: number;
+}
+
+export interface Devolucion {
+  id: string;
+  consecutivo: string;
+  fecha: string;
+  proveedorId: string;
+  nombreProveedor: string;
+  items: DevolucionItem[];
+  observaciones: string;
+  estado: 'Pendiente' | 'Enviado' | 'Completado' | 'Anulado';
+  usuarioId: string;
+}
+
 export interface SalesBudget {
   id: string;
   usuarioId: string;
@@ -232,6 +253,7 @@ function App() {
   const [despachos, setDespachos] = useState<Despacho[]>([]);
   const [conductores, setConductores] = useState<Conductor[]>([]);
   const [reparaciones, setReparaciones] = useState<Reparacion[]>([]);
+  const [devoluciones, setDevoluciones] = useState<Devolucion[]>([]);
   const [budgets, setBudgets] = useState<SalesBudget[]>([]);
   const [users, setUsers] = useState<AppUser[]>([]);
   const [realtimeStatus, setRealtimeStatus] = useState<string>('Desconectado');
@@ -375,6 +397,16 @@ function App() {
         })));
       }
 
+      const { data: devolucionData } = await supabase.from('devoluciones').select('*');
+      if (devolucionData) {
+        setDevoluciones(devolucionData.map((d: any) => ({
+          ...d,
+          proveedorId: d.proveedor_id,
+          nombreProveedor: d.nombre_proveedor,
+          usuarioId: d.usuario_id
+        })));
+      }
+
       const { data: budgetData } = await supabase.from('budgets').select('*');
       if (budgetData) {
         setBudgets(budgetData.map((b: any) => ({
@@ -412,6 +444,7 @@ function App() {
         .on('postgres_changes', { event: '*', schema: 'public', table: 'despachos' }, () => fetchInitialData())
         .on('postgres_changes', { event: '*', schema: 'public', table: 'conductores' }, () => fetchInitialData())
         .on('postgres_changes', { event: '*', schema: 'public', table: 'reparaciones' }, () => fetchInitialData())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'devoluciones' }, () => fetchInitialData())
         .on('postgres_changes', { event: '*', schema: 'public', table: 'budgets' }, () => fetchInitialData())
         .subscribe((status) => {
           console.log('Estado de conexión Realtime:', status);
@@ -1050,6 +1083,53 @@ function App() {
     if (!error) setUsers(users.filter(u => u.id !== id));
   };
 
+  const addDevolucion = async (d: Devolucion): Promise<boolean> => {
+    const payload = {
+      consecutivo: d.consecutivo,
+      fecha: d.fecha,
+      proveedor_id: d.proveedorId,
+      nombre_proveedor: d.nombreProveedor,
+      items: d.items,
+      observaciones: d.observaciones,
+      estado: d.estado,
+      usuario_id: d.usuarioId
+    };
+
+    const { error } = await supabase.from('devoluciones').insert([payload]);
+    if (error) {
+      console.error('Error insertando devolución:', error);
+      alert('Error en base de datos: ' + error.message);
+      return false;
+    }
+    return true;
+  };
+
+  const updateDevolucion = async (d: Devolucion) => {
+    const payload = {
+      proveedor_id: d.proveedorId,
+      nombre_proveedor: d.nombreProveedor,
+      items: d.items,
+      observaciones: d.observaciones,
+      estado: d.estado
+    };
+
+    const { error } = await supabase.from('devoluciones').update(payload).eq('id', d.id);
+    if (error) {
+      console.error('Error actualizando devolución:', error);
+      alert('Error en base de datos: ' + error.message);
+    }
+  };
+
+  const deleteDevolucion = async (id: string) => {
+    if (window.confirm('¿Está seguro de eliminar esta devolución?')) {
+      const { error } = await supabase.from('devoluciones').delete().eq('id', id);
+      if (error) {
+        console.error('Error eliminando devolución:', error);
+        alert('Error en base de datos: ' + error.message);
+      }
+    }
+  };
+
   const addBudget = async (b: SalesBudget) => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, usuarioId, nombreVendedor, ...cleanB } = b;
@@ -1160,20 +1240,21 @@ function App() {
           onSendWhatsApp={sendWhatsAppNotification}
         />;
       case 'logistica':
-        const filteredDespachos = currentUser.rol === 'Admin' || currentUser.rol === 'Logistica'
-          ? despachos
-          : despachos.filter(d => d.usuarioId === currentUser.id);
         return <LogisticaModule
-          despachos={filteredDespachos}
+          despachos={despachos}
           ordenesCompra={ordenesCompra}
+          devoluciones={devoluciones}
           conductores={conductores}
+          proveedores={proveedores}
+          productos={productos}
+          currentUser={currentUser!}
           onUpdateDespacho={updateDespacho}
           onDeleteDespacho={deleteDespacho}
           onUpdateOC={updateOrdenCompra}
           onAddOC={addOrdenCompra}
-          proveedores={proveedores}
-          productos={productos}
-          currentUser={currentUser!}
+          onAddDevolucion={addDevolucion}
+          onUpdateDevolucion={updateDevolucion}
+          onDeleteDevolucion={deleteDevolucion}
         />;
       case 'reparaciones':
         return <ReparacionesModule

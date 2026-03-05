@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import type { Despacho, OrdenCompra, Conductor, Proveedor, Producto, AppUser } from '../App';
+import type { Despacho, OrdenCompra, Conductor, Proveedor, Producto, AppUser, Devolucion, DevolucionItem } from '../App';
 
 interface IProps {
     despachos: Despacho[];
     ordenesCompra: OrdenCompra[];
+    devoluciones: Devolucion[];
     conductores: Conductor[];
     proveedores: Proveedor[];
     productos: Producto[];
@@ -12,11 +13,15 @@ interface IProps {
     onDeleteDespacho: (id: string) => void;
     onUpdateOC: (oc: OrdenCompra) => Promise<boolean | void>;
     onAddOC: (oc: OrdenCompra) => Promise<boolean | void>;
+    onAddDevolucion: (d: Devolucion) => Promise<boolean>;
+    onUpdateDevolucion: (d: Devolucion) => Promise<void>;
+    onDeleteDevolucion: (id: string) => Promise<void>;
 }
 
 const LogisticaModule: React.FC<IProps> = ({
     despachos,
     ordenesCompra,
+    devoluciones,
     conductores,
     proveedores,
     productos,
@@ -24,25 +29,29 @@ const LogisticaModule: React.FC<IProps> = ({
     onUpdateDespacho,
     onDeleteDespacho,
     onUpdateOC,
-    onAddOC
+    onAddOC,
+    onAddDevolucion,
+    onUpdateDevolucion,
+    onDeleteDevolucion
 }) => {
-    const [activeTab, setActiveTab] = useState<'despachos' | 'recogidas'>('despachos');
+    const [activeTab, setActiveTab] = useState<'despachos' | 'recogidas' | 'devoluciones'>('despachos');
     const [filterEstado, setFilterEstado] = useState<string>('Todos');
     const [expandedId, setExpandedId] = useState<string | null>(null);
 
-    // Manual Pickup Modal State
+    // Manual Modal State
     const [isAddManualOpen, setIsAddManualOpen] = useState(false);
     const [selectedProvId, setSelectedProvId] = useState('');
-    const [manualItems, setManualItems] = useState<{ productoId: string, nombreProducto: string, numPart: string, cantidad: number }[]>([]);
+    const [manualItems, setManualItems] = useState<DevolucionItem[]>([]);
     const [obs, setObs] = useState('');
 
     // Manual Item Entry
     const [selProdId, setSelProdId] = useState('');
     const [selCant, setSelCant] = useState(1);
 
-    // Sort by date (newest first, so the latest requests are at the top)
+    // Sort by date (newest first)
     const sortedDespachos = [...despachos].sort((a, b) => new Date(b.fechaSolicitud).getTime() - new Date(a.fechaSolicitud).getTime());
     const sortedOC = [...ordenesCompra].sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
+    const sortedDevoluciones = [...devoluciones].sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
 
     // Filter Logic
     const filteredDespachos = filterEstado === 'Todos'
@@ -52,6 +61,10 @@ const LogisticaModule: React.FC<IProps> = ({
     const filteredRecogidas = filterEstado === 'Todos'
         ? sortedOC.filter(oc => oc.tipo === 'Recogida')
         : sortedOC.filter(oc => oc.estado === filterEstado && oc.tipo === 'Recogida');
+
+    const filteredDevoluciones = filterEstado === 'Todos'
+        ? sortedDevoluciones
+        : sortedDevoluciones.filter(d => d.estado === filterEstado);
 
     // Handlers
     const downloadFile = (url: string, _fileName: string) => {
@@ -103,9 +116,11 @@ const LogisticaModule: React.FC<IProps> = ({
         const prod = productos.find(p => p.id === selProdId);
         if (prod && selCant > 0) {
             setManualItems([...manualItems, {
+                id: Math.random().toString(36).substr(2, 9),
                 productoId: prod.id,
                 nombreProducto: prod.nombre,
                 numPart: prod.numPart,
+                serial: '', // Will be used for returns
                 cantidad: selCant
             }]);
             setSelProdId('');
@@ -148,11 +163,46 @@ const LogisticaModule: React.FC<IProps> = ({
         const success = await onAddOC(newRecogida);
         if (success === false) return; // DB Error
 
+        setObs('');
+    };
+
+    const handleSaveManualDevolucion = async () => {
+        const prov = proveedores.find(p => p.id === selectedProvId);
+        if (!prov || manualItems.length === 0) {
+            alert('Seleccione un proveedor y añada al menos un producto');
+            return;
+        }
+
+        const newDevolucion: Devolucion = {
+            id: Date.now().toString(),
+            consecutivo: `DEV-M-${(devoluciones.length + 1).toString().padStart(4, '0')}`,
+            fecha: new Date().toISOString().split('T')[0],
+            proveedorId: prov.id,
+            nombreProveedor: prov.nombre,
+            items: manualItems.map(item => ({
+                id: item.id,
+                productoId: item.productoId,
+                nombreProducto: item.nombreProducto,
+                numPart: item.numPart,
+                serial: item.serial,
+                cantidad: item.cantidad
+            })),
+            observaciones: obs,
+            estado: 'Pendiente',
+            usuarioId: currentUser.id
+        };
+
+        const success = await onAddDevolucion(newDevolucion);
+        if (success === false) return;
+
         setIsAddManualOpen(false);
-        // Reset
         setSelectedProvId('');
         setManualItems([]);
         setObs('');
+    };
+
+    const handleDevolutionStatusChange = (d: Devolucion, newStatus: Devolucion['estado']) => {
+        onUpdateDevolucion({ ...d, estado: newStatus });
     };
 
     const calculateSLA = (dateStr: string, estado: string) => {
@@ -191,6 +241,12 @@ const LogisticaModule: React.FC<IProps> = ({
                         >
                             🏭 Recogidas (Compras)
                         </button>
+                        <button
+                            className={`btn-tab ${activeTab === 'devoluciones' ? 'active' : ''}`}
+                            onClick={() => { setActiveTab('devoluciones'); setFilterEstado('Todos'); }}
+                        >
+                            🔄 Devoluciones
+                        </button>
                     </div>
                     <select
                         className="input-field"
@@ -207,17 +263,29 @@ const LogisticaModule: React.FC<IProps> = ({
                                 <option value="Entrega Parcial">Entrega Parcial</option>
                                 <option value="Entregado">Entregado</option>
                             </>
-                        ) : (
+                        ) : activeTab === 'recogidas' ? (
                             <>
                                 <option value="Pendiente">Pendiente</option>
                                 <option value="Recogido">Recogido</option>
                                 <option value="En Bodega">En Bodega</option>
                             </>
+                        ) : (
+                            <>
+                                <option value="Pendiente">Pendiente</option>
+                                <option value="Enviado">Enviado</option>
+                                <option value="Completado">Completado</option>
+                                <option value="Anulado">Anulado</option>
+                            </>
                         )}
                     </select>
                     {activeTab === 'recogidas' && (
-                        <button className="btn btn-primary" onClick={() => setIsAddManualOpen(true)}>
+                        <button className="btn btn-primary" onClick={() => { setIsAddManualOpen(true); setManualItems([]); setSelectedProvId(''); setObs(''); }}>
                             + Nueva Recogida Manual
+                        </button>
+                    )}
+                    {activeTab === 'devoluciones' && (
+                        <button className="btn btn-primary" onClick={() => { setIsAddManualOpen(true); setManualItems([]); setSelectedProvId(''); setObs(''); }}>
+                            + Nueva Devolución Manual
                         </button>
                     )}
                 </div>
@@ -341,7 +409,7 @@ const LogisticaModule: React.FC<IProps> = ({
                         </table>
                     </div>
                 </div>
-            ) : (
+            ) : activeTab === 'recogidas' ? (
                 /* RECOGIDAS VIEW */
                 <div className="card table-card" style={{ marginTop: '1.5rem' }}>
                     <div style={{ overflowX: 'auto' }}>
@@ -437,7 +505,7 @@ const LogisticaModule: React.FC<IProps> = ({
                                         </tr>
                                         {expandedId === oc.id && (
                                             <tr className="detail-row">
-                                                <td colSpan={8}>
+                                                <td colSpan={11}>
                                                     <div className="product-details-box animate-fade-in">
                                                         <h4>🔍 Items a Recoger</h4>
                                                         <table className="inner-table">
@@ -464,13 +532,88 @@ const LogisticaModule: React.FC<IProps> = ({
                         </table>
                     </div>
                 </div>
+            ) : (
+                /* DEVOLUCIONES VIEW */
+                <div className="card table-card" style={{ marginTop: '1.5rem' }}>
+                    <div style={{ overflowX: 'auto' }}>
+                        <table className="data-table">
+                            <thead>
+                                <tr>
+                                    <th style={{ width: '40px' }}></th>
+                                    <th style={{ minWidth: '120px' }}>Consecutivo</th>
+                                    <th style={{ minWidth: '100px' }}>Fecha</th>
+                                    <th style={{ minWidth: '180px' }}>Proveedor</th>
+                                    <th className="text-center" style={{ minWidth: '120px' }}>Estado</th>
+                                    <th className="text-center" style={{ minWidth: '160px' }}>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filteredDevoluciones.map((d) => (
+                                    <React.Fragment key={d.id}>
+                                        <tr className={expandedId === d.id ? 'row-expanded' : ''}>
+                                            <td>
+                                                <button className="btn-expand" onClick={() => toggleExpand(d.id)}>
+                                                    {expandedId === d.id ? '▼' : '►'}
+                                                </button>
+                                            </td>
+                                            <td><strong>{d.consecutivo}</strong></td>
+                                            <td>{d.fecha}</td>
+                                            <td>{d.nombreProveedor}</td>
+                                            <td className="text-center">
+                                                <span className={`status-badge status-${d.estado.toLowerCase()}`}>
+                                                    {d.estado}
+                                                </span>
+                                            </td>
+                                            <td className="text-center">
+                                                <div className="action-buttons">
+                                                    <button className="btn-status" onClick={() => handleDevolutionStatusChange(d, 'Enviado')} title="Marcar como Enviado" disabled={d.estado === 'Enviado'}>📤</button>
+                                                    <button className="btn-status" onClick={() => handleDevolutionStatusChange(d, 'Completado')} title="Marcar como Completado" disabled={d.estado === 'Completado'}>✅</button>
+                                                    <button className="btn-status" style={{ color: 'var(--error)' }} onClick={() => onDeleteDevolucion(d.id)}>🗑️</button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {expandedId === d.id && (
+                                            <tr className="detail-row">
+                                                <td colSpan={6}>
+                                                    <div className="product-details-box animate-fade-in">
+                                                        <h4>🔍 Items a Devolver</h4>
+                                                        <table className="inner-table">
+                                                            <thead>
+                                                                <tr><th>Producto</th><th>Serial</th><th className="text-right">Cantidad</th></tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                {d.items.map((item, idx) => (
+                                                                    <tr key={idx}>
+                                                                        <td>{item.nombreProducto} (<code>{item.numPart}</code>)</td>
+                                                                        <td><code>{item.serial || 'N/A'}</code></td>
+                                                                        <td className="text-right">{item.cantidad}</td>
+                                                                    </tr>
+                                                                ))}
+                                                            </tbody>
+                                                        </table>
+                                                        {d.observaciones && (
+                                                            <div style={{ marginTop: '1rem', padding: '1rem', background: 'white', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
+                                                                <strong>Observaciones:</strong><br />
+                                                                {d.observaciones}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </React.Fragment>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             )}
 
-            {/* MANUAL PICKUP MODAL */}
+            {/* MANUAL MODAL */}
             {isAddManualOpen && (
                 <div className="modal-overlay">
-                    <div className="modal-content card" style={{ maxWidth: '800px', width: '90%' }}>
-                        <h3>Nueva Recogida Manual</h3>
+                    <div className="modal-content card" style={{ maxWidth: '850px', width: '95%' }}>
+                        <h3>{activeTab === 'devoluciones' ? 'Nueva Devolución Manual' : 'Nueva Recogida Manual'}</h3>
                         <div className="form-grid-modern">
                             <div className="form-group">
                                 <label>Proveedor</label>
@@ -513,15 +656,34 @@ const LogisticaModule: React.FC<IProps> = ({
 
                             <table className="inner-table" style={{ width: '100%', marginTop: '1rem' }}>
                                 <thead>
-                                    <tr><th>Producto</th><th>Cant</th><th></th></tr>
+                                    <tr>
+                                        <th>Producto</th>
+                                        {activeTab === 'devoluciones' && <th>Serial</th>}
+                                        <th>Cant</th>
+                                        <th></th>
+                                    </tr>
                                 </thead>
                                 <tbody>
                                     {manualItems.map((item, i) => (
-                                        <tr key={i}>
+                                        <tr key={item.id}>
                                             <td>{item.nombreProducto} ({item.numPart})</td>
+                                            {activeTab === 'devoluciones' && (
+                                                <td>
+                                                    <input
+                                                        className="select-small"
+                                                        value={item.serial}
+                                                        onChange={e => {
+                                                            const newItems = [...manualItems];
+                                                            newItems[i].serial = e.target.value;
+                                                            setManualItems(newItems);
+                                                        }}
+                                                        placeholder="N° Serial"
+                                                    />
+                                                </td>
+                                            )}
                                             <td>{item.cantidad}</td>
                                             <td>
-                                                <button className="btn-delete" onClick={() => setManualItems(manualItems.filter((_, idx) => idx !== i))}>🗑️</button>
+                                                <button className="btn-delete-icon" onClick={() => setManualItems(manualItems.filter((_, idx) => idx !== i))}>🗑️</button>
                                             </td>
                                         </tr>
                                     ))}
@@ -541,7 +703,11 @@ const LogisticaModule: React.FC<IProps> = ({
 
                         <div className="modal-actions" style={{ marginTop: '2rem', display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
                             <button className="btn-secondary" onClick={() => setIsAddManualOpen(false)}>Cancelar</button>
-                            <button className="btn-primary" onClick={handleSaveManualRecogida}>Crear Recogida</button>
+                            {activeTab === 'devoluciones' ? (
+                                <button className="btn-primary" onClick={handleSaveManualDevolucion}>Crear Devolución</button>
+                            ) : (
+                                <button className="btn-primary" onClick={handleSaveManualRecogida}>Crear Recogida</button>
+                            )}
                         </div>
                     </div>
                 </div>
