@@ -108,6 +108,15 @@ const LogisticaModule: React.FC<IProps> = ({
         });
     };
 
+    const assignDriverDevolucion = (d: Devolucion, conductorId: string) => {
+        const conductor = conductores.find(c => c.id === conductorId);
+        onUpdateDevolucion({
+            ...d,
+            conductorId: conductorId,
+            conductorNombre: conductor?.nombre || ''
+        });
+    };
+
     const toggleExpand = (id: string) => {
         setExpandedId(expandedId === id ? null : id);
     };
@@ -559,6 +568,18 @@ const LogisticaModule: React.FC<IProps> = ({
                                             <td><strong>{d.consecutivo}</strong></td>
                                             <td>{d.fecha}</td>
                                             <td>{d.nombreProveedor}</td>
+                                            <td>
+                                                <select
+                                                    className="select-small"
+                                                    value={d.conductorId || ''}
+                                                    onChange={(e) => assignDriverDevolucion(d, e.target.value)}
+                                                >
+                                                    <option value="">Asignar Conductor</option>
+                                                    {conductores.map(c => (
+                                                        <option key={c.id} value={c.id}>{c.nombre}</option>
+                                                    ))}
+                                                </select>
+                                            </td>
                                             <td className="text-center">
                                                 <span className={`status-badge status-${d.estado.toLowerCase()}`}>
                                                     {d.estado}

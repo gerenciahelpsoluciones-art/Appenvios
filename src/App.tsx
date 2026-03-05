@@ -230,6 +230,8 @@ export interface Devolucion {
   observaciones: string;
   estado: 'Pendiente' | 'Enviado' | 'Completado' | 'Anulado';
   usuarioId: string;
+  conductorId?: string;
+  conductorNombre?: string;
 }
 
 export interface SalesBudget {
