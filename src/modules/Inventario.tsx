@@ -19,11 +19,10 @@ const InventarioModule: React.FC = () => {
     const [accessKey, setAccessKey] = useState(localStorage.getItem('siigo_access_key') || '');
     const [token, setToken] = useState<string | null>(null);
 
-    // Proxies Públicos de respaldo
+    // Proxies Públicos que soportan POST y paso de headers
     const FALLBACK_PROXIES = [
-        'https://api.allorigins.win/raw?url=',
-        'https://corsproxy.io/?',
-        'https://api.codetabs.com/v1/proxy?quest='
+        'https://thingproxy.freeboard.io/fetch/', // Muy confiable para POST
+        'https://corsproxy.io/?'                  // Versátil
     ];
 
     const authenticate = async () => {
@@ -37,9 +36,16 @@ const InventarioModule: React.FC = () => {
             setError(null);
             console.log('--- Iniciando Diagnóstico de Conexión Siigo ---');
 
-            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            const hostname = window.location.hostname;
+            const isLocal = hostname === 'localhost' ||
+                hostname === '127.0.0.1' ||
+                hostname.startsWith('192.168.') ||
+                hostname.startsWith('10.') ||
+                hostname.startsWith('172.');
+
             let response: Response | null = null;
             let lastError: any = null;
+            let usedMethod = 'Vite Proxy';
 
             // Intento 1: Proxy de Vite (Solo en local)
             if (isLocal) {
@@ -81,8 +87,11 @@ const InventarioModule: React.FC = () => {
             }
 
             if (!response || !response.ok) {
-                throw new Error(`Error de conexión (CORS o Red). Detalle: ${lastError?.message || 'Falla General'}`);
+                const hint = isLocal ? "Asegúrese de que 'npm run dev' esté ejecutándose." : "Su red o firewall podría estar bloqueando los canales de conexión.";
+                throw new Error(`Falla de conexión Triple-Route. ${hint} Detalle: ${lastError?.message || 'Sin respuesta'}`);
             }
+
+            console.log(`Conexión exitosa vía: ${usedMethod}`);
 
             const data = await response.json();
             setToken(data.access_token);
