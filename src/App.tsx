@@ -405,7 +405,9 @@ function App() {
           ...d,
           proveedorId: d.proveedor_id,
           nombreProveedor: d.nombre_proveedor,
-          usuarioId: d.usuario_id
+          usuarioId: d.usuario_id,
+          conductorId: d.conductor_id,
+          conductorNombre: d.conductor_nombre
         })));
       }
 
@@ -1094,7 +1096,9 @@ function App() {
       items: d.items,
       observaciones: d.observaciones,
       estado: d.estado,
-      usuario_id: d.usuarioId
+      usuario_id: d.usuarioId,
+      conductor_id: d.conductorId,
+      conductor_nombre: d.conductorNombre
     };
 
     const { error } = await supabase.from('devoluciones').insert([payload]);
@@ -1103,6 +1107,7 @@ function App() {
       alert('Error en base de datos: ' + error.message);
       return false;
     }
+    setDevoluciones([...devoluciones, d]);
     return true;
   };
 
@@ -1112,13 +1117,17 @@ function App() {
       nombre_proveedor: d.nombreProveedor,
       items: d.items,
       observaciones: d.observaciones,
-      estado: d.estado
+      estado: d.estado,
+      conductor_id: d.conductorId,
+      conductor_nombre: d.conductorNombre
     };
 
     const { error } = await supabase.from('devoluciones').update(payload).eq('id', d.id);
     if (error) {
       console.error('Error actualizando devolución:', error);
       alert('Error en base de datos: ' + error.message);
+    } else {
+      setDevoluciones(devoluciones.map(item => item.id === d.id ? d : item));
     }
   };
 
@@ -1128,6 +1137,8 @@ function App() {
       if (error) {
         console.error('Error eliminando devolución:', error);
         alert('Error en base de datos: ' + error.message);
+      } else {
+        setDevoluciones(devoluciones.filter(d => d.id !== id));
       }
     }
   };
