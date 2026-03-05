@@ -47,7 +47,8 @@ const InventarioModule: React.FC = () => {
 
             const data = await res.json();
             if (!res.ok) {
-                throw new Error(`Error de autenticación: ${data.error || res.status}. Verifique sus credenciales.`);
+                const hint = data.hint ? `\n\n💡 ${data.hint}` : '';
+                throw new Error(`${data.error || 'Error de autenticación'}.${hint}`);
             }
 
             console.log('Autenticación exitosa con Siigo.');
