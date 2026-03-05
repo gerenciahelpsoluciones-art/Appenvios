@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { supabase } from '../lib/supabaseClient';
 
 interface SiigoProduct {
     id: string;
@@ -8,92 +9,47 @@ interface SiigoProduct {
     stock: number;
 }
 
+// URL base de la Edge Function de Supabase
+const EDGE_FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/siigo-proxy`;
+
 const InventarioModule: React.FC = () => {
     const [products, setProducts] = useState<SiigoProduct[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
-
-    // API Credentials state
     const [username, setUsername] = useState(localStorage.getItem('siigo_username') || '');
     const [accessKey, setAccessKey] = useState(localStorage.getItem('siigo_access_key') || '');
     const [token, setToken] = useState<string | null>(null);
-    const [useDirectConnection, setUseDirectConnection] = useState(false);
 
-    // Proxies Públicos con mayor soporte para POST y Headers
-    const FALLBACK_PROXIES = [
-        { name: 'Vite Proxy (Local)', url: '/siigo-api' },
-        { name: 'AllOrigins (CORS Relay)', url: 'https://api.allorigins.win/raw?url=' },
-        { name: 'ThingProxy', url: 'https://thingproxy.freeboard.io/fetch/' },
-        { name: 'CORS Proxy IO', url: 'https://corsproxy.io/?' },
-        { name: 'Direct (No Proxy)', url: '' }
-    ];
+    const getAuthHeaders = async () => {
+        const { data } = await supabase.auth.getSession();
+        const jwt = data?.session?.access_token;
+        return jwt ? { 'Authorization': `Bearer ${jwt}` } : {};
+    };
 
-    const authenticate = async () => {
+    const authenticate = async (): Promise<string | null> => {
         if (!username || !accessKey) {
             setError('Por favor ingrese Usuario y Access Key de Siigo.');
             return null;
         }
-
         try {
             setLoading(true);
             setError(null);
-            console.log('--- Iniciando Diagnóstico de Conexión Triple-Route (v6) ---');
+            console.log('Autenticando vía Supabase Edge Function...');
 
-            const hostname = window.location.hostname;
-            const isLocal = hostname === 'localhost' || hostname === '127.0.0.1';
+            const authHeaders = await getAuthHeaders();
+            const res = await fetch(`${EDGE_FUNCTION_URL}?action=auth`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...authHeaders },
+                body: JSON.stringify({ username, access_key: accessKey }),
+            });
 
-            let response: Response | null = null;
-            let lastError: any = null;
-            let successMethod = '';
-
-            // Construir lista de intentos basada en configuración
-            const attempts = useDirectConnection
-                ? [FALLBACK_PROXIES[4]] // Solo Directo
-                : isLocal
-                    ? FALLBACK_PROXIES // Todos empezando por local
-                    : FALLBACK_PROXIES.filter(p => p.name !== 'Vite Proxy (Local)'); // Omitir local en prod
-
-            for (const proxy of attempts) {
-                try {
-                    console.log(`Intentando Ruta: ${proxy.name}...`);
-                    const target = 'https://api.siigo.com/v1/auth';
-                    let url = '';
-
-                    if (proxy.name === 'Vite Proxy (Local)') {
-                        url = '/siigo-api/v1/auth';
-                    } else if (proxy.url === '') {
-                        url = target;
-                    } else {
-                        url = proxy.url.includes('?') ? `${proxy.url}${encodeURIComponent(target)}` : `${proxy.url}${target}`;
-                    }
-
-                    const res = await fetch(url, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ username, access_key: accessKey })
-                    });
-
-                    if (res.ok) {
-                        response = res;
-                        successMethod = proxy.name;
-                        break;
-                    } else {
-                        console.warn(`${proxy.name} falló con status: ${res.status}`);
-                    }
-                } catch (e: any) {
-                    console.error(`Error en ${proxy.name}:`, e.message);
-                    lastError = e;
-                }
+            const data = await res.json();
+            if (!res.ok) {
+                throw new Error(`Error de autenticación: ${data.error || res.status}. Verifique sus credenciales.`);
             }
 
-            if (!response || !response.ok) {
-                const detail = lastError?.message || 'Error de red / CORS bloqueado';
-                throw new Error(`Falla de conexión Triple-Route. Su red o firewall podría estar bloqueando los canales de conexión. Detalle: ${detail}`);
-            }
-
-            console.log(`Conexión exitosa vía: ${successMethod}`);
-            const data = await response.json();
+            console.log('Autenticación exitosa con Siigo.');
             setToken(data.access_token);
             localStorage.setItem('siigo_username', username);
             localStorage.setItem('siigo_access_key', accessKey);
@@ -110,58 +66,38 @@ const InventarioModule: React.FC = () => {
         try {
             setLoading(true);
             setError(null);
+            console.log('Obteniendo productos de Siigo...');
 
-            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-            let response: Response | null = null;
-            let successMethod = '';
+            const authHeaders = await getAuthHeaders();
+            const res = await fetch(`${EDGE_FUNCTION_URL}?action=products`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-siigo-token': accessToken,
+                    ...authHeaders,
+                },
+            });
 
-            const attempts = useDirectConnection
-                ? [FALLBACK_PROXIES[4]]
-                : isLocal ? FALLBACK_PROXIES : FALLBACK_PROXIES.filter(p => p.name !== 'Vite Proxy (Local)');
-
-            for (const proxy of attempts) {
-                try {
-                    const target = 'https://api.siigo.com/v1/products';
-                    let url = '';
-
-                    if (proxy.name === 'Vite Proxy (Local)') {
-                        url = '/siigo-api/v1/products';
-                    } else if (proxy.url === '') {
-                        url = target;
-                    } else {
-                        url = proxy.url.includes('?') ? `${proxy.url}${encodeURIComponent(target)}` : `${proxy.url}${target}`;
-                    }
-
-                    const res = await fetch(url, {
-                        headers: {
-                            'Authorization': `Bearer ${accessToken}`,
-                            'Partner-Id': 'AppEnvios',
-                            'Content-Type': 'application/json'
-                        }
-                    });
-
-                    if (res.ok) {
-                        response = res;
-                        successMethod = proxy.name;
-                        break;
-                    }
-                } catch (e) { }
+            const data = await res.json();
+            if (!res.ok) {
+                throw new Error(`Error al obtener productos: ${data.error || res.status}`);
             }
 
-            if (!response || !response.ok) {
-                throw new Error(`No se pudo obtener el inventario. Verifique su conexión y permisos.`);
+            if (!data.results || data.results.length === 0) {
+                setProducts([]);
+                setError('La cuenta de Siigo no tiene productos registrados o la consulta no devolvió resultados.');
+                return;
             }
 
-            console.log(`Productos obtenidos exitosamente vía: ${successMethod}`);
-            const data = await response.json();
-            const mapped = data.results.map((p: any) => ({
+            const mapped: SiigoProduct[] = data.results.map((p: any) => ({
                 id: p.id,
                 code: p.code,
                 description: p.description,
                 price: p.prices?.[0]?.price_list?.[0]?.value || 0,
-                stock: p.stock_control ? p.available_quantity : 0
+                stock: p.stock_control ? (p.available_quantity || 0) : 0,
             }));
             setProducts(mapped);
+            console.log(`${mapped.length} productos cargados desde Siigo.`);
         } catch (err: any) {
             setError(err.message);
         } finally {
@@ -175,8 +111,14 @@ const InventarioModule: React.FC = () => {
             currentToken = await authenticate();
         }
         if (currentToken) {
-            fetchProducts(currentToken);
+            await fetchProducts(currentToken);
         }
+    };
+
+    const handleDisconnect = () => {
+        setToken(null);
+        setProducts([]);
+        setError(null);
     };
 
     const filteredProducts = products.filter(p =>
@@ -189,7 +131,7 @@ const InventarioModule: React.FC = () => {
             <div className="module-header">
                 <h2>Inventario Siigo Nube</h2>
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                    <div className="search-container" style={{ width: '300px' }}>
+                    <div className="search-container" style={{ width: '280px' }}>
                         <input
                             type="text"
                             className="search-input"
@@ -198,8 +140,13 @@ const InventarioModule: React.FC = () => {
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
+                    {token && (
+                        <button onClick={handleDisconnect} style={{ background: 'none', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '0.5rem 1rem', cursor: 'pointer', color: '#64748b' }}>
+                            🔌 Desconectar
+                        </button>
+                    )}
                     <button onClick={handleRefresh} disabled={loading} className="btn-primary">
-                        {loading ? 'Sincronizando...' : '🔃 Sincronizar'}
+                        {loading ? '⏳ Sincronizando...' : '🔃 Sincronizar'}
                     </button>
                 </div>
             </div>
@@ -212,13 +159,17 @@ const InventarioModule: React.FC = () => {
 
             {!token && (
                 <div className="card animate-fade-in" style={{ marginBottom: '2rem' }}>
-                    <h3>Configuración de API Siigo</h3>
+                    <h3>🔗 Conectar con Siigo Nube</h3>
+                    <p style={{ color: '#64748b', marginBottom: '1rem', fontSize: '0.9rem' }}>
+                        La conexión se realiza de forma segura a través del servidor (sin riesgo de bloqueo por firewall o CORS).
+                    </p>
                     <div className="form-grid" style={{ marginBottom: '1rem' }}>
                         <div className="form-group">
-                            <label>Usuario (Email)</label>
+                            <label>Usuario (Email de Siigo)</label>
                             <input
                                 className="input-field"
                                 type="email"
+                                placeholder="ejemplo@empresa.com"
                                 value={username}
                                 onChange={e => setUsername(e.target.value)}
                             />
@@ -228,30 +179,22 @@ const InventarioModule: React.FC = () => {
                             <input
                                 className="input-field"
                                 type="password"
+                                placeholder="••••••••••••••••••"
                                 value={accessKey}
                                 onChange={e => setAccessKey(e.target.value)}
                             />
                         </div>
                     </div>
-
-                    <div style={{ padding: '0.75rem', background: '#f8fafc', borderRadius: '8px', marginBottom: '1rem' }}>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', fontSize: '0.9rem' }}>
-                            <input
-                                type="checkbox"
-                                checked={useDirectConnection}
-                                onChange={e => setUseDirectConnection(e.target.checked)}
-                                style={{ width: '18px', height: '18px' }}
-                            />
-                            <strong>Conexión Directa (Omitir Proxies)</strong>
-                            <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
-                                (Use esta opción si tiene una extensión de navegador para desbloquear CORS)
-                            </span>
-                        </label>
-                    </div>
-
                     <button onClick={handleRefresh} className="btn-success" disabled={loading}>
-                        Conectar y Traer Datos
+                        {loading ? '⏳ Conectando...' : '✅ Conectar y Traer Datos'}
                     </button>
+                </div>
+            )}
+
+            {token && (
+                <div style={{ marginBottom: '1rem', padding: '0.5rem 1rem', background: '#f0fdf4', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ color: '#16a34a', fontWeight: '600' }}>● Conectado a Siigo Nube</span>
+                    <span style={{ color: '#64748b', fontSize: '0.85rem' }}>— {products.length} productos cargados</span>
                 </div>
             )}
 
@@ -282,7 +225,7 @@ const InventarioModule: React.FC = () => {
                         )) : (
                             <tr>
                                 <td colSpan={5} className="text-center" style={{ padding: '3rem', color: 'var(--text-muted)' }}>
-                                    {loading ? 'Consultando Siigo...' : 'No se encontraron productos. Presione "Sincronizar" para intentar de nuevo.'}
+                                    {loading ? '⏳ Consultando Siigo...' : 'No hay productos. Presione "Sincronizar" para cargar.'}
                                 </td>
                             </tr>
                         )}
