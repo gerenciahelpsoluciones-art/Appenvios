@@ -19,8 +19,8 @@ const InventarioModule: React.FC = () => {
     const [accessKey, setAccessKey] = useState(localStorage.getItem('siigo_access_key') || '');
     const [token, setToken] = useState<string | null>(null);
 
-    // Proxy helper to bypass CORS (corsproxy.io supports POST requests)
-    const PROXY_URL = 'https://corsproxy.io/?';
+    // Using the local Vite proxy defined in vite.config.ts
+    const API_BASE_URL = '/siigo-api';
 
     const authenticate = async () => {
         if (!username || !accessKey) {
@@ -30,8 +30,7 @@ const InventarioModule: React.FC = () => {
 
         try {
             setLoading(true);
-            const authUrl = `${PROXY_URL}${encodeURIComponent('https://api.siigo.com/v1/auth')}`;
-            const response = await fetch(authUrl, {
+            const response = await fetch(`${API_BASE_URL}/v1/auth`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -57,8 +56,7 @@ const InventarioModule: React.FC = () => {
     const fetchProducts = async (accessToken: string) => {
         try {
             setLoading(true);
-            const productsUrl = `${PROXY_URL}${encodeURIComponent('https://api.siigo.com/v1/products')}`;
-            const response = await fetch(productsUrl, {
+            const response = await fetch(`${API_BASE_URL}/v1/products`, {
                 headers: {
                     'Authorization': `Bearer ${accessToken}`,
                     'Content-Type': 'application/json',
