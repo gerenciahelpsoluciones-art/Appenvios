@@ -21,7 +21,7 @@ const InventarioModule: React.FC = () => {
 
     // Dynamic API URL with fallback
     const API_BASE_URL = '/siigo-api';
-    const FALLBACK_PROXY = 'https://api.allorigins.win/raw?url=';
+    const FALLBACK_PROXY = 'https://corsproxy.io/?'; // More reliable for POST with bodies
 
     const authenticate = async () => {
         if (!username || !accessKey) {
@@ -37,22 +37,30 @@ const InventarioModule: React.FC = () => {
 
             // Try 1: Local Vite Proxy
             try {
+                console.log('Attempting connection via local proxy...');
                 response = await fetch(`${API_BASE_URL}/v1/auth`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, access_key: accessKey })
                 });
 
-                // If local proxy returned 404 or other non-ok, try Fallback
-                if (!response.ok && response.status === 404) {
-                    throw new Error('404');
+                if (response.status === 404) {
+                    console.warn('Vite proxy (404) not active. Trying public fallback...');
+                    throw new Error('PROXY_404');
                 }
-            } catch (e) {
-                console.warn('Local proxy failed, trying fallback...', e);
-                const fallbackUrl = `${FALLBACK_PROXY}${encodeURIComponent('https://api.siigo.com/v1/auth')}`;
+            } catch (e: any) {
+                console.warn('Local proxy connection failed:', e.message);
+                console.log('Switching to Fallback Proxy...');
+
+                const targetUrl = 'https://api.siigo.com/v1/auth';
+                const fallbackUrl = `${FALLBACK_PROXY}${encodeURIComponent(targetUrl)}`;
+
                 response = await fetch(fallbackUrl, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
                     body: JSON.stringify({ username, access_key: accessKey })
                 });
             }
