@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { supabase } from '../lib/supabaseClient';
+
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
 interface SiigoProduct {
     id: string;
@@ -9,8 +10,9 @@ interface SiigoProduct {
     stock: number;
 }
 
-// URL base de la Edge Function de Supabase
-const EDGE_FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/siigo-proxy`;
+// URL directa de la Edge Function de Supabase (hardcoded para máxima confiabilidad)
+const SUPABASE_PROJECT_URL = import.meta.env.VITE_SUPABASE_URL || 'https://matyjysinegbibdwzhoq.supabase.co';
+const EDGE_FUNCTION_URL = `${SUPABASE_PROJECT_URL}/functions/v1/siigo-proxy`;
 
 const InventarioModule: React.FC = () => {
     const [products, setProducts] = useState<SiigoProduct[]>([]);
@@ -21,11 +23,11 @@ const InventarioModule: React.FC = () => {
     const [accessKey, setAccessKey] = useState(localStorage.getItem('siigo_access_key') || '');
     const [token, setToken] = useState<string | null>(null);
 
-    const getAuthHeaders = async () => {
-        const { data } = await supabase.auth.getSession();
-        const jwt = data?.session?.access_token;
-        return jwt ? { 'Authorization': `Bearer ${jwt}` } : {};
-    };
+    const getBaseHeaders = (): Record<string, string> => ({
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+    });
 
     const authenticate = async (): Promise<string | null> => {
         if (!username || !accessKey) {
@@ -37,10 +39,9 @@ const InventarioModule: React.FC = () => {
             setError(null);
             console.log('Autenticando vía Supabase Edge Function...');
 
-            const authHeaders = await getAuthHeaders();
             const res = await fetch(`${EDGE_FUNCTION_URL}?action=auth`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', ...authHeaders },
+                headers: getBaseHeaders(),
                 body: JSON.stringify({ username, access_key: accessKey }),
             });
 
@@ -68,13 +69,11 @@ const InventarioModule: React.FC = () => {
             setError(null);
             console.log('Obteniendo productos de Siigo...');
 
-            const authHeaders = await getAuthHeaders();
             const res = await fetch(`${EDGE_FUNCTION_URL}?action=products`, {
                 method: 'GET',
                 headers: {
-                    'Content-Type': 'application/json',
+                    ...getBaseHeaders(),
                     'x-siigo-token': accessToken,
-                    ...authHeaders,
                 },
             });
 
