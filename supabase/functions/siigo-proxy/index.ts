@@ -37,6 +37,7 @@ Deno.serve(async (req: Request) => {
                 headers: {
                     'Content-Type': 'application/json',
                     'Partner-Id': PARTNER_ID,
+                    'Partner-ID': PARTNER_ID, // Duplicate with ID for safety
                 },
                 body: JSON.stringify({ username, access_key }),
             });
@@ -84,6 +85,7 @@ Deno.serve(async (req: Request) => {
             const authHeaders = {
                 'Authorization': `Bearer ${token}`,
                 'Partner-Id': PARTNER_ID,
+                'Partner-ID': PARTNER_ID, // Redundant for compatibility
                 'Content-Type': 'application/json',
             };
 
@@ -135,7 +137,7 @@ Deno.serve(async (req: Request) => {
                 const pagePromises = [];
                 for (let page = 2; page <= totalPages; page++) {
                     pagePromises.push(
-                        fetch(`${SIIGO_BASE_URL}/v1/products?page_size=50&page=${page}`, {
+                        fetch(`${SIIGO_BASE_URL}/v1/products?page_size=100&page=${page}`, {
                             method: 'GET',
                             headers: authHeaders,
                         }).then(r => r.json())
