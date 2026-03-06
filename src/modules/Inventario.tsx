@@ -96,7 +96,8 @@ const InventarioModule: React.FC = () => {
 
             if (!data.results || data.results.length === 0) {
                 setProducts([]);
-                setError(`(v3) La cuenta de Siigo no tiene productos registrados o la consulta no devolvió resultados.`);
+                const now = new Date().toLocaleTimeString();
+                setError(`(v3 @ ${now}) La cuenta de Siigo respondió pero no devolvió productos. Revise el panel de depuración abajo.`);
                 return;
             }
 
@@ -242,17 +243,29 @@ const InventarioModule: React.FC = () => {
                         <h4 style={{ margin: 0 }}>Panel de Control y Depuración (v3)</h4>
                     </div>
                     {debugInfo ? (
-                        <>
-                            <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '1rem' }}>
-                                Última respuesta de Siigo recibida. Revise la estructura abajo:
-                            </p>
-                            <details style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px' }}>
-                                <summary style={{ cursor: 'pointer', fontWeight: '600', color: '#475569' }}>Ver JSON Crudo de Respuesta</summary>
-                                <pre style={{ marginTop: '1rem', fontSize: '0.75rem', overflowX: 'auto', whiteSpace: 'pre-wrap', maxHeight: '300px' }}>
+                        <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+                                <div style={{ background: 'white', padding: '0.75rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                                    <div style={{ fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase' }}>Productos en API</div>
+                                    <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#1e293b' }}>{debugInfo.total ?? 0}</div>
+                                </div>
+                                <div style={{ background: 'white', padding: '0.75rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                                    <div style={{ fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase' }}>Páginas detectadas</div>
+                                    <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#1e293b' }}>{debugInfo._debug_info?.totalPages ?? 1}</div>
+                                </div>
+                                <div style={{ background: 'white', padding: '0.75rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                                    <div style={{ fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase' }}>Último Sync</div>
+                                    <div style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#1e293b' }}>{new Date().toLocaleTimeString()}</div>
+                                </div>
+                            </div>
+
+                            <details style={{ marginTop: '1rem' }}>
+                                <summary style={{ cursor: 'pointer', fontWeight: '600', color: '#475569', fontSize: '0.85rem' }}>Ver JSON Crudo de Respuesta</summary>
+                                <pre style={{ marginTop: '0.5rem', fontSize: '0.75rem', overflowX: 'auto', whiteSpace: 'pre-wrap', maxHeight: '250px', background: '#0f172a', color: '#f8fafc', padding: '1rem', borderRadius: '6px' }}>
                                     {JSON.stringify(debugInfo, null, 2)}
                                 </pre>
                             </details>
-                        </>
+                        </div>
                     ) : (
                         <p style={{ fontSize: '0.85rem', color: '#64748b' }}>
                             Presione "Sincronizar" para capturar datos de depuración de la API.
