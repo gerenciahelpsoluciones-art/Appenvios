@@ -113,84 +113,203 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
 
     const generateActaEntrega = (a: Alquiler) => {
         const doc = new jsPDF();
-        const marginX = 20;
-        let startY = 20;
+        const marginX = 15;
+        const pageWidth = doc.internal.pageSize.width;
+        const contentWidth = pageWidth - marginX * 2;
+        let y = 15;
 
-        // Logo
+        // ─── HEADER BANNER ───
+        doc.setFillColor(0, 74, 153);
+        doc.rect(0, 0, pageWidth, 45, 'F');
+
         if (logoBase64) {
-            doc.addImage(logoBase64, 'PNG', marginX, startY, 40, 40, '', 'FAST');
+            doc.addImage(logoBase64, 'PNG', marginX, 5, 35, 35, '', 'FAST');
         }
 
-        // Header
-        doc.setFontSize(16);
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(18);
         doc.setFont('helvetica', 'bold');
-        doc.text('ACTA DE ENTREGA DE EQUIPO EN ALQUILER', 70, startY + 20);
-
-        startY += 50;
-
-        // Info General
+        doc.text('ACTA DE ENTREGA', pageWidth / 2 + 10, 18, { align: 'center' });
         doc.setFontSize(11);
         doc.setFont('helvetica', 'normal');
-        doc.text(`Fecha de Inicio: ${a.fechaInicio || new Date().toISOString().split('T')[0]}`, marginX, startY);
-        startY += 10;
-        doc.text(`Cliente: ${a.clienteNombre || 'Garantía Help Soluciones'}`, marginX, startY);
-        startY += 15;
+        doc.text('Equipo en Modalidad de Alquiler', pageWidth / 2 + 10, 26, { align: 'center' });
 
-        // Intro Text
+        doc.setFontSize(9);
+        doc.text(`Fecha: ${new Date().toLocaleDateString('es-CO')}`, pageWidth - marginX, 38, { align: 'right' });
+        doc.text(`N° Acta: AE-${a.serial.slice(-6).toUpperCase()}`, pageWidth - marginX, 33, { align: 'right' });
+
+        y = 55;
+        doc.setTextColor(0, 0, 0);
+
+        // ─── CLIENT INFO BOX ───
+        const cliente = clientes.find(c => c.id === a.clienteId);
+
+        doc.setFillColor(240, 249, 255);
+        doc.roundedRect(marginX, y, contentWidth, 40, 3, 3, 'F');
+        doc.setDrawColor(0, 74, 153);
+        doc.roundedRect(marginX, y, contentWidth, 40, 3, 3, 'S');
+
         doc.setFontSize(10);
-        const text = `Por medio de la presente acta se hace constar la entrega en calidad de ARRENDAMIENTO del siguiente equipo al cliente arriba mencionado. El cliente declara recibir el equipo en perfectas condiciones de funcionamiento y estética, comprometiéndose a darle el uso adecuado y a responder por cualquier daño o pérdida que sufra durante el periodo de alquiler.`;
-        const splitText = doc.splitTextToSize(text, 170);
-        doc.text(splitText, marginX, startY);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(0, 74, 153);
+        doc.text('DATOS DEL CLIENTE', marginX + 5, y + 8);
 
-        startY += (splitText.length * 5) + 10;
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(9);
 
-        // Tabla de Equipos
-        const tableData = [
-            ['Descripción del Equipo', a.descripcion],
-            ['Número de Serial / S/N', a.serial],
-            ...(a.discoDuro ? [['Disco Duro', a.discoDuro]] : []),
-            ...(a.memoriaRam ? [['Memoria RAM', a.memoriaRam]] : []),
+        const col1X = marginX + 5;
+        const col2X = marginX + contentWidth / 2 + 5;
+
+        doc.setFont('helvetica', 'bold');
+        doc.text('Razón Social:', col1X, y + 16);
+        doc.setFont('helvetica', 'normal');
+        doc.text(cliente?.nombre || a.clienteNombre || 'N/A', col1X + 28, y + 16);
+
+        doc.setFont('helvetica', 'bold');
+        doc.text('NIT:', col2X, y + 16);
+        doc.setFont('helvetica', 'normal');
+        doc.text(cliente?.nit || 'N/A', col2X + 12, y + 16);
+
+        doc.setFont('helvetica', 'bold');
+        doc.text('Dirección:', col1X, y + 24);
+        doc.setFont('helvetica', 'normal');
+        doc.text(cliente?.direccion || 'N/A', col1X + 22, y + 24);
+
+        doc.setFont('helvetica', 'bold');
+        doc.text('Ciudad:', col2X, y + 24);
+        doc.setFont('helvetica', 'normal');
+        doc.text(cliente?.ciudad || 'N/A', col2X + 16, y + 24);
+
+        doc.setFont('helvetica', 'bold');
+        doc.text('Contacto:', col1X, y + 32);
+        doc.setFont('helvetica', 'normal');
+        doc.text(cliente?.contacto || 'N/A', col1X + 22, y + 32);
+
+        doc.setFont('helvetica', 'bold');
+        doc.text('Teléfono:', col2X, y + 32);
+        doc.setFont('helvetica', 'normal');
+        doc.text(cliente?.telefono || 'N/A', col2X + 20, y + 32);
+
+        y += 50;
+
+        // ─── EQUIPMENT TABLE ───
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(0, 74, 153);
+        doc.text('DATOS DEL EQUIPO', marginX, y);
+        y += 5;
+
+        const equipmentData = [
+            ['Descripción', a.descripcion],
+            ['N° de Serial', a.serial],
             ...(a.procesador ? [['Procesador', a.procesador]] : []),
             ...(a.generacion ? [['Generación', a.generacion]] : []),
-            ['Valor Mensual del Alquiler', `$${a.valorMensual.toLocaleString()} COP`]
+            ...(a.memoriaRam ? [['Memoria RAM', a.memoriaRam]] : []),
+            ...(a.discoDuro ? [['Disco Duro', a.discoDuro]] : []),
         ];
 
         // @ts-ignore
         doc.autoTable({
-            startY: startY,
-            head: [['Concepto', 'Detalle']],
-            body: tableData,
-            theme: 'grid',
-            headStyles: { fillColor: [0, 74, 153], textColor: [255, 255, 255] },
-            styles: { fontSize: 10, cellPadding: 6 }
+            startY: y,
+            body: equipmentData,
+            theme: 'plain',
+            styles: { fontSize: 9, cellPadding: { top: 3, bottom: 3, left: 5, right: 5 } },
+            columnStyles: {
+                0: { fontStyle: 'bold', cellWidth: 45, textColor: [50, 50, 50] },
+                1: { cellWidth: 'auto' }
+            },
+            alternateRowStyles: { fillColor: [248, 250, 252] },
+            tableLineColor: [220, 220, 220],
+            tableLineWidth: 0.3,
         });
 
         // @ts-ignore
-        startY = doc.lastAutoTable.finalY + 30;
+        y = doc.lastAutoTable.finalY + 8;
 
-        // Firmas
-        doc.setLineWidth(0.5);
-        doc.line(marginX, startY, marginX + 60, startY);
-        doc.line(130, startY, 190, startY);
+        // ─── COMMERCIAL TERMS BOX ───
+        doc.setFillColor(255, 251, 235);
+        doc.roundedRect(marginX, y, contentWidth, 22, 3, 3, 'F');
+        doc.setDrawColor(180, 140, 20);
+        doc.roundedRect(marginX, y, contentWidth, 22, 3, 3, 'S');
 
-        doc.setFontSize(10);
+        doc.setFontSize(9);
         doc.setFont('helvetica', 'bold');
-        doc.text('ENTREGADO POR:', marginX, startY + 5);
-        doc.text('RECIBIDO POR (Cliente):', 130, startY + 5);
+        doc.setTextColor(120, 80, 0);
+        doc.text('CONDICIONES COMERCIALES', marginX + 5, y + 7);
 
         doc.setFont('helvetica', 'normal');
-        doc.text(`Nombre: ${currentUser?.nombre || 'Representante Help Soluciones'}`, marginX, startY + 12);
-        doc.text('Nombre:', 130, startY + 12);
+        doc.setTextColor(0, 0, 0);
+        doc.text(`Fecha de inicio del alquiler:  ${a.fechaInicio || new Date().toISOString().split('T')[0]}`, marginX + 5, y + 14);
+        doc.text(`Valor mensual del alquiler:  $${a.valorMensual.toLocaleString()} COP`, marginX + contentWidth / 2, y + 14);
 
-        doc.text('C.C. / NIT:', marginX, startY + 19);
-        doc.text('C.C. / NIT:', 130, startY + 19);
+        y += 30;
 
-        // Footer
+        // ─── LEGAL TEXT ───
+        doc.setFontSize(8.5);
+        doc.setTextColor(60, 60, 60);
+        const legalText = `Por medio de la presente acta se hace constar la entrega en calidad de ARRENDAMIENTO del equipo antes descrito al cliente arriba mencionado. El cliente declara recibir el equipo en perfectas condiciones de funcionamiento y estética, comprometiéndose a darle el uso adecuado y a responder por cualquier daño, deterioro o pérdida que el equipo sufra durante el periodo de alquiler. Al finalizar el contrato, el cliente se compromete a devolver el equipo en las mismas condiciones en que fue recibido, salvo el desgaste normal por uso.`;
+        const splitLegal = doc.splitTextToSize(legalText, contentWidth);
+        doc.text(splitLegal, marginX, y);
+
+        y += splitLegal.length * 4 + 15;
+
+        // ─── SIGNATURE BOXES ───
+        const boxWidth = (contentWidth - 20) / 2;
+        const boxHeight = 55;
+
+        // Entrega (left)
+        doc.setDrawColor(0, 74, 153);
+        doc.setLineWidth(0.5);
+        doc.roundedRect(marginX, y, boxWidth, boxHeight, 3, 3, 'S');
+
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(0, 74, 153);
+        doc.text('ENTREGADO POR', marginX + boxWidth / 2, y + 8, { align: 'center' });
+        doc.text('Help Soluciones Informáticas', marginX + boxWidth / 2, y + 14, { align: 'center' });
+
+        // Signature line
+        doc.setDrawColor(150, 150, 150);
+        doc.setLineWidth(0.3);
+        doc.line(marginX + 10, y + 36, marginX + boxWidth - 10, y + 36);
+
         doc.setFontSize(8);
-        doc.setTextColor(150);
-        doc.text('Documento generado por HelpiCRM - Help Soluciones Informáticas', marginX, 280);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(80, 80, 80);
+        doc.text(`Nombre: ${currentUser?.nombre || '________________________'}`, marginX + 10, y + 42);
+        doc.text('C.C.: ________________________', marginX + 10, y + 48);
 
-        doc.save(`Acta_Entrega_Alquiler_${a.serial}.pdf`);
+        // Recibe (right)
+        const rightX = marginX + boxWidth + 20;
+        doc.setDrawColor(0, 74, 153);
+        doc.setLineWidth(0.5);
+        doc.roundedRect(rightX, y, boxWidth, boxHeight, 3, 3, 'S');
+
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(0, 74, 153);
+        doc.text('RECIBIDO POR', rightX + boxWidth / 2, y + 8, { align: 'center' });
+        doc.setFont('helvetica', 'normal');
+        doc.text(cliente?.nombre || a.clienteNombre || 'Cliente', rightX + boxWidth / 2, y + 14, { align: 'center' });
+
+        // Signature line
+        doc.setDrawColor(150, 150, 150);
+        doc.setLineWidth(0.3);
+        doc.line(rightX + 10, y + 36, rightX + boxWidth - 10, y + 36);
+
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(80, 80, 80);
+        doc.text('Nombre: ________________________', rightX + 10, y + 42);
+        doc.text('C.C.: ________________________', rightX + 10, y + 48);
+
+        // ─── FOOTER ───
+        doc.setFontSize(7);
+        doc.setTextColor(150, 150, 150);
+        doc.text('Documento generado por HelpiCRM — Help Soluciones Informáticas S.A.S.', pageWidth / 2, 285, { align: 'center' });
+
+        doc.save(`Acta_Entrega_${a.serial}_${new Date().toISOString().split('T')[0]}.pdf`);
     };
 
     const generateInformeGlobal = () => {
