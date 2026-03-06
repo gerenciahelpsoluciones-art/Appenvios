@@ -133,6 +133,8 @@ export interface Alquiler {
   usuarioId: string;
   discoDuro?: string;
   memoriaRam?: string;
+  procesador?: string;
+  generacion?: string;
 }
 
 export interface CotizacionItem {
@@ -413,7 +415,9 @@ function App() {
           valorMensual: a.valor_mensual || a.valorMensual,
           usuarioId: a.usuario_id || a.usuarioId,
           discoDuro: a.disco_duro || a.discoDuro,
-          memoriaRam: a.memoria_ram || a.memoriaRam
+          memoriaRam: a.memoria_ram || a.memoriaRam,
+          procesador: a.procesador,
+          generacion: a.generacion
         })));
       }
 
@@ -1244,7 +1248,9 @@ function App() {
       valor_mensual: a.valorMensual,
       usuario_id: a.usuarioId,
       disco_duro: a.discoDuro,
-      memoria_ram: a.memoriaRam
+      memoria_ram: a.memoriaRam,
+      procesador: a.procesador,
+      generacion: a.generacion
     };
     const { data, error } = await supabase.from('alquileres').insert([payload]).select();
     if (error) { alert('Error guardando equipo: ' + error.message); return false; }
@@ -1275,7 +1281,9 @@ function App() {
       valor_mensual: a.valorMensual,
       usuario_id: a.usuarioId,
       disco_duro: a.discoDuro,
-      memoria_ram: a.memoriaRam
+      memoria_ram: a.memoriaRam,
+      procesador: a.procesador,
+      generacion: a.generacion
     };
     const { error } = await supabase.from('alquileres').update(payload).eq('id', a.id);
     if (error) { alert('Error actualizando equipo: ' + error.message); return false; }
