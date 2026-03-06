@@ -116,7 +116,7 @@ export interface OrdenCompra {
   fotoRemision?: string;
   georeferencia?: string;
   usuarioId: string;
-  tipo: 'Recogida' | 'Inventario' | 'Oficina';
+  tipo: 'Recogida' | 'Inventario' | 'Oficina' | 'Licenciamiento (virtual)';
   verificada: boolean;
 }
 

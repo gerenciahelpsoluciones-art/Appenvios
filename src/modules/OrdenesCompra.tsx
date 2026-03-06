@@ -22,7 +22,7 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenes
     const [observaciones, setObservaciones] = useState('');
     const [items, setItems] = useState<OrdenCompraItem[]>([]);
     const [editingId, setEditingId] = useState<string | null>(null);
-    const [tipo, setTipo] = useState<'Recogida' | 'Inventario' | 'Oficina'>('Recogida');
+    const [tipo, setTipo] = useState<'Recogida' | 'Inventario' | 'Oficina' | 'Licenciamiento (virtual)'>('Recogida');
 
     // Form for new item
     const [selectedProdId, setSelectedProdId] = useState('');
@@ -277,6 +277,7 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenes
                                     <option value="Recogida">Recogida (Logística)</option>
                                     <option value="Inventario">Inventario (Bodega)</option>
                                     <option value="Oficina">Llega a la oficina</option>
+                                    <option value="Licenciamiento (virtual)">Licenciamiento (Virtual)</option>
                                 </select>
                             </div>
                         </div>
@@ -405,12 +406,12 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenes
                                     <td>{oc.fecha}</td>
                                     <td>{oc.nombreProveedor}</td>
                                     <td className="text-center">
-                                        <span className={`tag-${oc.tipo?.toLowerCase() || 'recogida'}`} style={{
+                                        <span className={`tag-${oc.tipo?.toLowerCase().replace(/ /g, '-').replace(/[()]/g, '') || 'recogida'}`} style={{
                                             padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 'bold',
-                                            background: oc.tipo === 'Inventario' ? '#e0f2fe' : (oc.tipo === 'Oficina' ? '#dcfce7' : '#fef3c7'),
-                                            color: oc.tipo === 'Inventario' ? '#0369a1' : (oc.tipo === 'Oficina' ? '#166534' : '#92400e')
+                                            background: oc.tipo === 'Inventario' ? '#e0f2fe' : (oc.tipo === 'Oficina' ? '#dcfce7' : (oc.tipo === 'Licenciamiento (virtual)' ? '#f3e8ff' : '#fef3c7')),
+                                            color: oc.tipo === 'Inventario' ? '#0369a1' : (oc.tipo === 'Oficina' ? '#166534' : (oc.tipo === 'Licenciamiento (virtual)' ? '#7e22ce' : '#92400e'))
                                         }}>
-                                            {oc.tipo === 'Oficina' ? 'Oficina' : (oc.tipo || 'Recogida')}
+                                            {oc.tipo === 'Oficina' ? 'Oficina' : (oc.tipo === 'Licenciamiento (virtual)' ? 'Licencia M.' : (oc.tipo || 'Recogida'))}
                                         </span>
                                     </td>
                                     <td className="text-right" style={{ color: 'var(--primary-blue)', fontWeight: 'bold', fontFamily: 'Courier New, monospace' }}>
