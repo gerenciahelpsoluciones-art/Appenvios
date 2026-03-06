@@ -29,6 +29,21 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
     const [discoDuro, setDiscoDuro] = useState('');
     const [memoriaRam, setMemoriaRam] = useState('');
 
+    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            if (file.size > 2 * 1024 * 1024) {
+                alert('La imagen no debe superar los 2MB');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setFotoUrl(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
     const resetForm = () => {
         setIsAdding(false);
         setEditingId(null);
@@ -260,6 +275,18 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
                             <div className="form-group flex-1">
                                 <label>Valor Mensual</label>
                                 <input type="number" className="input-field" value={valorMensual} onChange={e => setValorMensual(Number(e.target.value))} />
+                            </div>
+                        </div>
+
+                        <div className="form-row">
+                            <div className="form-group flex-1">
+                                <label>Foto del Equipo (Opcional, max 2MB)</label>
+                                <input type="file" accept="image/*" className="input-field" onChange={handleImageUpload} />
+                                {fotoUrl && (
+                                    <div style={{ marginTop: '1rem', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '0.5rem', display: 'inline-block' }}>
+                                        <img src={fotoUrl} alt="Vista previa" style={{ maxWidth: '200px', maxHeight: '150px', objectFit: 'contain' }} />
+                                    </div>
+                                )}
                             </div>
                         </div>
 
