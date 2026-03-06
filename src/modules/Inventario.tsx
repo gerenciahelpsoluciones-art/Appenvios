@@ -160,8 +160,13 @@ const InventarioModule: React.FC = () => {
 
     return (
         <div className="module-container">
-            <div className="module-header">
-                <h2>Inventario Siigo Nube</h2>
+            <div className="module-header" style={{ position: 'relative' }}>
+                <div>
+                    <h2>Inventario Siigo Nube</h2>
+                    <span style={{ fontSize: '0.7rem', color: '#10b981', background: '#ecfdf5', padding: '2px 8px', borderRadius: '4px', border: '1px solid #10b981' }}>
+                        VERSIÓN ACTIVA: v3-DEBUG
+                    </span>
+                </div>
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                     <div className="search-container" style={{ width: '280px' }}>
                         <input
