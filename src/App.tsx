@@ -1460,58 +1460,143 @@ function App() {
         const completedTotal = dashDespachos.filter(d => d.estado === 'Entregado').length;
         const activeLogistics = dashDespachos.filter(d => d.estado !== 'Entregado').length;
 
-        return (
-          <div className="dashboard-grid">
-            <div className="card stat-card">
-              <h4>Cotizaciones de {now.toLocaleString('es-ES', { month: 'long' })}</h4>
-              <p className="stat-value">{curMonthQuotes.length}</p>
-              <span className={`stat-label ${growth >= 0 ? 'text-success' : 'text-error'}`}>
-                {growth >= 0 ? '↑' : '↓'} {Math.abs(growth).toFixed(0)}% vs mes anterior
-              </span>
+        <div className="dashboard-container" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+
+          {/* Header Section */}
+          <div className="dashboard-header" style={{ marginBottom: '1rem' }}>
+            <h2 style={{ margin: 0, fontSize: '2rem', color: '#1e293b' }}>
+              ¡Hola, {currentUser.nombre.split(' ')[0]}!
+            </h2>
+            <p style={{ margin: 0, color: '#64748b', fontSize: '1.1rem' }}>
+              Aquí está el resumen de tu negocio para {now.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}.
+            </p>
+          </div>
+
+          {/* KPI Cards Grid */}
+          <div className="kpi-grid" style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: '1.5rem'
+          }}>
+
+            {/* KPIs */}
+            <div className="kpi-card" style={{ background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)', padding: '1.5rem', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h4 style={{ margin: 0, color: '#475569', fontSize: '1rem', fontWeight: '600' }}>Cotizaciones</h4>
+                <span style={{ fontSize: '1.5rem' }}>📄</span>
+              </div>
+              <p style={{ margin: 0, fontSize: '2.5rem', fontWeight: 'bold', color: '#0f172a' }}>{curMonthQuotes.length}</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: 'auto' }}>
+                <span style={{
+                  padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.85rem', fontWeight: 'bold',
+                  background: growth >= 0 ? '#dcfce7' : '#fee2e2', color: growth >= 0 ? '#166534' : '#ef4444'
+                }}>
+                  {growth >= 0 ? '↗' : '↘'} {Math.abs(growth).toFixed(0)}%
+                </span>
+                <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>vs mes anterior</span>
+              </div>
             </div>
-            <div className="card stat-card">
-              <h4>Ventas Ganadas (Mes)</h4>
-              <p className="stat-value">{wonQuotesMonth.length}</p>
-              <span className="stat-label">
-                ${wonQuotesMonth.reduce((acc, c) => acc + c.total, 0).toLocaleString()} en ingresos
-              </span>
+
+            <div className="kpi-card" style={{ background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)', padding: '1.5rem', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h4 style={{ margin: 0, color: '#475569', fontSize: '1rem', fontWeight: '600' }}>Ingresos Esperados</h4>
+                <span style={{ fontSize: '1.5rem' }}>💰</span>
+              </div>
+              <p style={{ margin: 0, fontSize: '2rem', fontWeight: 'bold', color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                ${wonQuotesMonth.reduce((acc, c) => acc + c.total, 0).toLocaleString()}
+              </p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: 'auto' }}>
+                <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '500' }}>
+                  De {wonQuotesMonth.length} cotizacion{wonQuotesMonth.length !== 1 && 'es'} ganada{wonQuotesMonth.length !== 1 && 's'}
+                </span>
+              </div>
             </div>
-            <div className="card stat-card">
-              <h4>Envíos Realizados</h4>
-              <p className="stat-value">{completedTotal}</p>
-              <span className="stat-label">{activeLogistics} envíos en tránsito</span>
+
+            <div className="kpi-card" style={{ background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)', padding: '1.5rem', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h4 style={{ margin: 0, color: '#475569', fontSize: '1rem', fontWeight: '600' }}>Logística y Envíos</h4>
+                <span style={{ fontSize: '1.5rem' }}>🚚</span>
+              </div>
+              <p style={{ margin: 0, fontSize: '2.5rem', fontWeight: 'bold', color: '#0f172a' }}>{completedTotal}</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: 'auto' }}>
+                <span style={{ fontSize: '0.85rem', color: '#1d4ed8', background: '#dbeafe', padding: '0.25rem 0.5rem', borderRadius: '4px', fontWeight: 'bold' }}>
+                  {activeLogistics} en tránsito
+                </span>
+                <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Actualmente</span>
+              </div>
             </div>
-            <div className="card wide-card">
-              <h3>Actividad Reciente</h3>
-              <ul className="activity-list">
+
+          </div>
+
+          {/* Main Content Split */}
+          <div className="dashboard-main-split" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '2rem' }}>
+
+            {/* Timeline (Left) */}
+            <div className="card" style={{ padding: '1.5rem', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.05)' }}>
+              <h3 style={{ margin: '0 0 1.5rem 0', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                ⏱️ Actividad Reciente
+              </h3>
+
+              <div className="timeline-container" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {curMonthQuotes.slice(-5).reverse().map(c => (
-                  <li key={c.id}>
-                    <span className="activity-date">{c.fecha}</span>
-                    {c.estado === 'Ganado' ? '✅' : '📄'} Cotización <strong>{c.consecutivo}</strong> para {c.clienteNombre}
-                  </li>
+                  <div key={c.id} className="timeline-item" style={{ display: 'flex', gap: '1rem', padding: '1rem', background: '#f8fafc', borderRadius: '8px', borderLeft: `4px solid ${c.estado === 'Ganado' ? '#22c55e' : '#3b82f6'}` }}>
+                    <div style={{ minWidth: '80px', fontSize: '0.85rem', color: '#64748b', fontWeight: '600' }}>
+                      {c.fecha || 'N/A'}
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 'bold', color: '#0f172a', marginBottom: '0.25rem' }}>
+                        {c.estado === 'Ganado' ? '✅ Venta Cerrada' : '📄 Nueva Cotización'} ({c.consecutivo})
+                      </div>
+                      <div style={{ fontSize: '0.9rem', color: '#475569' }}>
+                        Para: <strong>{c.clienteNombre}</strong> por ${c.total.toLocaleString()}
+                      </div>
+                    </div>
+                  </div>
                 ))}
+
                 {dashDespachos.filter(d => {
                   if (!d.fechaSolicitud) return false;
                   const [y, m] = d.fechaSolicitud.split('-').map(Number);
                   return y === curYear && (m - 1) === curMonth;
                 }).slice(-3).reverse().map(d => (
-                  <li key={d.id}>
-                    <span className="activity-date">{d.fechaSolicitud}</span>
-                    🚚 Despacho <strong>{d.consecutivoCotizacion}</strong> - {d.estado}
-                  </li>
+                  <div key={d.id} className="timeline-item" style={{ display: 'flex', gap: '1rem', padding: '1rem', background: '#f8fafc', borderRadius: '8px', borderLeft: `4px solid #f59e0b` }}>
+                    <div style={{ minWidth: '80px', fontSize: '0.85rem', color: '#64748b', fontWeight: '600' }}>
+                      {d.fechaSolicitud || 'N/A'}
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 'bold', color: '#0f172a', marginBottom: '0.25rem' }}>
+                        🚚 Envío {d.consecutivoCotizacion}
+                      </div>
+                      <div style={{ fontSize: '0.9rem', color: '#475569' }}>
+                        Estado: <span style={{ fontWeight: '600' }}>{d.estado}</span>
+                      </div>
+                    </div>
+                  </div>
                 ))}
-              </ul>
+
+                {(curMonthQuotes.length === 0 && dashDespachos.length === 0) && (
+                  <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
+                    No hay actividad reciente este mes.
+                  </div>
+                )}
+              </div>
             </div>
-            <style>{`
-              .activity-date {
-                font-size: 0.75rem;
-                color: var(--text-muted);
-                margin-right: 0.75rem;
-                font-family: monospace;
+
+          </div>
+
+          <style>{`
+              .kpi-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+              .kpi-card:hover { transform: translateY(-4px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important; }
+              .timeline-item { transition: background 0.2s ease; }
+              .timeline-item:hover { background: #f1f5f9 !important; }
+              
+              @media (min-width: 1024px) {
+                .dashboard-main-split {
+                  grid-template-columns: 2fr 1fr !important;
+                }
               }
             `}</style>
-          </div>
-        );
+        </div>
       default:
         return (
           <div className="card">
