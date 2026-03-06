@@ -407,19 +407,22 @@ function App() {
         })));
       }
 
-      const { data: alquilerData } = await supabase.from('alquileres').select('*');
+      const { data: alquilerData, error: alquilerError } = await supabase.from('alquileres').select('*');
+      if (alquilerError) console.error('Error fetching alquileres:', alquilerError.message);
       if (alquilerData) {
+        console.log('Alquileres raw data:', alquilerData.length, 'records');
         setAlquileres(alquilerData.map((a: any) => ({
           ...a,
-          clienteId: a.cliente_id || a.clienteId,
-          clienteNombre: a.cliente_nombre || a.clienteNombre,
-          fechaInicio: a.fecha_inicio || a.fechaInicio,
-          valorMensual: a.valor_mensual || a.valorMensual,
-          usuarioId: a.usuario_id || a.usuarioId,
-          discoDuro: a.disco_duro || a.discoDuro,
-          memoriaRam: a.memoria_ram || a.memoriaRam,
-          procesador: a.procesador,
-          generacion: a.generacion
+          fotoUrl: a.foto_url ?? a.fotoUrl ?? '',
+          clienteId: a.cliente_id ?? a.clienteId ?? '',
+          clienteNombre: a.cliente_nombre ?? a.clienteNombre ?? '',
+          fechaInicio: a.fecha_inicio ?? a.fechaInicio ?? '',
+          valorMensual: a.valor_mensual ?? a.valorMensual ?? 0,
+          usuarioId: a.usuario_id ?? a.usuarioId ?? '',
+          discoDuro: a.disco_duro ?? a.discoDuro ?? '',
+          memoriaRam: a.memoria_ram ?? a.memoriaRam ?? '',
+          procesador: a.procesador ?? '',
+          generacion: a.generacion ?? ''
         })));
       }
 
