@@ -26,6 +26,8 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
     const [clienteId, setClienteId] = useState('');
     const [fechaInicio, setFechaInicio] = useState('');
     const [valorMensual, setValorMensual] = useState(0);
+    const [discoDuro, setDiscoDuro] = useState('');
+    const [memoriaRam, setMemoriaRam] = useState('');
 
     const resetForm = () => {
         setIsAdding(false);
@@ -37,6 +39,8 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
         setClienteId('');
         setFechaInicio('');
         setValorMensual(0);
+        setDiscoDuro('');
+        setMemoriaRam('');
     };
 
     const handleSubmit = async () => {
@@ -55,7 +59,9 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
             clienteNombre: estado === 'Alquilado' ? clientes.find(c => c.id === clienteId)?.nombre : undefined,
             fechaInicio: estado === 'Alquilado' ? fechaInicio : undefined,
             valorMensual,
-            usuarioId: currentUser?.id || ''
+            usuarioId: currentUser?.id || '',
+            discoDuro: discoDuro || undefined,
+            memoriaRam: memoriaRam || undefined
         };
 
         const success = editingId ? await onUpdateAlquiler(data) : await onAddAlquiler(data);
@@ -71,6 +77,8 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
         setClienteId(a.clienteId || '');
         setFechaInicio(a.fechaInicio || '');
         setValorMensual(a.valorMensual);
+        setDiscoDuro(a.discoDuro || '');
+        setMemoriaRam(a.memoriaRam || '');
         setIsAdding(true);
     };
 
@@ -111,6 +119,8 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
         const tableData = [
             ['Descripción del Equipo', a.descripcion],
             ['Número de Serial / S/N', a.serial],
+            ...(a.discoDuro ? [['Disco Duro', a.discoDuro]] : []),
+            ...(a.memoriaRam ? [['Memoria RAM', a.memoriaRam]] : []),
             ['Valor Mensual del Alquiler', `$${a.valorMensual.toLocaleString()} COP`]
         ];
 
@@ -186,6 +196,29 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
                             <div className="form-group flex-1">
                                 <label>Número de Serial</label>
                                 <input className="input-field" value={serial} onChange={e => setSerial(e.target.value)} />
+                            </div>
+                        </div>
+                        <div className="form-row">
+                            <div className="form-group flex-1">
+                                <label>Disco Duro</label>
+                                <select className="input-field" value={discoDuro} onChange={e => setDiscoDuro(e.target.value)}>
+                                    <option value="">Seleccionar (Opcional)</option>
+                                    <option value="128GB">128GB</option>
+                                    <option value="256GB">256GB</option>
+                                    <option value="512GB">512GB</option>
+                                    <option value="1TB">1TB</option>
+                                </select>
+                            </div>
+                            <div className="form-group flex-1">
+                                <label>Memoria RAM</label>
+                                <select className="input-field" value={memoriaRam} onChange={e => setMemoriaRam(e.target.value)}>
+                                    <option value="">Seleccionar (Opcional)</option>
+                                    <option value="4GB">4GB</option>
+                                    <option value="8GB">8GB</option>
+                                    <option value="16GB">16GB</option>
+                                    <option value="32GB">32GB</option>
+                                    <option value="64GB">64GB</option>
+                                </select>
                             </div>
                         </div>
                         <div className="form-row">
