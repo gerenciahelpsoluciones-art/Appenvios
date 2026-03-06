@@ -43,7 +43,8 @@ const InformesModule: React.FC<IProps> = ({
     alquileres
 }) => {
     const today = new Date().toISOString().split('T')[0];
-    const [fechaInicio, setFechaInicio] = useState(today);
+    const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+    const [fechaInicio, setFechaInicio] = useState(firstDayOfMonth);
     const [fechaFin, setFechaFin] = useState(today);
     const [selectedClienteId, setSelectedClienteId] = useState('');
     const [selectedAsesorId, setSelectedAsesorId] = useState('');
@@ -53,7 +54,8 @@ const InformesModule: React.FC<IProps> = ({
     const currentYear = new Date().getFullYear();
 
     // State for dates/filters that are actually being used for filtering
-    const [appliedFilters, setAppliedFilters] = useState({ inicio: today, fin: today, clienteId: '', asesorId: '' });
+    // State for dates/filters that are actually being used for filtering
+    const [appliedFilters, setAppliedFilters] = useState({ inicio: firstDayOfMonth, fin: today, clienteId: '', asesorId: '' });
 
     // Edit modal state
     const [editingQuote, setEditingQuote] = useState<Cotizacion | null>(null);
@@ -67,7 +69,16 @@ const InformesModule: React.FC<IProps> = ({
     const filteredQuotes = cotizaciones.filter(q => {
         const dateMatch = q.fecha >= appliedFilters.inicio && q.fecha <= appliedFilters.fin;
         const clientMatch = appliedFilters.clienteId ? q.clienteId === appliedFilters.clienteId : true;
-        return dateMatch && clientMatch;
+        const advisorMatch = appliedFilters.asesorId ? q.usuarioId === appliedFilters.asesorId : true;
+        return dateMatch && clientMatch && advisorMatch;
+    });
+
+    console.log('Informes Debug:', {
+        totalReceived: cotizaciones.length,
+        filteredCount: filteredQuotes.length,
+        appliedFilters,
+        allDates: cotizaciones.map(c => c.fecha),
+        allConsecutivos: cotizaciones.map(c => c.consecutivo)
     });
 
     const totalVendido = filteredQuotes.reduce((acc, q) => acc + q.total, 0);
@@ -279,7 +290,7 @@ const InformesModule: React.FC<IProps> = ({
                     </div>
                     <div className="stat-card profit-summary-card">
                         <div className="stat-label">Utilidad General (Rango)</div>
-                        <div className="stat-value">${totalUtilidad.toLocaleString()}</div>
+                        <div className="stat-value">${Math.round(totalUtilidad).toLocaleString()}</div>
                         <div className="stat-trend">Margen Bruto</div>
                     </div>
                 </div>
@@ -343,14 +354,14 @@ const InformesModule: React.FC<IProps> = ({
             <div className="dashboard-grid" style={{ marginTop: '1.5rem', marginBottom: '1.5rem' }}>
                 <div className="card stat-card">
                     <h4>Total en el Rango</h4>
-                    <p className="stat-value">${totalVendido.toLocaleString()}</p>
+                    <p className="stat-value">${Math.round(totalVendido).toLocaleString()}</p>
                     <span className="stat-label">
                         {appliedFilters.inicio} al {appliedFilters.fin} {appliedFilters.clienteId ? `• ${clientes.find(c => c.id === appliedFilters.clienteId)?.nombre}` : ''} • {filteredQuotes.length} cotizaciones
                     </span>
                 </div>
                 <div className="card stat-card" style={{ background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', color: 'white' }}>
                     <h4>Utilidad en el Rango</h4>
-                    <p className="stat-value" style={{ color: 'white' }}>${totalUtilidad.toLocaleString()}</p>
+                    <p className="stat-value" style={{ color: 'white' }}>${Math.round(totalUtilidad).toLocaleString()}</p>
                     <span className="stat-label" style={{ color: 'rgba(255,255,255,0.8)' }}>
                         Margen de ganancia acumulado
                     </span>
@@ -375,8 +386,8 @@ const InformesModule: React.FC<IProps> = ({
                                 {Object.values(profitByClient).sort((a, b) => b.profit - a.profit).map((c, i) => (
                                     <tr key={i}>
                                         <td>{c.nombre}</td>
-                                        <td className="text-right">${c.total.toLocaleString()}</td>
-                                        <td className="text-right" style={{ color: 'var(--success)', fontWeight: 'bold' }}>${c.profit.toLocaleString()}</td>
+                                        <td className="text-right">${Math.round(c.total).toLocaleString()}</td>
+                                        <td className="text-right" style={{ color: 'var(--success)', fontWeight: 'bold' }}>${Math.round(c.profit).toLocaleString()}</td>
                                         <td className="text-right">{(c.profit / (c.total || 1) * 100).toFixed(1)}%</td>
                                     </tr>
                                 ))}
@@ -485,8 +496,8 @@ const InformesModule: React.FC<IProps> = ({
                                 {Object.entries(profitByMonth).sort((a, b) => b[0].localeCompare(a[0])).map(([month, data], i) => (
                                     <tr key={i}>
                                         <td>{month}</td>
-                                        <td className="text-right">${data.total.toLocaleString()}</td>
-                                        <td className="text-right" style={{ color: 'var(--success)', fontWeight: 'bold' }}>${data.profit.toLocaleString()}</td>
+                                        <td className="text-right">${Math.round(data.total).toLocaleString()}</td>
+                                        <td className="text-right" style={{ color: 'var(--success)', fontWeight: 'bold' }}>${Math.round(data.profit).toLocaleString()}</td>
                                         <td className="text-right">{(data.profit / (data.total || 1) * 100).toFixed(1)}%</td>
                                     </tr>
                                 ))}
@@ -503,16 +514,16 @@ const InformesModule: React.FC<IProps> = ({
                         <thead>
                             <tr>
                                 <th style={{ minWidth: '100px' }}>Fecha</th>
-                                <th style={{ minWidth: '120px' }}>Consecutivo</th>
-                                <th style={{ minWidth: '200px' }}>Cliente</th>
-                                <th className="text-right" style={{ minWidth: '110px' }}>Subtotal</th>
-                                <th className="text-right" style={{ minWidth: '100px' }}>Utilidad</th>
-                                <th className="text-right" style={{ minWidth: '100px' }}>IVA</th>
-                                <th className="text-right" style={{ minWidth: '120px' }}>Total</th>
-                                <th style={{ minWidth: '150px' }}>Ejecutivo</th>
+                                <th style={{ minWidth: '150px' }}>Consecutivo</th>
+                                <th style={{ minWidth: '220px' }}>Cliente</th>
+                                <th className="text-right" style={{ minWidth: '120px' }}>Subtotal</th>
+                                <th className="text-right" style={{ minWidth: '120px' }}>Utilidad</th>
+                                <th className="text-right" style={{ minWidth: '110px' }}>IVA</th>
+                                <th className="text-right" style={{ minWidth: '130px' }}>Total</th>
+                                <th style={{ minWidth: '160px' }}>Ejecutivo</th>
                                 <th className="text-center" style={{ minWidth: '120px' }}>Estado</th>
-                                <th className="text-center" style={{ minWidth: '100px' }}>Autorización</th>
-                                <th className="text-center" style={{ minWidth: '220px' }}>Acciones</th>
+                                <th className="text-center" style={{ minWidth: '110px' }}>Autorización</th>
+                                <th className="text-center" style={{ minWidth: '230px' }}>Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -522,10 +533,10 @@ const InformesModule: React.FC<IProps> = ({
                                         <td>{q.fecha}</td>
                                         <td><strong>{q.consecutivo}</strong></td>
                                         <td>{q.clienteNombre}</td>
-                                        <td className="text-right">${q.subtotal.toLocaleString()}</td>
-                                        <td className="text-right" style={{ color: 'var(--success)', fontWeight: 'bold' }}>${(q.utilidadTotal || 0).toLocaleString()}</td>
-                                        <td className="text-right">${q.iva.toLocaleString()}</td>
-                                        <td className="text-right"><strong>${q.total.toLocaleString()}</strong></td>
+                                        <td className="text-right">${Math.round(q.subtotal).toLocaleString()}</td>
+                                        <td className="text-right" style={{ color: 'var(--success)', fontWeight: 'bold' }}>${Math.round(q.utilidadTotal || 0).toLocaleString()}</td>
+                                        <td className="text-right">${Math.round(q.iva).toLocaleString()}</td>
+                                        <td className="text-right"><strong>${Math.round(q.total).toLocaleString()}</strong></td>
                                         <td>{q.ejecutivo}</td>
                                         <td className="text-center">
                                             <span className={`status-badge status-${(q.estado || 'Seguimiento').toLowerCase()}`}>

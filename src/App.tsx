@@ -1419,6 +1419,8 @@ function App() {
         return <VendedoresModule
           users={users}
           budgets={budgets}
+          cotizaciones={cotizaciones}
+          currentUser={currentUser}
         />;
       case 'dashboard':
         const dashQuotes = currentUser.rol === 'Admin'
@@ -1478,18 +1480,32 @@ function App() {
             <div className="card wide-card">
               <h3>Actividad Reciente</h3>
               <ul className="activity-list">
-                {dashQuotes.slice(-3).reverse().map(c => (
+                {curMonthQuotes.slice(-5).reverse().map(c => (
                   <li key={c.id}>
+                    <span className="activity-date">{c.fecha}</span>
                     {c.estado === 'Ganado' ? '✅' : '📄'} Cotización <strong>{c.consecutivo}</strong> para {c.clienteNombre}
                   </li>
                 ))}
-                {dashDespachos.slice(-2).reverse().map(d => (
+                {dashDespachos.filter(d => {
+                  if (!d.fechaSolicitud) return false;
+                  const [y, m] = d.fechaSolicitud.split('-').map(Number);
+                  return y === curYear && (m - 1) === curMonth;
+                }).slice(-3).reverse().map(d => (
                   <li key={d.id}>
-                    🚚 Despacho de <strong>Cotización {d.consecutivoCotizacion}</strong> - {d.estado}
+                    <span className="activity-date">{d.fechaSolicitud}</span>
+                    🚚 Despacho <strong>{d.consecutivoCotizacion}</strong> - {d.estado}
                   </li>
                 ))}
               </ul>
             </div>
+            <style>{`
+              .activity-date {
+                font-size: 0.75rem;
+                color: var(--text-muted);
+                margin-right: 0.75rem;
+                font-family: monospace;
+              }
+            `}</style>
           </div>
         );
       default:
@@ -1574,7 +1590,7 @@ function App() {
         <div className="logo-container">
           <div className="brand-box">
             <img src={logoBase64} alt="CRM HELP SOLUCIONES" style={{ width: '80%', maxWidth: '160px', borderRadius: '8px', objectFit: 'contain', background: 'white', padding: '10px' }} />
-            <span className="logo-text" style={{ marginTop: '0.5rem', fontWeight: 'bold' }}>CRM HELP SOLUCIONES</span>
+            <span className="logo-text" style={{ marginTop: '0.5rem', fontWeight: 'bold' }}>CRM HELP SOLUCIONES (v3-DEBUG)</span>
             <div
               title="Click para reconectar"
               onClick={() => window.location.reload()}

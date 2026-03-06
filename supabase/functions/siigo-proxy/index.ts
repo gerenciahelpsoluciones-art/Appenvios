@@ -88,7 +88,7 @@ Deno.serve(async (req: Request) => {
             };
 
             // Obtener primera página y total de resultados
-            const firstRes = await fetch(`${SIIGO_BASE_URL}/v1/products?page_size=100&page=1`, {
+            const firstRes = await fetch(`${SIIGO_BASE_URL}/v1/products?page_size=50&page=1`, {
                 method: 'GET',
                 headers: authHeaders,
             });
@@ -104,6 +104,26 @@ Deno.serve(async (req: Request) => {
             const firstData = await firstRes.json();
             let allResults: any[] = firstData.results || [];
 
+            // DEBUG: Loguear estructura del primer producto para diagnóstico
+            if (allResults.length > 0) {
+                const sample = allResults[0];
+                console.log('=== SIIGO PRODUCT SAMPLE KEYS ===', JSON.stringify(Object.keys(sample)));
+                console.log('=== SIIGO PRODUCT SAMPLE (primeros campos) ===', JSON.stringify({
+                    id: sample.id,
+                    code: sample.code,
+                    name: sample.name,
+                    description: sample.description,
+                    unit_label: sample.unit_label,
+                    account_group: sample.account_group,
+                    type: sample.type,
+                    stock_control: sample.stock_control,
+                    available_quantity: sample.available_quantity,
+                    prices: sample.prices,
+                    costs: sample.costs,
+                    unit_cost: sample.unit_cost,
+                }));
+            }
+
             const totalResults = firstData.pagination?.total_results || allResults.length;
             const pageSize = firstData.pagination?.page_size || 100;
             const totalPages = Math.ceil(totalResults / pageSize);
@@ -115,7 +135,7 @@ Deno.serve(async (req: Request) => {
                 const pagePromises = [];
                 for (let page = 2; page <= totalPages; page++) {
                     pagePromises.push(
-                        fetch(`${SIIGO_BASE_URL}/v1/products?page_size=100&page=${page}`, {
+                        fetch(`${SIIGO_BASE_URL}/v1/products?page_size=50&page=${page}`, {
                             method: 'GET',
                             headers: authHeaders,
                         }).then(r => r.json())
@@ -127,7 +147,19 @@ Deno.serve(async (req: Request) => {
                 }
             }
 
-            return new Response(JSON.stringify({ results: allResults, total: allResults.length }), {
+            return new Response(JSON.stringify({
+                results: allResults,
+                total: allResults.length,
+                pagination: firstData.pagination,
+                _sample: allResults.length > 0 ? allResults[0] : null,
+                _debug_first_raw: firstData,
+                _debug_info: {
+                    totalResults,
+                    totalPages,
+                    allResultsCount: allResults.length,
+                    partnerId: PARTNER_ID
+                }
+            }), {
                 status: 200,
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             });

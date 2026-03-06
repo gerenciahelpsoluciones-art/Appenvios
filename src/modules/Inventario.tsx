@@ -7,6 +7,7 @@ interface SiigoProduct {
     code: string;
     description: string;
     price: number;
+    cost: number;
     stock: number;
 }
 
@@ -22,6 +23,7 @@ const InventarioModule: React.FC = () => {
     const [username, setUsername] = useState(localStorage.getItem('siigo_username') || '');
     const [accessKey, setAccessKey] = useState(localStorage.getItem('siigo_access_key') || '');
     const [token, setToken] = useState<string | null>(null);
+    const [debugInfo, setDebugInfo] = useState<any>(null);
 
     const getBaseHeaders = (): Record<string, string> => ({
         'Content-Type': 'application/json',
@@ -79,25 +81,50 @@ const InventarioModule: React.FC = () => {
             });
 
             const data = await res.json();
+            setDebugInfo(data); // Guardar para diagnóstico
+
+            console.log('Sync Inventario - Metadatos:', {
+                resultsLength: data.results?.length,
+                total: data.total,
+                hasSample: !!data._sample,
+                hasDebugRaw: !!data._debug_first_raw
+            });
+
             if (!res.ok) {
                 throw new Error(`Error al obtener productos: ${data.error || res.status}`);
             }
 
             if (!data.results || data.results.length === 0) {
                 setProducts([]);
-                setError('La cuenta de Siigo no tiene productos registrados o la consulta no devolvió resultados.');
+                setError(`(v3) La cuenta de Siigo no tiene productos registrados o la consulta no devolvió resultados.`);
                 return;
             }
 
+            // DEBUG: Loguear el primer producto para ver campos reales de Siigo
+            if (data.results.length > 0) {
+                const raw = data.results[0];
+                console.log('=== SIIGO PRODUCTO RAW (primer item) ===');
+                console.log('Data:', JSON.stringify(raw, null, 2));
+            }
+
             const mapped: SiigoProduct[] = data.results
-                .map((p: any) => ({
-                    id: p.id,
-                    code: p.code,
-                    description: p.description,
-                    price: p.prices?.[0]?.price_list?.[0]?.value || 0,
-                    stock: p.stock_control ? (p.available_quantity || 0) : 0,
-                }))
-                .filter((p: SiigoProduct) => p.stock >= 1);
+                .map((p: any) => {
+                    const desc = [
+                        p.name,
+                        p.description,
+                        p.account_group?.name,
+                        p.unit_label,
+                    ].map(v => (typeof v === 'string' ? v.trim() : '')).find(v => v.length > 0) || '(Sin descripción)';
+
+                    return {
+                        id: p.id,
+                        code: p.code || '—',
+                        description: desc,
+                        price: p.prices?.[0]?.price_list?.[0]?.value ?? 0,
+                        cost: p.costs?.[0]?.cost_list?.[0]?.value ?? p.unit_cost ?? 0,
+                        stock: p.stock_control ? (p.available_quantity ?? 0) : 0,
+                    };
+                });
             setProducts(mapped);
             console.log(`${mapped.length} productos cargados desde Siigo.`);
         } catch (err: any) {
@@ -123,10 +150,13 @@ const InventarioModule: React.FC = () => {
         setError(null);
     };
 
-    const filteredProducts = products.filter(p =>
-        p.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.description.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredProducts = products.filter(p => {
+        const term = searchTerm.toLowerCase();
+        return (
+            (p.code?.toLowerCase() ?? '').includes(term) ||
+            (p.description?.toLowerCase() ?? '').includes(term)
+        );
+    });
 
     return (
         <div className="module-container">
@@ -200,12 +230,39 @@ const InventarioModule: React.FC = () => {
                 </div>
             )}
 
+            {token && !loading && (
+                <div className="card" style={{ marginBottom: '1.5rem', border: '1px solid #cbd5e1', opacity: debugInfo ? 1 : 0.7 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', color: '#1e293b' }}>
+                        <span style={{ fontSize: '1.2rem' }}>🔍</span>
+                        <h4 style={{ margin: 0 }}>Panel de Control y Depuración (v3)</h4>
+                    </div>
+                    {debugInfo ? (
+                        <>
+                            <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '1rem' }}>
+                                Última respuesta de Siigo recibida. Revise la estructura abajo:
+                            </p>
+                            <details style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px' }}>
+                                <summary style={{ cursor: 'pointer', fontWeight: '600', color: '#475569' }}>Ver JSON Crudo de Respuesta</summary>
+                                <pre style={{ marginTop: '1rem', fontSize: '0.75rem', overflowX: 'auto', whiteSpace: 'pre-wrap', maxHeight: '300px' }}>
+                                    {JSON.stringify(debugInfo, null, 2)}
+                                </pre>
+                            </details>
+                        </>
+                    ) : (
+                        <p style={{ fontSize: '0.85rem', color: '#64748b' }}>
+                            Presione "Sincronizar" para capturar datos de depuración de la API.
+                        </p>
+                    )}
+                </div>
+            )}
+
             <div className="card table-card animate-fade-in">
                 <table className="data-table">
                     <thead>
                         <tr>
                             <th>Código</th>
                             <th>Descripción</th>
+                            <th className="text-right">Costo</th>
                             <th className="text-right">Precio</th>
                             <th className="text-center">Stock</th>
                             <th className="text-center">Estado</th>
@@ -216,7 +273,12 @@ const InventarioModule: React.FC = () => {
                             <tr key={p.id}>
                                 <td><code>{p.code}</code></td>
                                 <td>{p.description}</td>
-                                <td className="text-right">${p.price.toLocaleString()}</td>
+                                <td className="text-right" style={{ color: '#64748b' }}>
+                                    {p.cost > 0 ? `$${p.cost.toLocaleString('es-CO')}` : '—'}
+                                </td>
+                                <td className="text-right">
+                                    {p.price > 0 ? `$${p.price.toLocaleString('es-CO')}` : '$0'}
+                                </td>
                                 <td className="text-center">{p.stock}</td>
                                 <td className="text-center">
                                     <span className={`status-badge status-${p.stock > 0 ? 'ganado' : 'perdido'}`}>
@@ -226,7 +288,7 @@ const InventarioModule: React.FC = () => {
                             </tr>
                         )) : (
                             <tr>
-                                <td colSpan={5} className="text-center" style={{ padding: '3rem', color: 'var(--text-muted)' }}>
+                                <td colSpan={6} className="text-center" style={{ padding: '3rem', color: 'var(--text-muted)' }}>
                                     {loading ? '⏳ Consultando Siigo...' : 'No hay productos. Presione "Sincronizar" para cargar.'}
                                 </td>
                             </tr>

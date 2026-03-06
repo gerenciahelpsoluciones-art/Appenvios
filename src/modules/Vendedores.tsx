@@ -1,20 +1,42 @@
 import React from 'react';
-import type { AppUser, SalesBudget } from '../App';
+import type { AppUser, SalesBudget, Cotizacion } from '../App';
 
 interface IProps {
     users: AppUser[];
     budgets: SalesBudget[];
+    cotizaciones: Cotizacion[];
+    currentUser: AppUser;
 }
 
-const Vendedores: React.FC<IProps> = ({ users, budgets }) => {
+const Vendedores: React.FC<IProps> = ({ users, budgets, cotizaciones, currentUser }) => {
     const vendedores = users.filter(u => u.rol === 'Comercial' || (u.cargo && u.cargo.toLowerCase().includes('comercial')));
 
 
-    const getBudgetForUser = (userId: string) => {
-        const now = new Date();
-        const budget = budgets.find(b => b.usuarioId === userId && b.anio === now.getFullYear() && b.mes === now.getMonth());
+    const getBudgetForUser = (userId: string, month: number, year: number) => {
+        const budget = budgets.find(b => b.usuarioId === userId && b.anio === year && b.mes === month);
         return budget ? budget.monto : 0;
     };
+
+    const getSalesForUser = (userId: string, month: number, year: number) => {
+        return cotizaciones
+            .filter(c => {
+                if (!c.fecha || c.estado !== 'Ganado' || c.usuarioId !== userId) return false;
+                const [y, m] = c.fecha.split('-').map(Number);
+                return y === year && (m - 1) === month;
+            })
+            .reduce((acc, c) => acc + c.total, 0);
+    };
+
+    const now = new Date();
+    const curMonth = now.getMonth();
+    const curYear = now.getFullYear();
+
+    // Filter salespeople based on role
+    const displayedVendedores = currentUser.rol === 'Admin'
+        ? vendedores
+        : vendedores.filter(v => v.id === currentUser.id);
+
+    const formatCurrency = (val: number) => `$${Math.round(val).toLocaleString('es-CO')}`;
 
     return (
         <div className="module-container">
@@ -26,38 +48,72 @@ const Vendedores: React.FC<IProps> = ({ users, budgets }) => {
             </div>
 
             <div className="vendedores-grid">
-                {vendedores.map(v => (
-                    <div key={v.id} className="card vendedor-card animate-fade-in">
-                        <div className="vendedor-header">
-                            <div className="vendedor-avatar">
-                                {v.nombre.charAt(0)}
+                {displayedVendedores.map(v => {
+                    const budget = getBudgetForUser(v.id, curMonth, curYear);
+                    const sales = getSalesForUser(v.id, curMonth, curYear);
+                    const percent = budget > 0 ? (sales / budget) * 100 : 0;
+                    const performanceColor = percent >= 100 ? '#059669' : percent >= 70 ? '#2563eb' : '#dc2626';
+
+                    return (
+                        <div key={v.id} className="card vendedor-card animate-fade-in">
+                            <div className="vendedor-header">
+                                <div className="vendedor-avatar" style={{ background: performanceColor }}>
+                                    {v.nombre.charAt(0)}
+                                </div>
+                                <div className="vendedor-info">
+                                    <h3>{v.nombre}</h3>
+                                    <p>{v.cargo || 'Asesor Comercial'}</p>
+                                </div>
+                                <div className="percent-badge" style={{ backgroundColor: performanceColor + '20', color: performanceColor }}>
+                                    {percent.toFixed(1)}%
+                                </div>
                             </div>
-                            <div className="vendedor-info">
-                                <h3>{v.nombre}</h3>
-                                <p>{v.cargo}</p>
+
+                            <div className="performance-section">
+                                <div className="chart-container">
+                                    <div className="bar-group">
+                                        <div className="bar-label">
+                                            <span>Meta: {formatCurrency(budget)}</span>
+                                        </div>
+                                        <div className="bar-bg">
+                                            <div className="bar-fill budget-bar" style={{ width: '100%' }}></div>
+                                        </div>
+                                    </div>
+                                    <div className="bar-group">
+                                        <div className="bar-label">
+                                            <span>Logrado: {formatCurrency(sales)}</span>
+                                        </div>
+                                        <div className="bar-bg">
+                                            <div className="bar-fill sales-bar" style={{
+                                                width: `${Math.min(percent, 100)}%`,
+                                                backgroundColor: performanceColor
+                                            }}></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="trend-indicator" style={{ color: performanceColor }}>
+                                    {percent >= 100 ? '🚀 Meta Superada' : percent >= 70 ? '📈 En buen camino' : '📉 Necesita impulso'}
+                                    <div className="trend-sub">
+                                        Faltan {formatCurrency(Math.max(0, budget - sales))} para la meta
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="vendedor-stats">
+                                <div className="stat-item">
+                                    <label>Contacto</label>
+                                    <span className="stat-detail">📧 {v.email}</span>
+                                    <span className="stat-detail">📱 {v.telefono}</span>
+                                </div>
                             </div>
                         </div>
+                    );
+                })}
 
-                        <div className="vendedor-stats">
-                            <div className="stat-item">
-                                <label>Meta Mensual</label>
-                                <span className="stat-value">
-                                    ${getBudgetForUser(v.id).toLocaleString()}
-                                </span>
-                            </div>
-                            <div className="stat-item">
-                                <label>Contacto</label>
-                                <span className="stat-detail">{v.email}</span>
-                                <span className="stat-detail">{v.telefono}</span>
-                            </div>
-                        </div>
-
-                    </div>
-                ))}
-
-                {vendedores.length === 0 && (
+                {displayedVendedores.length === 0 && (
                     <div className="card empty-state">
-                        <p>No hay asesores comerciales registrados.</p>
+                        <p>No hay información de ventas disponible para mostrar.</p>
                     </div>
                 )}
             </div>
@@ -89,12 +145,83 @@ const Vendedores: React.FC<IProps> = ({ users, budgets }) => {
                     display: flex;
                     align-items: center;
                     gap: 1rem;
+                    position: relative;
+                }
+
+                .percent-badge {
+                    position: absolute;
+                    top: 0;
+                    right: 0;
+                    padding: 0.25rem 0.75rem;
+                    border-radius: 20px;
+                    font-size: 0.85rem;
+                    font-weight: 700;
+                }
+
+                .performance-section {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 1rem;
+                    padding: 1rem 0;
+                    border-top: 1px solid var(--border-color);
+                }
+
+                .chart-container {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.75rem;
+                }
+
+                .bar-group {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.25rem;
+                }
+
+                .bar-label {
+                    display: flex;
+                    justify-content: space-between;
+                    font-size: 0.8rem;
+                    font-weight: 600;
+                    color: var(--text-muted);
+                }
+
+                .bar-bg {
+                    height: 10px;
+                    background: #f1f5f9;
+                    border-radius: 5px;
+                    overflow: hidden;
+                }
+
+                .bar-fill {
+                    height: 100%;
+                    border-radius: 5px;
+                    transition: width 0.6s ease-out;
+                }
+
+                .budget-bar {
+                    background: #cbd5e1;
+                }
+
+                .trend-indicator {
+                    font-size: 0.95rem;
+                    font-weight: 700;
+                    text-align: center;
+                    margin-top: 0.75rem;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.25rem;
+                }
+
+                .trend-sub {
+                    font-size: 0.75rem;
+                    font-weight: 400;
+                    color: var(--text-muted);
                 }
 
                 .vendedor-avatar {
                     width: 50px;
                     height: 50px;
-                    background: var(--primary-blue);
                     color: white;
                     display: flex;
                     align-items: center;
