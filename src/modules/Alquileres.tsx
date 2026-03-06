@@ -1,4 +1,7 @@
 import React, { useState } from 'react';
+import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
+import { logoBase64 } from '../assets/logoBase64';
 import type { Alquiler, Cliente, AppUser } from '../App';
 
 interface IProps {
@@ -69,6 +72,84 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
         setFechaInicio(a.fechaInicio || '');
         setValorMensual(a.valorMensual);
         setIsAdding(true);
+    };
+
+    const generateActaEntrega = (a: Alquiler) => {
+        const doc = new jsPDF();
+        const marginX = 20;
+        let startY = 20;
+
+        // Logo
+        if (logoBase64) {
+            doc.addImage(logoBase64, 'PNG', marginX, startY, 40, 40, '', 'FAST');
+        }
+
+        // Header
+        doc.setFontSize(16);
+        doc.setFont('helvetica', 'bold');
+        doc.text('ACTA DE ENTREGA DE EQUIPO EN ALQUILER', 70, startY + 20);
+
+        startY += 50;
+
+        // Info General
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Fecha de Inicio: ${a.fechaInicio || new Date().toISOString().split('T')[0]}`, marginX, startY);
+        startY += 10;
+        doc.text(`Cliente: ${a.clienteNombre || 'Garantía Help Soluciones'}`, marginX, startY);
+        startY += 15;
+
+        // Intro Text
+        doc.setFontSize(10);
+        const text = `Por medio de la presente acta se hace constar la entrega en calidad de ARRENDAMIENTO del siguiente equipo al cliente arriba mencionado. El cliente declara recibir el equipo en perfectas condiciones de funcionamiento y estética, comprometiéndose a darle el uso adecuado y a responder por cualquier daño o pérdida que sufra durante el periodo de alquiler.`;
+        const splitText = doc.splitTextToSize(text, 170);
+        doc.text(splitText, marginX, startY);
+
+        startY += (splitText.length * 5) + 10;
+
+        // Tabla de Equipos
+        const tableData = [
+            ['Descripción del Equipo', a.descripcion],
+            ['Número de Serial / S/N', a.serial],
+            ['Valor Mensual del Alquiler', `$${a.valorMensual.toLocaleString()} COP`]
+        ];
+
+        // @ts-ignore
+        doc.autoTable({
+            startY: startY,
+            head: [['Concepto', 'Detalle']],
+            body: tableData,
+            theme: 'grid',
+            headStyles: { fillColor: [0, 74, 153], textColor: [255, 255, 255] },
+            styles: { fontSize: 10, cellPadding: 6 }
+        });
+
+        // @ts-ignore
+        startY = doc.lastAutoTable.finalY + 30;
+
+        // Firmas
+        doc.setLineWidth(0.5);
+        doc.line(marginX, startY, marginX + 60, startY);
+        doc.line(130, startY, 190, startY);
+
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text('ENTREGADO POR:', marginX, startY + 5);
+        doc.text('RECIBIDO POR (Cliente):', 130, startY + 5);
+
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Nombre: ${currentUser?.nombre || 'Representante Help Soluciones'}`, marginX, startY + 12);
+        doc.text('Nombre:', 130, startY + 12);
+
+        doc.text('C.C. / NIT:', marginX, startY + 19);
+        doc.text('C.C. / NIT:', 130, startY + 19);
+
+        // Footer
+        doc.setFontSize(8);
+        doc.setTextColor(150);
+        doc.text('Documento generado por HelpiCRM - Help Soluciones Informáticas', marginX, 280);
+
+        doc.save(`Acta_Entrega_Alquiler_${a.serial}.pdf`);
     };
 
     const filtered = alquileres.filter(a =>
@@ -218,10 +299,13 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
                                 </td>
                                 <td className="text-center">
                                     <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                                        <button className="btn-action" onClick={() => handleEdit(a)}>✏️</button>
+                                        {a.estado === 'Alquilado' && (
+                                            <button className="btn-action" style={{ color: 'var(--primary-blue)' }} onClick={() => generateActaEntrega(a)} title="Generar Acta PDF">🖨️</button>
+                                        )}
+                                        <button className="btn-action" onClick={() => handleEdit(a)} title="Editar">✏️</button>
                                         <button className="btn-action" style={{ color: 'var(--error)' }} onClick={() => {
                                             if (confirm('¿Eliminar equipo?')) onDeleteAlquiler(a.id);
-                                        }}>🗑️</button>
+                                        }} title="Eliminar">🗑️</button>
                                     </div>
                                 </td>
                             </tr>
