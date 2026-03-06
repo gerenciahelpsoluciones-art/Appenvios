@@ -70,7 +70,7 @@ Deno.serve(async (req: Request) => {
             });
         }
 
-        // --- Consulta de Productos ---
+        // --- Consulta de Productos (con paginación completa) ---
         if (action === 'products') {
             const token = req.headers.get('x-siigo-token');
 
@@ -81,19 +81,54 @@ Deno.serve(async (req: Request) => {
                 });
             }
 
-            const siigoRes = await fetch(`${SIIGO_BASE_URL}/v1/products`, {
+            const authHeaders = {
+                'Authorization': `Bearer ${token}`,
+                'Partner-Id': PARTNER_ID,
+                'Content-Type': 'application/json',
+            };
+
+            // Obtener primera página y total de resultados
+            const firstRes = await fetch(`${SIIGO_BASE_URL}/v1/products?page_size=100&page=1`, {
                 method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Partner-Id': PARTNER_ID,
-                    'Content-Type': 'application/json',
-                },
+                headers: authHeaders,
             });
 
-            const data = await siigoRes.json();
+            if (!firstRes.ok) {
+                const err = await firstRes.json();
+                return new Response(JSON.stringify({ error: 'Error al consultar productos', detail: err }), {
+                    status: firstRes.status,
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                });
+            }
 
-            return new Response(JSON.stringify(data), {
-                status: siigoRes.status,
+            const firstData = await firstRes.json();
+            let allResults: any[] = firstData.results || [];
+
+            const totalResults = firstData.pagination?.total_results || allResults.length;
+            const pageSize = firstData.pagination?.page_size || 100;
+            const totalPages = Math.ceil(totalResults / pageSize);
+
+            console.log(`Siigo: ${totalResults} productos en ${totalPages} páginas`);
+
+            // Traer páginas restantes en paralelo
+            if (totalPages > 1) {
+                const pagePromises = [];
+                for (let page = 2; page <= totalPages; page++) {
+                    pagePromises.push(
+                        fetch(`${SIIGO_BASE_URL}/v1/products?page_size=100&page=${page}`, {
+                            method: 'GET',
+                            headers: authHeaders,
+                        }).then(r => r.json())
+                    );
+                }
+                const extraPages = await Promise.all(pagePromises);
+                for (const pageData of extraPages) {
+                    if (pageData.results) allResults = allResults.concat(pageData.results);
+                }
+            }
+
+            return new Response(JSON.stringify({ results: allResults, total: allResults.length }), {
+                status: 200,
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             });
         }
