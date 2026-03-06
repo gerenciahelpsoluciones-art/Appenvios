@@ -12,7 +12,6 @@ import ReparacionesModule from './modules/Reparaciones'
 import AdminModule from './modules/Admin'
 import Login from './modules/Login'
 import VendedoresModule from './modules/Vendedores'
-import InventarioModule from './modules/Inventario'
 import AlquileresModule from './modules/Alquileres'
 import { supabase } from './lib/supabaseClient'
 import { logoBase64 } from './assets/logoBase64'
@@ -1218,7 +1217,6 @@ function App() {
     { id: 'logistica', label: 'Logística', icon: '🚚' },
     { id: 'reparaciones', label: 'Reparaciones', icon: '🛠️' },
     { id: 'informes', label: 'Informes', icon: '📈' },
-    { id: 'inventario', label: 'Inventario Siigo', icon: '🗄️' },
     { id: 'admin', label: 'Administración', icon: '⚙️' },
     { id: 'vendedores', label: 'Vendedores', icon: '👨‍💼' },
     { id: 'alquileres', label: 'Alquileres', icon: '💻' },
@@ -1329,8 +1327,6 @@ function App() {
         />;
       case 'productos':
         return <ProductosModule productos={productos} onAdd={addProducto} onUpdate={updateProducto} onDelete={deleteProducto} />;
-      case 'inventario':
-        return <InventarioModule />;
       case 'proveedores':
         return <ProveedoresModule proveedores={proveedores} onAdd={addProveedor} onUpdate={updateProveedor} onDelete={deleteProveedor} />;
       case 'conductores':
@@ -1590,7 +1586,7 @@ function App() {
         <div className="logo-container">
           <div className="brand-box">
             <img src={logoBase64} alt="CRM HELP SOLUCIONES" style={{ width: '80%', maxWidth: '160px', borderRadius: '8px', objectFit: 'contain', background: 'white', padding: '10px' }} />
-            <span className="logo-text" style={{ marginTop: '0.5rem', fontWeight: 'bold' }}>CRM HELP SOLUCIONES (v3-DEBUG)</span>
+            <span className="logo-text" style={{ marginTop: '0.5rem', fontWeight: 'bold' }}>CRM HELP SOLUCIONES (v5-TABS-PRODUCTOS)</span>
             <div
               title="Click para reconectar"
               onClick={() => window.location.reload()}
