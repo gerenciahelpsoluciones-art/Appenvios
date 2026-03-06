@@ -207,7 +207,10 @@ const InformesModule: React.FC<IProps> = ({
         setEditItems(prev => prev.filter(i => i.id !== id));
     };
 
-    const calcVenta = (item: EditItem) => item.costoUnitario * (1 + item.utilidad / 100);
+    const calcVenta = (item: EditItem) => {
+        const margin = Math.min(item.utilidad, 99.99) / 100;
+        return item.costoUnitario / (1 - margin);
+    };
     const calcSubtotal = (item: EditItem) => calcVenta(item) * item.cantidad;
     const calcIVA = (item: EditItem) => calcSubtotal(item) * (item.iva / 100);
     const calcTotal = (item: EditItem) => calcSubtotal(item) + calcIVA(item);
