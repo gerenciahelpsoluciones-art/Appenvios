@@ -1585,8 +1585,8 @@ function App() {
       <aside className="sidebar">
         <div className="logo-container">
           <div className="brand-box">
-            <img src={logoBase64} alt="CRM HELP SOLUCIONES" style={{ width: '80%', maxWidth: '160px', borderRadius: '8px', objectFit: 'contain', background: 'white', padding: '10px' }} />
-            <span className="logo-text" style={{ marginTop: '0.5rem', fontWeight: 'bold' }}>CRM HELP SOLUCIONES (v5-TABS-PRODUCTOS)</span>
+            <img src={logoBase64} alt="HelpiCRM Logo" style={{ width: '80%', maxWidth: '160px', borderRadius: '8px', objectFit: 'contain', background: 'white', padding: '10px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }} />
+            <span className="logo-text" style={{ marginTop: '0.75rem', fontWeight: '800', letterSpacing: '0.05em' }}>HelpiCRM</span>
             <div
               title="Click para reconectar"
               onClick={() => window.location.reload()}
@@ -1666,11 +1666,13 @@ function App() {
 
         .sidebar {
           width: 280px;
-          background-color: var(--primary-blue);
+          background: linear-gradient(180deg, #001f3f 0%, #003366 100%);
           color: white;
           display: flex;
           flex-direction: column;
           padding: 1.5rem 0;
+          box-shadow: 4px 0 10px rgba(0,0,0,0.05);
+          z-index: 20;
         }
 
         .brand-box {
@@ -1715,24 +1717,27 @@ function App() {
           gap: 1rem;
           padding: 0.75rem 1rem;
           background: transparent;
-          color: rgba(255, 255, 255, 0.8);
+          color: rgba(255, 255, 255, 0.7);
           text-align: left;
           width: 100%;
           border: none;
           border-radius: 8px;
           cursor: pointer;
-          transition: all 0.2s;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          font-weight: 500;
         }
 
         .nav-item:hover {
-          background: rgba(255, 255, 255, 0.1);
+          background: rgba(255, 255, 255, 0.08);
           color: white;
+          transform: translateX(4px);
         }
 
         .nav-item.active {
-          background: white;
-          color: var(--primary-blue);
-          font-weight: 600;
+          background: rgba(255, 255, 255, 0.15);
+          color: white;
+          font-weight: 700;
+          box-shadow: inset 4px 0 0 0 #38bdf8;
         }
 
         .main-content {
