@@ -28,6 +28,7 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenes
     const [selectedProdId, setSelectedProdId] = useState('');
     const [cantidad, setCantidad] = useState(1);
     const [precioUnitario, setPrecioUnitario] = useState(0);
+    const [exentoIva, setExentoIva] = useState(false);
 
     const handleAddItem = () => {
         const prod = productos.find(p => p.id === selectedProdId);
@@ -38,12 +39,14 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenes
                 nombreProducto: prod.nombre,
                 numPart: prod.numPart,
                 cantidad: cantidad,
-                precioUnitario: precioUnitario || prod.precioCompra || 0
+                precioUnitario: precioUnitario || prod.precioCompra || 0,
+                exentoIva: exentoIva
             };
             setItems([...items, newItem]);
             setSelectedProdId('');
             setCantidad(1);
             setPrecioUnitario(0);
+            setExentoIva(false);
         }
     };
 
@@ -52,7 +55,7 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenes
     };
 
     const subtotal = items.reduce((acc, item) => acc + (item.cantidad * item.precioUnitario), 0);
-    const iva = subtotal * 0.19;
+    const iva = items.reduce((acc, item) => item.exentoIva ? acc : acc + ((item.cantidad * item.precioUnitario) * 0.19), 0);
     const total = subtotal + iva;
 
     const handleGenerateOC = async () => {
@@ -171,7 +174,7 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenes
         // Items Table
         const tableData = oc.items.map(item => [
             item.numPart,
-            item.nombreProducto,
+            item.nombreProducto + (item.exentoIva ? ' (*)' : ''),
             item.cantidad,
             `$${item.precioUnitario.toLocaleString()}`,
             `$${(item.cantidad * item.precioUnitario).toLocaleString()}`
@@ -186,6 +189,13 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenes
         });
 
         const finalY = (doc as any).lastAutoTable.finalY + 10;
+
+        const hasExemptItems = oc.items.some(i => i.exentoIva);
+        if (hasExemptItems) {
+            doc.setFontSize(8);
+            doc.setTextColor(100, 100, 100);
+            doc.text('(*) Producto exento de IVA', 15, finalY - 2);
+        }
 
         // Totals Box (Styled)
         doc.setFillColor(245, 247, 250);
@@ -293,7 +303,10 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenes
                                         onChange={e => {
                                             const p = productos.find(x => x.id === e.target.value);
                                             setSelectedProdId(e.target.value);
-                                            if (p) setPrecioUnitario(p.precioCompra || 0);
+                                            if (p) {
+                                                setPrecioUnitario(p.precioCompra || 0);
+                                                setExentoIva(p.exentoIva || false);
+                                            }
                                         }}
                                     >
                                         <option value="">Seleccione producto</option>
@@ -320,7 +333,17 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenes
                                         onChange={e => setPrecioUnitario(Number(e.target.value))}
                                     />
                                 </div>
-                                <button className="btn-success" onClick={handleAddItem} style={{ height: '42px' }}>Añadir</button>
+                                <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingBottom: '12px' }}>
+                                    <input
+                                        type="checkbox"
+                                        id="exentoIvaCheckbox"
+                                        checked={exentoIva}
+                                        onChange={e => setExentoIva(e.target.checked)}
+                                        style={{ width: '18px', height: '18px' }}
+                                    />
+                                    <label htmlFor="exentoIvaCheckbox" style={{ margin: 0, cursor: 'pointer', fontSize: '0.9rem' }}>Exento IVA</label>
+                                </div>
+                                <button className="btn-success" onClick={handleAddItem} style={{ height: '42px', marginLeft: '1rem' }}>Añadir</button>
                             </div>
                         </div>
 
@@ -331,6 +354,7 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenes
                                         <th style={{ minWidth: '150px' }}>N° Parte</th>
                                         <th style={{ minWidth: '200px' }}>Producto</th>
                                         <th className="text-right" style={{ minWidth: '80px' }}>Cant</th>
+                                        <th className="text-center" style={{ minWidth: '60px' }}>IVA</th>
                                         <th className="text-right" style={{ minWidth: '120px' }}>Unitario</th>
                                         <th className="text-right" style={{ minWidth: '120px' }}>Subtotal</th>
                                         <th className="text-center" style={{ width: '50px' }}></th>
@@ -340,8 +364,9 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenes
                                     {items.map(item => (
                                         <tr key={item.id}>
                                             <td>{item.numPart}</td>
-                                            <td>{item.nombreProducto}</td>
+                                            <td>{item.nombreProducto} {item.exentoIva ? <span style={{ color: '#059669', fontSize: '0.8rem', fontWeight: 'bold' }}>(Exento)</span> : ''}</td>
                                             <td className="text-right">{item.cantidad}</td>
+                                            <td className="text-center">{item.exentoIva ? '0%' : '19%'}</td>
                                             <td className="text-right">${item.precioUnitario.toLocaleString()}</td>
                                             <td className="text-right">${(item.cantidad * item.precioUnitario).toLocaleString()}</td>
                                             <td className="text-center">

@@ -95,6 +95,7 @@ export interface OrdenCompraItem {
   numPart: string;
   cantidad: number;
   precioUnitario: number;
+  exentoIva?: boolean;
 }
 
 export interface OrdenCompra {
