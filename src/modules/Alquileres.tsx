@@ -28,6 +28,8 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
     const [valorMensual, setValorMensual] = useState(0);
     const [discoDuro, setDiscoDuro] = useState('');
     const [memoriaRam, setMemoriaRam] = useState('');
+    const [procesador, setProcesador] = useState('');
+    const [generacion, setGeneracion] = useState('');
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -56,6 +58,8 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
         setValorMensual(0);
         setDiscoDuro('');
         setMemoriaRam('');
+        setProcesador('');
+        setGeneracion('');
     };
 
     const handleSubmit = async () => {
@@ -76,7 +80,9 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
             valorMensual,
             usuarioId: currentUser?.id || '',
             discoDuro: discoDuro || undefined,
-            memoriaRam: memoriaRam || undefined
+            memoriaRam: memoriaRam || undefined,
+            procesador: procesador || undefined,
+            generacion: generacion || undefined
         };
 
         const success = editingId ? await onUpdateAlquiler(data) : await onAddAlquiler(data);
@@ -94,6 +100,8 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
         setValorMensual(a.valorMensual);
         setDiscoDuro(a.discoDuro || '');
         setMemoriaRam(a.memoriaRam || '');
+        setProcesador(a.procesador || '');
+        setGeneracion(a.generacion || '');
         setIsAdding(true);
     };
 
@@ -136,6 +144,8 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
             ['Número de Serial / S/N', a.serial],
             ...(a.discoDuro ? [['Disco Duro', a.discoDuro]] : []),
             ...(a.memoriaRam ? [['Memoria RAM', a.memoriaRam]] : []),
+            ...(a.procesador ? [['Procesador', a.procesador]] : []),
+            ...(a.generacion ? [['Generación', a.generacion]] : []),
             ['Valor Mensual del Alquiler', `$${a.valorMensual.toLocaleString()} COP`]
         ];
 
@@ -233,6 +243,30 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
                                     <option value="16GB">16GB</option>
                                     <option value="32GB">32GB</option>
                                     <option value="64GB">64GB</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div className="form-row">
+                            <div className="form-group flex-1">
+                                <label>Procesador</label>
+                                <select className="input-field" value={procesador} onChange={e => setProcesador(e.target.value)}>
+                                    <option value="">Seleccionar (Opcional)</option>
+                                    <option value="Intel Core i3">Intel Core i3</option>
+                                    <option value="Intel Core i5">Intel Core i5</option>
+                                    <option value="Intel Core i7">Intel Core i7</option>
+                                    <option value="Intel Core i9">Intel Core i9</option>
+                                    <option value="AMD Ryzen 3">AMD Ryzen 3</option>
+                                    <option value="AMD Ryzen 5">AMD Ryzen 5</option>
+                                    <option value="AMD Ryzen 7">AMD Ryzen 7</option>
+                                </select>
+                            </div>
+                            <div className="form-group flex-1">
+                                <label>Generación</label>
+                                <select className="input-field" value={generacion} onChange={e => setGeneracion(e.target.value)}>
+                                    <option value="">Seleccionar (Opcional)</option>
+                                    {[...Array(14)].map((_, i) => (
+                                        <option key={i + 1} value={`${i + 1} Gen`}>{i + 1} Generación</option>
+                                    ))}
                                 </select>
                             </div>
                         </div>
