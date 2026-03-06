@@ -92,15 +92,8 @@ export const generateQuotationPDF = (data: PDFData) => {
             margin: { top: 85 }
         });
 
-        // Safe way to get final Y position
-        let finalY = 85;
-        const docAny = doc as any;
-        if (docAny.lastAutoTable && docAny.lastAutoTable.cursor) {
-            finalY = docAny.lastAutoTable.cursor.y;
-        } else {
-            // Fallback calculation
-            finalY = 85 + (tableBody.length * 7) + 15;
-        }
+        // Safe way to get final Y position from autoTable
+        let finalY = (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY : 85;
 
         // Totals
         const totalsX = 135;
@@ -125,7 +118,7 @@ export const generateQuotationPDF = (data: PDFData) => {
         doc.text(`VALOR TOTAL:`, totalsX, finalY + 36);
         doc.text(`$${(data.total || 0).toLocaleString()}`, valuesX, finalY + 36, { align: 'right' });
 
-        let currentY = finalY + 45;
+        let currentY = finalY + 50;
 
         // Conditions
         if (data.condiciones) {
@@ -143,7 +136,7 @@ export const generateQuotationPDF = (data: PDFData) => {
             doc.text("CONDICIONES COMERCIALES:", 14, currentY + 5);
             doc.setFont("helvetica", "normal");
             doc.text(splitConds, 14, currentY + 12);
-            currentY += 12 + (splitConds.length * 5);
+            currentY += 15 + (splitConds.length * 5);
         }
 
         if (currentY > 240) {
