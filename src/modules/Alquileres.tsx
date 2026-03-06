@@ -31,6 +31,12 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
     const [procesador, setProcesador] = useState('');
     const [generacion, setGeneracion] = useState('');
 
+    // Assign Client Modal State
+    const [assignTarget, setAssignTarget] = useState<Alquiler | null>(null);
+    const [assignClienteId, setAssignClienteId] = useState('');
+    const [assignFechaInicio, setAssignFechaInicio] = useState('');
+    const [assignValorMensual, setAssignValorMensual] = useState(0);
+
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
@@ -259,6 +265,41 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
         a.serial.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    const handleAssignClient = async () => {
+        if (!assignTarget || !assignClienteId) {
+            alert('Seleccione un cliente');
+            return;
+        }
+        const cliente = clientes.find(c => c.id === assignClienteId);
+        const updated: Alquiler = {
+            ...assignTarget,
+            estado: 'Alquilado',
+            clienteId: assignClienteId,
+            clienteNombre: cliente?.nombre || '',
+            fechaInicio: assignFechaInicio || new Date().toISOString().split('T')[0],
+            valorMensual: assignValorMensual
+        };
+        const success = await onUpdateAlquiler(updated);
+        if (success) {
+            setAssignTarget(null);
+            setAssignClienteId('');
+            setAssignFechaInicio('');
+            setAssignValorMensual(0);
+        }
+    };
+
+    const handleUnassignClient = async (a: Alquiler) => {
+        if (!confirm('¿Desea devolver este equipo a Bodega?')) return;
+        const updated: Alquiler = {
+            ...a,
+            estado: 'Bodega',
+            clienteId: undefined,
+            clienteNombre: undefined,
+            fechaInicio: undefined
+        };
+        await onUpdateAlquiler(updated);
+    };
+
     return (
         <div className="module-container">
             <div className="module-header">
@@ -463,8 +504,20 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
                                 </td>
                                 <td className="text-center">
                                     <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                                        {a.estado === 'Bodega' && (
+                                            <button className="btn-action" style={{ color: '#166534', background: '#dcfce7', borderRadius: '6px', padding: '4px 8px', fontSize: '0.8rem', fontWeight: 'bold', border: '1px solid #166534' }}
+                                                onClick={() => { setAssignTarget(a); setAssignClienteId(''); setAssignFechaInicio(''); setAssignValorMensual(a.valorMensual); }}
+                                                title="Asignar Cliente"
+                                            >👤 Asignar</button>
+                                        )}
                                         {a.estado === 'Alquilado' && (
-                                            <button className="btn-action" style={{ color: 'var(--primary-blue)' }} onClick={() => generateActaEntrega(a)} title="Generar Acta PDF">🖨️</button>
+                                            <>
+                                                <button className="btn-action" style={{ color: 'var(--primary-blue)' }} onClick={() => generateActaEntrega(a)} title="Generar Acta PDF">🖨️</button>
+                                                <button className="btn-action" style={{ color: '#92400e', background: '#fef3c7', borderRadius: '6px', padding: '4px 8px', fontSize: '0.8rem', fontWeight: 'bold', border: '1px solid #92400e' }}
+                                                    onClick={() => handleUnassignClient(a)}
+                                                    title="Devolver a Bodega"
+                                                >📦 Bodega</button>
+                                            </>
                                         )}
                                         <button className="btn-action" onClick={() => handleEdit(a)} title="Editar">✏️</button>
                                         <button className="btn-action" style={{ color: 'var(--error)' }} onClick={() => {
@@ -477,6 +530,40 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
                     </tbody>
                 </table>
             </div>
+
+            {/* ASSIGN CLIENT MODAL */}
+            {assignTarget && (
+                <div className="modal-overlay">
+                    <div className="modal-content card" style={{ maxWidth: '500px', width: '95%' }}>
+                        <h3 style={{ marginBottom: '1rem' }}>👤 Asignar Cliente al Equipo</h3>
+                        <div style={{ background: '#f0f9ff', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem' }}>
+                            <strong>{assignTarget.descripcion}</strong><br />
+                            <span className="text-muted">SN: {assignTarget.serial}</span>
+                        </div>
+                        <div className="form-group" style={{ marginBottom: '1rem' }}>
+                            <label>Cliente</label>
+                            <select className="input-field" value={assignClienteId} onChange={e => setAssignClienteId(e.target.value)}>
+                                <option value="">-- Seleccione un cliente --</option>
+                                {clientes.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                            </select>
+                        </div>
+                        <div style={{ display: 'flex', gap: '1rem' }}>
+                            <div className="form-group" style={{ flex: 1 }}>
+                                <label>Fecha de Inicio</label>
+                                <input type="date" className="input-field" value={assignFechaInicio} onChange={e => setAssignFechaInicio(e.target.value)} />
+                            </div>
+                            <div className="form-group" style={{ flex: 1 }}>
+                                <label>Valor Mensual</label>
+                                <input type="number" className="input-field" value={assignValorMensual} onChange={e => setAssignValorMensual(Number(e.target.value))} />
+                            </div>
+                        </div>
+                        <div style={{ marginTop: '1.5rem', display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+                            <button className="btn-secondary" onClick={() => setAssignTarget(null)}>Cancelar</button>
+                            <button className="btn-success" onClick={handleAssignClient}>✅ Asignar y Alquilar</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
