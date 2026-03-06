@@ -108,6 +108,27 @@ BBVA - Cuenta Corriente No. 390021475`;
         setItems(newItems);
     };
 
+    const updateVenta = (id: string, nuevoPrecioVenta: number) => {
+        const newItems = items.map(item => {
+            if (item.id === id) {
+                // If the sale price is 0 or less than the cost, the margin is 0 or negative.
+                if (nuevoPrecioVenta <= 0) {
+                    return { ...item, utilidad: 0 };
+                }
+                // Calculate margin percentage based on the formula: Margin % = ((Sale Price - Cost) / Sale Price) * 100
+                // Example: Cost 100, Sale 150 -> Margin = ((150-100)/150)*100 = 33.33%
+                let newMargin = ((nuevoPrecioVenta - item.costoUnitario) / nuevoPrecioVenta) * 100;
+
+                // Truncate or round to 2 decimals to prevent infinite JS fractions
+                newMargin = Math.round(newMargin * 100) / 100;
+
+                return { ...item, utilidad: newMargin };
+            }
+            return item;
+        });
+        setItems(newItems);
+    };
+
     const calculateVenta = (item: QuoteItem) => {
         // Limitar la utilidad máxima al 99.99% para evitar divisiones por cero o negativos.
         const margin = Math.min(item.utilidad, 99.99) / 100;
@@ -295,9 +316,9 @@ BBVA - Cuenta Corriente No. 390021475`;
                             <th>Producto</th>
                             <th>N° Parte</th>
                             <th style={{ width: '70px' }}>Cant</th>
-                            <th>Costo</th>
+                            <th style={{ width: '140px' }}>Costo</th>
                             <th style={{ width: '70px' }}>Util%</th>
-                            <th>Venta (Unit)</th>
+                            <th style={{ width: '140px' }}>Venta (Unit)</th>
                             <th style={{ width: '60px' }}>IVA%</th>
                             <th>Valor IVA</th>
                             <th>Total (c/IVA)</th>
@@ -331,8 +352,16 @@ BBVA - Cuenta Corriente No. 390021475`;
                                 </td>
                                 <td><input className="table-input num" type="number" value={item.cantidad} onChange={e => updateItem(item.id, 'cantidad', Number(e.target.value))} /></td>
                                 <td><input className="table-input num" type="number" value={item.costoUnitario} onChange={e => updateItem(item.id, 'costoUnitario', Number(e.target.value))} /></td>
-                                <td><input className="table-input num" type="number" value={item.utilidad} onChange={e => updateItem(item.id, 'utilidad', Number(e.target.value))} /></td>
-                                <td className="read-only">${calculateVenta(item).toLocaleString()}</td>
+                                <td><input className="table-input num" type="number" value={item.utilidad} onChange={e => updateItem(item.id, 'utilidad', Number(e.target.value))} step="0.01" /></td>
+                                <td>
+                                    <input
+                                        className="table-input num"
+                                        style={{ color: 'var(--primary-blue)', fontWeight: 'bold' }}
+                                        type="number"
+                                        value={Math.round(calculateVenta(item))}
+                                        onChange={e => updateVenta(item.id, Number(e.target.value))}
+                                    />
+                                </td>
                                 <td>
                                     <input
                                         className="table-input num"
