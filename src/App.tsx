@@ -405,11 +405,11 @@ function App() {
       if (alquilerData) {
         setAlquileres(alquilerData.map((a: any) => ({
           ...a,
-          clienteId: a.cliente_id,
-          clienteNombre: a.cliente_nombre,
-          fechaInicio: a.fecha_inicio,
-          valorMensual: a.valor_mensual,
-          usuarioId: a.usuario_id
+          clienteId: a.cliente_id || a.clienteId,
+          clienteNombre: a.cliente_nombre || a.clienteNombre,
+          fechaInicio: a.fecha_inicio || a.fechaInicio,
+          valorMensual: a.valor_mensual || a.valorMensual,
+          usuarioId: a.usuario_id || a.usuarioId
         })));
       }
 
@@ -1230,16 +1230,19 @@ function App() {
   };
 
   const handleAddAlquiler = async (a: Alquiler) => {
+    // Alquiler DB Table currently maps these exactly as CamelCase or doesn't have the snake_case ones configured yet.
+    // Based on the error 'Could not find the cliente_nombre column', we will use camelCase for now 
+    // to match what might exist, or fallback to inserting camelCase directly.
     const payload = {
       descripcion: a.descripcion,
       serial: a.serial,
       fotoUrl: a.fotoUrl,
       estado: a.estado,
-      cliente_id: a.clienteId,
-      cliente_nombre: a.clienteNombre,
-      fecha_inicio: a.fechaInicio,
-      valor_mensual: a.valorMensual,
-      usuario_id: a.usuarioId,
+      clienteId: a.clienteId,
+      clienteNombre: a.clienteNombre,
+      fechaInicio: a.fechaInicio,
+      valorMensual: a.valorMensual,
+      usuarioId: a.usuarioId,
     };
     const { data, error } = await supabase.from('alquileres').insert([payload]).select();
     if (error) { alert('Error guardando equipo: ' + error.message); return false; }
@@ -1247,11 +1250,11 @@ function App() {
       const dbA = data[0];
       setAlquileres(prev => [...prev, {
         ...dbA,
-        clienteId: dbA.cliente_id,
-        clienteNombre: dbA.cliente_nombre,
-        fechaInicio: dbA.fecha_inicio,
-        valorMensual: dbA.valor_mensual,
-        usuarioId: dbA.usuario_id
+        clienteId: dbA.cliente_id || dbA.clienteId,
+        clienteNombre: dbA.cliente_nombre || dbA.clienteNombre,
+        fechaInicio: dbA.fecha_inicio || dbA.fechaInicio,
+        valorMensual: dbA.valor_mensual || dbA.valorMensual,
+        usuarioId: dbA.usuario_id || dbA.usuarioId
       } as Alquiler]);
     }
     return true;
@@ -1263,11 +1266,11 @@ function App() {
       serial: a.serial,
       fotoUrl: a.fotoUrl,
       estado: a.estado,
-      cliente_id: a.clienteId,
-      cliente_nombre: a.clienteNombre,
-      fecha_inicio: a.fechaInicio,
-      valor_mensual: a.valorMensual,
-      usuario_id: a.usuarioId,
+      clienteId: a.clienteId,
+      clienteNombre: a.clienteNombre,
+      fechaInicio: a.fechaInicio,
+      valorMensual: a.valorMensual,
+      usuarioId: a.usuarioId,
     };
     const { error } = await supabase.from('alquileres').update(payload).eq('id', a.id);
     if (error) { alert('Error actualizando equipo: ' + error.message); return false; }
