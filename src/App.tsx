@@ -1373,6 +1373,7 @@ function App() {
         />;
       case 'logistica':
         return <LogisticaModule
+          cotizaciones={cotizaciones}
           despachos={despachos}
           ordenesCompra={ordenesCompra}
           devoluciones={devoluciones}

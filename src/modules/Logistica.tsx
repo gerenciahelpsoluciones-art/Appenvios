@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import type { Despacho, OrdenCompra, Conductor, Proveedor, Producto, AppUser, Devolucion, DevolucionItem } from '../App';
+import type { Despacho, OrdenCompra, Conductor, Proveedor, Producto, AppUser, Devolucion, DevolucionItem, Cotizacion } from '../App';
 
 interface IProps {
+    cotizaciones: Cotizacion[];
     despachos: Despacho[];
     ordenesCompra: OrdenCompra[];
     devoluciones: Devolucion[];
@@ -19,6 +20,7 @@ interface IProps {
 }
 
 const LogisticaModule: React.FC<IProps> = ({
+    cotizaciones,
     despachos,
     ordenesCompra,
     devoluciones,
@@ -357,6 +359,17 @@ const LogisticaModule: React.FC<IProps> = ({
                                             </td>
                                             <td className="text-center">
                                                 <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
+                                                    {(() => {
+                                                        const cot = cotizaciones.find(c => c.id === d.cotizacionId);
+                                                        return cot?.ordenCompraCliente ? (
+                                                            <button
+                                                                className="btn-download"
+                                                                onClick={() => window.open(cot.ordenCompraCliente, '_blank')}
+                                                                title="Ver Orden de Compra (OC) Cliente"
+                                                            >📋</button>
+                                                        ) : <span style={{ opacity: 0.2 }} title="Sin Orden de Compra">📋</span>;
+                                                    })()}
+
                                                     {d.fotoEntrega ? (
                                                         <button
                                                             className="btn-download"
