@@ -778,6 +778,42 @@ const InformesModule: React.FC<IProps> = ({
                 .text-right {
                     text-align: right;
                 }
+                .data-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    background: white;
+                    border: 1px solid var(--border-color);
+                    border-radius: 8px;
+                    overflow: hidden;
+                }
+                .data-table thead {
+                    position: sticky;
+                    top: 0;
+                    z-index: 10;
+                    background-color: #f1f5f9;
+                    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+                }
+                .data-table th, .data-table td {
+                    border: 1px solid var(--border-color);
+                    padding: 0.75rem 1rem;
+                }
+                .data-table th {
+                    text-align: left;
+                    font-size: 0.85rem;
+                    text-transform: uppercase;
+                    color: var(--primary-blue);
+                    font-weight: 700;
+                    letter-spacing: 0.05em;
+                }
+                .data-table tbody tr {
+                    transition: background-color 0.2s;
+                }
+                .data-table tbody tr:nth-child(even) {
+                    background-color: #f8fafc;
+                }
+                .data-table tbody tr:hover {
+                    background-color: #f0f9ff;
+                }
                 .data-table th.text-right {
                     text-align: right;
                 }

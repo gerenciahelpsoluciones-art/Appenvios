@@ -12,7 +12,6 @@ import ReparacionesModule from './modules/Reparaciones'
 import AdminModule from './modules/Admin'
 import Login from './modules/Login'
 import VendedoresModule from './modules/Vendedores'
-import InventarioModule from './modules/Inventario'
 import AlquileresModule from './modules/Alquileres'
 import { supabase } from './lib/supabaseClient'
 import { logoBase64 } from './assets/logoBase64'
@@ -132,6 +131,10 @@ export interface Alquiler {
   fechaInicio?: string;
   valorMensual: number;
   usuarioId: string;
+  discoDuro?: string;
+  memoriaRam?: string;
+  procesador?: string;
+  generacion?: string;
 }
 
 export interface CotizacionItem {
@@ -406,11 +409,15 @@ function App() {
       if (alquilerData) {
         setAlquileres(alquilerData.map((a: any) => ({
           ...a,
-          clienteId: a.cliente_id,
-          clienteNombre: a.cliente_nombre,
-          fechaInicio: a.fecha_inicio,
-          valorMensual: a.valor_mensual,
-          usuarioId: a.usuario_id
+          clienteId: a.cliente_id || a.clienteId,
+          clienteNombre: a.cliente_nombre || a.clienteNombre,
+          fechaInicio: a.fecha_inicio || a.fechaInicio,
+          valorMensual: a.valor_mensual || a.valorMensual,
+          usuarioId: a.usuario_id || a.usuarioId,
+          discoDuro: a.disco_duro || a.discoDuro,
+          memoriaRam: a.memoria_ram || a.memoriaRam,
+          procesador: a.procesador,
+          generacion: a.generacion
         })));
       }
 
@@ -1218,7 +1225,6 @@ function App() {
     { id: 'logistica', label: 'Logística', icon: '🚚' },
     { id: 'reparaciones', label: 'Reparaciones', icon: '🛠️' },
     { id: 'informes', label: 'Informes', icon: '📈' },
-    { id: 'inventario', label: 'Inventario Siigo', icon: '🗄️' },
     { id: 'admin', label: 'Administración', icon: '⚙️' },
     { id: 'vendedores', label: 'Vendedores', icon: '👨‍💼' },
     { id: 'alquileres', label: 'Alquileres', icon: '💻' },
@@ -1235,13 +1241,16 @@ function App() {
     const payload = {
       descripcion: a.descripcion,
       serial: a.serial,
-      fotoUrl: a.fotoUrl,
+      foto_url: a.fotoUrl,
       estado: a.estado,
       cliente_id: a.clienteId,
-      cliente_nombre: a.clienteNombre,
       fecha_inicio: a.fechaInicio,
       valor_mensual: a.valorMensual,
       usuario_id: a.usuarioId,
+      disco_duro: a.discoDuro,
+      memoria_ram: a.memoriaRam,
+      procesador: a.procesador,
+      generacion: a.generacion
     };
     const { data, error } = await supabase.from('alquileres').insert([payload]).select();
     if (error) { alert('Error guardando equipo: ' + error.message); return false; }
@@ -1249,11 +1258,13 @@ function App() {
       const dbA = data[0];
       setAlquileres(prev => [...prev, {
         ...dbA,
-        clienteId: dbA.cliente_id,
-        clienteNombre: dbA.cliente_nombre,
-        fechaInicio: dbA.fecha_inicio,
-        valorMensual: dbA.valor_mensual,
-        usuarioId: dbA.usuario_id
+        clienteId: dbA.cliente_id || dbA.clienteId,
+        clienteNombre: dbA.cliente_nombre || dbA.clienteNombre,
+        fechaInicio: dbA.fecha_inicio || dbA.fechaInicio,
+        valorMensual: dbA.valor_mensual || dbA.valorMensual,
+        usuarioId: dbA.usuario_id || dbA.usuarioId,
+        discoDuro: dbA.disco_duro || dbA.discoDuro,
+        memoriaRam: dbA.memoria_ram || dbA.memoriaRam
       } as Alquiler]);
     }
     return true;
@@ -1263,13 +1274,16 @@ function App() {
     const payload = {
       descripcion: a.descripcion,
       serial: a.serial,
-      fotoUrl: a.fotoUrl,
+      foto_url: a.fotoUrl,
       estado: a.estado,
       cliente_id: a.clienteId,
-      cliente_nombre: a.clienteNombre,
       fecha_inicio: a.fechaInicio,
       valor_mensual: a.valorMensual,
       usuario_id: a.usuarioId,
+      disco_duro: a.discoDuro,
+      memoria_ram: a.memoriaRam,
+      procesador: a.procesador,
+      generacion: a.generacion
     };
     const { error } = await supabase.from('alquileres').update(payload).eq('id', a.id);
     if (error) { alert('Error actualizando equipo: ' + error.message); return false; }
@@ -1329,8 +1343,6 @@ function App() {
         />;
       case 'productos':
         return <ProductosModule productos={productos} onAdd={addProducto} onUpdate={updateProducto} onDelete={deleteProducto} />;
-      case 'inventario':
-        return <InventarioModule />;
       case 'proveedores':
         return <ProveedoresModule proveedores={proveedores} onAdd={addProveedor} onUpdate={updateProveedor} onDelete={deleteProveedor} />;
       case 'conductores':
@@ -1457,53 +1469,140 @@ function App() {
         const activeLogistics = dashDespachos.filter(d => d.estado !== 'Entregado').length;
 
         return (
-          <div className="dashboard-grid">
-            <div className="card stat-card">
-              <h4>Cotizaciones de {now.toLocaleString('es-ES', { month: 'long' })}</h4>
-              <p className="stat-value">{curMonthQuotes.length}</p>
-              <span className={`stat-label ${growth >= 0 ? 'text-success' : 'text-error'}`}>
-                {growth >= 0 ? '↑' : '↓'} {Math.abs(growth).toFixed(0)}% vs mes anterior
-              </span>
+          <div className="dashboard-container" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+
+            {/* Header Section */}
+            <div className="dashboard-header" style={{ marginBottom: '1rem' }}>
+              <h2 style={{ margin: 0, fontSize: '2rem', color: '#1e293b' }}>
+                ¡Hola, {currentUser.nombre.split(' ')[0]}!
+              </h2>
+              <p style={{ margin: 0, color: '#64748b', fontSize: '1.1rem' }}>
+                Aquí está el resumen de tu negocio para {now.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}.
+              </p>
             </div>
-            <div className="card stat-card">
-              <h4>Ventas Ganadas (Mes)</h4>
-              <p className="stat-value">{wonQuotesMonth.length}</p>
-              <span className="stat-label">
-                ${wonQuotesMonth.reduce((acc, c) => acc + c.total, 0).toLocaleString()} en ingresos
-              </span>
+
+            {/* KPI Cards Grid */}
+            <div className="kpi-grid" style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+              gap: '1.5rem'
+            }}>
+
+              {/* KPIs */}
+              <div className="kpi-card" style={{ background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)', padding: '1.5rem', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h4 style={{ margin: 0, color: '#475569', fontSize: '1rem', fontWeight: '600' }}>Cotizaciones</h4>
+                  <span style={{ fontSize: '1.5rem' }}>📄</span>
+                </div>
+                <p style={{ margin: 0, fontSize: '2.5rem', fontWeight: 'bold', color: '#0f172a' }}>{curMonthQuotes.length}</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: 'auto' }}>
+                  <span style={{
+                    padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.85rem', fontWeight: 'bold',
+                    background: growth >= 0 ? '#dcfce7' : '#fee2e2', color: growth >= 0 ? '#166534' : '#ef4444'
+                  }}>
+                    {growth >= 0 ? '↗' : '↘'} {Math.abs(growth).toFixed(0)}%
+                  </span>
+                  <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>vs mes anterior</span>
+                </div>
+              </div>
+
+              <div className="kpi-card" style={{ background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)', padding: '1.5rem', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h4 style={{ margin: 0, color: '#475569', fontSize: '1rem', fontWeight: '600' }}>Ingresos Esperados</h4>
+                  <span style={{ fontSize: '1.5rem' }}>💰</span>
+                </div>
+                <p style={{ margin: 0, fontSize: '2rem', fontWeight: 'bold', color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  ${wonQuotesMonth.reduce((acc, c) => acc + c.total, 0).toLocaleString()}
+                </p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: 'auto' }}>
+                  <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '500' }}>
+                    De {wonQuotesMonth.length} cotizacion{wonQuotesMonth.length !== 1 && 'es'} ganada{wonQuotesMonth.length !== 1 && 's'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="kpi-card" style={{ background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)', padding: '1.5rem', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h4 style={{ margin: 0, color: '#475569', fontSize: '1rem', fontWeight: '600' }}>Logística y Envíos</h4>
+                  <span style={{ fontSize: '1.5rem' }}>🚚</span>
+                </div>
+                <p style={{ margin: 0, fontSize: '2.5rem', fontWeight: 'bold', color: '#0f172a' }}>{completedTotal}</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: 'auto' }}>
+                  <span style={{ fontSize: '0.85rem', color: '#1d4ed8', background: '#dbeafe', padding: '0.25rem 0.5rem', borderRadius: '4px', fontWeight: 'bold' }}>
+                    {activeLogistics} en tránsito
+                  </span>
+                  <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Actualmente</span>
+                </div>
+              </div>
+
             </div>
-            <div className="card stat-card">
-              <h4>Envíos Realizados</h4>
-              <p className="stat-value">{completedTotal}</p>
-              <span className="stat-label">{activeLogistics} envíos en tránsito</span>
+
+            {/* Main Content Split */}
+            <div className="dashboard-main-split" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '2rem' }}>
+
+              {/* Timeline (Left) */}
+              <div className="card" style={{ padding: '1.5rem', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.05)' }}>
+                <h3 style={{ margin: '0 0 1.5rem 0', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  ⏱️ Actividad Reciente
+                </h3>
+
+                <div className="timeline-container" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {curMonthQuotes.slice(-5).reverse().map(c => (
+                    <div key={c.id} className="timeline-item" style={{ display: 'flex', gap: '1rem', padding: '1rem', background: '#f8fafc', borderRadius: '8px', borderLeft: `4px solid ${c.estado === 'Ganado' ? '#22c55e' : '#3b82f6'}` }}>
+                      <div style={{ minWidth: '80px', fontSize: '0.85rem', color: '#64748b', fontWeight: '600' }}>
+                        {c.fecha || 'N/A'}
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 'bold', color: '#0f172a', marginBottom: '0.25rem' }}>
+                          {c.estado === 'Ganado' ? '✅ Venta Cerrada' : '📄 Nueva Cotización'} ({c.consecutivo})
+                        </div>
+                        <div style={{ fontSize: '0.9rem', color: '#475569' }}>
+                          Para: <strong>{c.clienteNombre}</strong> por ${c.total.toLocaleString()}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  {dashDespachos.filter(d => {
+                    if (!d.fechaSolicitud) return false;
+                    const [y, m] = d.fechaSolicitud.split('-').map(Number);
+                    return y === curYear && (m - 1) === curMonth;
+                  }).slice(-3).reverse().map(d => (
+                    <div key={d.id} className="timeline-item" style={{ display: 'flex', gap: '1rem', padding: '1rem', background: '#f8fafc', borderRadius: '8px', borderLeft: `4px solid #f59e0b` }}>
+                      <div style={{ minWidth: '80px', fontSize: '0.85rem', color: '#64748b', fontWeight: '600' }}>
+                        {d.fechaSolicitud || 'N/A'}
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 'bold', color: '#0f172a', marginBottom: '0.25rem' }}>
+                          🚚 Envío {d.consecutivoCotizacion}
+                        </div>
+                        <div style={{ fontSize: '0.9rem', color: '#475569' }}>
+                          Estado: <span style={{ fontWeight: '600' }}>{d.estado}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  {(curMonthQuotes.length === 0 && dashDespachos.length === 0) && (
+                    <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
+                      No hay actividad reciente este mes.
+                    </div>
+                  )}
+                </div>
+              </div>
+
             </div>
-            <div className="card wide-card">
-              <h3>Actividad Reciente</h3>
-              <ul className="activity-list">
-                {curMonthQuotes.slice(-5).reverse().map(c => (
-                  <li key={c.id}>
-                    <span className="activity-date">{c.fecha}</span>
-                    {c.estado === 'Ganado' ? '✅' : '📄'} Cotización <strong>{c.consecutivo}</strong> para {c.clienteNombre}
-                  </li>
-                ))}
-                {dashDespachos.filter(d => {
-                  if (!d.fechaSolicitud) return false;
-                  const [y, m] = d.fechaSolicitud.split('-').map(Number);
-                  return y === curYear && (m - 1) === curMonth;
-                }).slice(-3).reverse().map(d => (
-                  <li key={d.id}>
-                    <span className="activity-date">{d.fechaSolicitud}</span>
-                    🚚 Despacho <strong>{d.consecutivoCotizacion}</strong> - {d.estado}
-                  </li>
-                ))}
-              </ul>
-            </div>
+
             <style>{`
-              .activity-date {
-                font-size: 0.75rem;
-                color: var(--text-muted);
-                margin-right: 0.75rem;
-                font-family: monospace;
+              .kpi-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+              .kpi-card:hover { transform: translateY(-4px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important; }
+              .timeline-item { transition: background 0.2s ease; }
+              .timeline-item:hover { background: #f1f5f9 !important; }
+              
+              @media (min-width: 1024px) {
+                .dashboard-main-split {
+                  grid-template-columns: 2fr 1fr !important;
+                }
               }
             `}</style>
           </div>
@@ -1589,8 +1688,8 @@ function App() {
       <aside className="sidebar">
         <div className="logo-container">
           <div className="brand-box">
-            <img src={logoBase64} alt="CRM HELP SOLUCIONES" style={{ width: '80%', maxWidth: '160px', borderRadius: '8px', objectFit: 'contain', background: 'white', padding: '10px' }} />
-            <span className="logo-text" style={{ marginTop: '0.5rem', fontWeight: 'bold' }}>CRM HELP SOLUCIONES (v3-DEBUG)</span>
+            <img src={logoBase64} alt="HelpiCRM Logo" style={{ width: '80%', maxWidth: '160px', borderRadius: '8px', objectFit: 'contain', background: 'white', padding: '10px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }} />
+            <span className="logo-text" style={{ marginTop: '0.75rem', fontWeight: '800', letterSpacing: '0.05em' }}>HelpiCRM</span>
             <div
               title="Click para reconectar"
               onClick={() => window.location.reload()}
@@ -1629,11 +1728,8 @@ function App() {
             </button>
           ))}
         </nav>
-        <div style={{ marginTop: 'auto', padding: '1rem' }}>
-          <button className="nav-item" onClick={handleLogout} style={{ color: '#fca5a5' }}>
-            <span className="nav-icon">🚪</span>
-            Cerrar Sesión
-          </button>
+        <div style={{ marginTop: 'auto', padding: '1.5rem', opacity: 0.5, fontSize: '0.8rem', textAlign: 'center' }}>
+          By Help Soluciones
         </div>
       </aside>
 
@@ -1653,6 +1749,25 @@ function App() {
             <span style={{ marginRight: '0.5rem' }}>{currentUser?.rol === 'Admin' ? '👑' : '👤'}</span>
             <span className="user-role">{currentUser?.rol}</span>
             <span className="user-name">{currentUser?.nombre}</span>
+            <button
+              onClick={handleLogout}
+              title="Cerrar Sesión"
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#ef4444',
+                fontSize: '1.5rem',
+                cursor: 'pointer',
+                marginLeft: '1rem',
+                lineHeight: 1,
+                padding: '0 0.25rem',
+                transition: 'transform 0.2s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            >
+              ×
+            </button>
           </div>
         </header>
         <div className="content-area">
@@ -1670,11 +1785,13 @@ function App() {
 
         .sidebar {
           width: 280px;
-          background-color: var(--primary-blue);
+          background: linear-gradient(180deg, #001f3f 0%, #003366 100%);
           color: white;
           display: flex;
           flex-direction: column;
           padding: 1.5rem 0;
+          box-shadow: 4px 0 10px rgba(0,0,0,0.05);
+          z-index: 20;
         }
 
         .brand-box {
@@ -1719,24 +1836,27 @@ function App() {
           gap: 1rem;
           padding: 0.75rem 1rem;
           background: transparent;
-          color: rgba(255, 255, 255, 0.8);
+          color: rgba(255, 255, 255, 0.7);
           text-align: left;
           width: 100%;
           border: none;
           border-radius: 8px;
           cursor: pointer;
-          transition: all 0.2s;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          font-weight: 500;
         }
 
         .nav-item:hover {
-          background: rgba(255, 255, 255, 0.1);
+          background: rgba(255, 255, 255, 0.08);
           color: white;
+          transform: translateX(4px);
         }
 
         .nav-item.active {
-          background: white;
-          color: var(--primary-blue);
-          font-weight: 600;
+          background: rgba(255, 255, 255, 0.15);
+          color: white;
+          font-weight: 700;
+          box-shadow: inset 4px 0 0 0 #38bdf8;
         }
 
         .main-content {

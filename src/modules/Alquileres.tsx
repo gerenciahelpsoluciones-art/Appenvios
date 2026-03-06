@@ -1,4 +1,7 @@
 import React, { useState } from 'react';
+import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
+import { logoBase64 } from '../assets/logoBase64';
 import type { Alquiler, Cliente, AppUser } from '../App';
 
 interface IProps {
@@ -23,6 +26,25 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
     const [clienteId, setClienteId] = useState('');
     const [fechaInicio, setFechaInicio] = useState('');
     const [valorMensual, setValorMensual] = useState(0);
+    const [discoDuro, setDiscoDuro] = useState('');
+    const [memoriaRam, setMemoriaRam] = useState('');
+    const [procesador, setProcesador] = useState('');
+    const [generacion, setGeneracion] = useState('');
+
+    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            if (file.size > 2 * 1024 * 1024) {
+                alert('La imagen no debe superar los 2MB');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setFotoUrl(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
 
     const resetForm = () => {
         setIsAdding(false);
@@ -34,6 +56,10 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
         setClienteId('');
         setFechaInicio('');
         setValorMensual(0);
+        setDiscoDuro('');
+        setMemoriaRam('');
+        setProcesador('');
+        setGeneracion('');
     };
 
     const handleSubmit = async () => {
@@ -52,7 +78,11 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
             clienteNombre: estado === 'Alquilado' ? clientes.find(c => c.id === clienteId)?.nombre : undefined,
             fechaInicio: estado === 'Alquilado' ? fechaInicio : undefined,
             valorMensual,
-            usuarioId: currentUser?.id || ''
+            usuarioId: currentUser?.id || '',
+            discoDuro: discoDuro || undefined,
+            memoriaRam: memoriaRam || undefined,
+            procesador: procesador || undefined,
+            generacion: generacion || undefined
         };
 
         const success = editingId ? await onUpdateAlquiler(data) : await onAddAlquiler(data);
@@ -68,7 +98,160 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
         setClienteId(a.clienteId || '');
         setFechaInicio(a.fechaInicio || '');
         setValorMensual(a.valorMensual);
+        setDiscoDuro(a.discoDuro || '');
+        setMemoriaRam(a.memoriaRam || '');
+        setProcesador(a.procesador || '');
+        setGeneracion(a.generacion || '');
         setIsAdding(true);
+    };
+
+    const generateActaEntrega = (a: Alquiler) => {
+        const doc = new jsPDF();
+        const marginX = 20;
+        let startY = 20;
+
+        // Logo
+        if (logoBase64) {
+            doc.addImage(logoBase64, 'PNG', marginX, startY, 40, 40, '', 'FAST');
+        }
+
+        // Header
+        doc.setFontSize(16);
+        doc.setFont('helvetica', 'bold');
+        doc.text('ACTA DE ENTREGA DE EQUIPO EN ALQUILER', 70, startY + 20);
+
+        startY += 50;
+
+        // Info General
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Fecha de Inicio: ${a.fechaInicio || new Date().toISOString().split('T')[0]}`, marginX, startY);
+        startY += 10;
+        doc.text(`Cliente: ${a.clienteNombre || 'Garantía Help Soluciones'}`, marginX, startY);
+        startY += 15;
+
+        // Intro Text
+        doc.setFontSize(10);
+        const text = `Por medio de la presente acta se hace constar la entrega en calidad de ARRENDAMIENTO del siguiente equipo al cliente arriba mencionado. El cliente declara recibir el equipo en perfectas condiciones de funcionamiento y estética, comprometiéndose a darle el uso adecuado y a responder por cualquier daño o pérdida que sufra durante el periodo de alquiler.`;
+        const splitText = doc.splitTextToSize(text, 170);
+        doc.text(splitText, marginX, startY);
+
+        startY += (splitText.length * 5) + 10;
+
+        // Tabla de Equipos
+        const tableData = [
+            ['Descripción del Equipo', a.descripcion],
+            ['Número de Serial / S/N', a.serial],
+            ...(a.discoDuro ? [['Disco Duro', a.discoDuro]] : []),
+            ...(a.memoriaRam ? [['Memoria RAM', a.memoriaRam]] : []),
+            ...(a.procesador ? [['Procesador', a.procesador]] : []),
+            ...(a.generacion ? [['Generación', a.generacion]] : []),
+            ['Valor Mensual del Alquiler', `$${a.valorMensual.toLocaleString()} COP`]
+        ];
+
+        // @ts-ignore
+        doc.autoTable({
+            startY: startY,
+            head: [['Concepto', 'Detalle']],
+            body: tableData,
+            theme: 'grid',
+            headStyles: { fillColor: [0, 74, 153], textColor: [255, 255, 255] },
+            styles: { fontSize: 10, cellPadding: 6 }
+        });
+
+        // @ts-ignore
+        startY = doc.lastAutoTable.finalY + 30;
+
+        // Firmas
+        doc.setLineWidth(0.5);
+        doc.line(marginX, startY, marginX + 60, startY);
+        doc.line(130, startY, 190, startY);
+
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text('ENTREGADO POR:', marginX, startY + 5);
+        doc.text('RECIBIDO POR (Cliente):', 130, startY + 5);
+
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Nombre: ${currentUser?.nombre || 'Representante Help Soluciones'}`, marginX, startY + 12);
+        doc.text('Nombre:', 130, startY + 12);
+
+        doc.text('C.C. / NIT:', marginX, startY + 19);
+        doc.text('C.C. / NIT:', 130, startY + 19);
+
+        // Footer
+        doc.setFontSize(8);
+        doc.setTextColor(150);
+        doc.text('Documento generado por HelpiCRM - Help Soluciones Informáticas', marginX, 280);
+
+        doc.save(`Acta_Entrega_Alquiler_${a.serial}.pdf`);
+    };
+
+    const generateInformeGlobal = () => {
+        const activos = alquileres.filter(a => a.estado === 'Alquilado');
+        if (activos.length === 0) {
+            alert('No hay equipos alquilados actualmente para generar el informe.');
+            return;
+        }
+
+        const doc = new jsPDF();
+        const marginX = 15;
+        let startY = 20;
+
+        // Logo
+        if (logoBase64) {
+            doc.addImage(logoBase64, 'PNG', marginX, startY, 30, 30, '', 'FAST');
+        }
+
+        // Header Text
+        doc.setFontSize(16);
+        doc.setFont('helvetica', 'bold');
+        doc.text('INFORME GLOBAL DE ALQUILERES ACTIVOS', 60, startY + 15);
+
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Fecha de Generación: ${new Date().toLocaleDateString('es-ES')}`, 60, startY + 22);
+        doc.text(`Generado por: ${currentUser?.nombre || 'Administrador'}`, 60, startY + 28);
+
+        startY += 45;
+
+        // Sumatoria Total
+        const totalMensual = activos.reduce((sum, a) => sum + (a.valorMensual || 0), 0);
+
+        // Header Tabla
+        const tableBody = activos.map(a => [
+            a.clienteNombre || 'Sin Asignar',
+            `${a.descripcion}\nSN: ${a.serial}`,
+            a.fechaInicio || 'N/A',
+            `$${a.valorMensual.toLocaleString()}`
+        ]);
+
+        // @ts-ignore
+        doc.autoTable({
+            startY: startY,
+            head: [['Cliente', 'Equipo', 'Fecha Inicio', 'V. Mensual']],
+            body: tableBody,
+            theme: 'striped',
+            headStyles: { fillColor: [0, 74, 153], textColor: [255, 255, 255] },
+            styles: { fontSize: 9, cellPadding: 4 },
+            didDrawPage: function (data: any) {
+                // Footer
+                const str = 'Página ' + (doc as any).internal.getNumberOfPages();
+                doc.setFontSize(8);
+                doc.setTextColor(150);
+                doc.text(str, data.settings.margin.left, doc.internal.pageSize.height - 10);
+            }
+        });
+
+        // @ts-ignore
+        const finalY = doc.lastAutoTable.finalY + 15;
+
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(0, 0, 0);
+        doc.text(`Total Mensual Proyectado: $${totalMensual.toLocaleString()} COP`, doc.internal.pageSize.width - marginX, finalY, { align: 'right' });
+
+        doc.save(`Informe_Alquileres_${new Date().toISOString().split('T')[0]}.pdf`);
     };
 
     const filtered = alquileres.filter(a =>
@@ -89,6 +272,9 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
                         onChange={e => setSearchTerm(e.target.value)}
                         style={{ width: '300px' }}
                     />
+                    <button onClick={generateInformeGlobal} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        📊 Generar Informe
+                    </button>
                     <button onClick={() => setIsAdding(true)} className="btn-primary">+ Nuevo Equipo</button>
                 </div>
             </div>
@@ -105,6 +291,53 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
                             <div className="form-group flex-1">
                                 <label>Número de Serial</label>
                                 <input className="input-field" value={serial} onChange={e => setSerial(e.target.value)} />
+                            </div>
+                        </div>
+                        <div className="form-row">
+                            <div className="form-group flex-1">
+                                <label>Disco Duro</label>
+                                <select className="input-field" value={discoDuro} onChange={e => setDiscoDuro(e.target.value)}>
+                                    <option value="">Seleccionar (Opcional)</option>
+                                    <option value="128GB">128GB</option>
+                                    <option value="256GB">256GB</option>
+                                    <option value="512GB">512GB</option>
+                                    <option value="1TB">1TB</option>
+                                </select>
+                            </div>
+                            <div className="form-group flex-1">
+                                <label>Memoria RAM</label>
+                                <select className="input-field" value={memoriaRam} onChange={e => setMemoriaRam(e.target.value)}>
+                                    <option value="">Seleccionar (Opcional)</option>
+                                    <option value="4GB">4GB</option>
+                                    <option value="8GB">8GB</option>
+                                    <option value="16GB">16GB</option>
+                                    <option value="32GB">32GB</option>
+                                    <option value="64GB">64GB</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div className="form-row">
+                            <div className="form-group flex-1">
+                                <label>Procesador</label>
+                                <select className="input-field" value={procesador} onChange={e => setProcesador(e.target.value)}>
+                                    <option value="">Seleccionar (Opcional)</option>
+                                    <option value="Intel Core i3">Intel Core i3</option>
+                                    <option value="Intel Core i5">Intel Core i5</option>
+                                    <option value="Intel Core i7">Intel Core i7</option>
+                                    <option value="Intel Core i9">Intel Core i9</option>
+                                    <option value="AMD Ryzen 3">AMD Ryzen 3</option>
+                                    <option value="AMD Ryzen 5">AMD Ryzen 5</option>
+                                    <option value="AMD Ryzen 7">AMD Ryzen 7</option>
+                                </select>
+                            </div>
+                            <div className="form-group flex-1">
+                                <label>Generación</label>
+                                <select className="input-field" value={generacion} onChange={e => setGeneracion(e.target.value)}>
+                                    <option value="">Seleccionar (Opcional)</option>
+                                    {[...Array(14)].map((_, i) => (
+                                        <option key={i + 1} value={`${i + 1} Gen`}>{i + 1} Generación</option>
+                                    ))}
+                                </select>
                             </div>
                         </div>
                         <div className="form-row">
@@ -146,6 +379,18 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
                             <div className="form-group flex-1">
                                 <label>Valor Mensual</label>
                                 <input type="number" className="input-field" value={valorMensual} onChange={e => setValorMensual(Number(e.target.value))} />
+                            </div>
+                        </div>
+
+                        <div className="form-row">
+                            <div className="form-group flex-1">
+                                <label>Foto del Equipo (Opcional, max 2MB)</label>
+                                <input type="file" accept="image/*" className="input-field" onChange={handleImageUpload} />
+                                {fotoUrl && (
+                                    <div style={{ marginTop: '1rem', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '0.5rem', display: 'inline-block' }}>
+                                        <img src={fotoUrl} alt="Vista previa" style={{ maxWidth: '200px', maxHeight: '150px', objectFit: 'contain' }} />
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -218,10 +463,13 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
                                 </td>
                                 <td className="text-center">
                                     <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                                        <button className="btn-action" onClick={() => handleEdit(a)}>✏️</button>
+                                        {a.estado === 'Alquilado' && (
+                                            <button className="btn-action" style={{ color: 'var(--primary-blue)' }} onClick={() => generateActaEntrega(a)} title="Generar Acta PDF">🖨️</button>
+                                        )}
+                                        <button className="btn-action" onClick={() => handleEdit(a)} title="Editar">✏️</button>
                                         <button className="btn-action" style={{ color: 'var(--error)' }} onClick={() => {
                                             if (confirm('¿Eliminar equipo?')) onDeleteAlquiler(a.id);
-                                        }}>🗑️</button>
+                                        }} title="Eliminar">🗑️</button>
                                     </div>
                                 </td>
                             </tr>

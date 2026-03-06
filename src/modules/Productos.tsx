@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { Producto } from '../App';
+import InventarioModule from './Inventario';
 
 interface IProps {
     productos: Producto[];
@@ -9,6 +10,7 @@ interface IProps {
 }
 
 const ProductosModule: React.FC<IProps> = ({ productos, onAdd, onUpdate, onDelete }) => {
+    const [activeTab, setActiveTab] = useState<'locales' | 'siigo'>('locales');
     const [selectedProduct, setSelectedProduct] = useState<Producto | null>(null);
     const [isAdding, setIsAdding] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -60,141 +62,164 @@ const ProductosModule: React.FC<IProps> = ({ productos, onAdd, onUpdate, onDelet
 
     return (
         <div className="module-container">
-            <div className="module-header">
-                <div>
-                    <h2>Catálogo de Productos</h2>
-                    <div className="search-container" style={{ marginTop: '0.5rem' }}>
-                        <input
-                            type="text"
-                            className="input-field search-input"
-                            placeholder="🔍 Buscar por nombre o N° Parte..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            style={{ width: '350px', borderRadius: '20px', paddingLeft: '2.5rem' }}
-                        />
-                    </div>
-                </div>
-                <button onClick={() => { setIsAdding(true); setEditingId(null); setFormData({ nombre: '', numPart: '', descripcion: '', unidad: 'Und', precioCompra: 0, exentoIva: false }); }}>+ Nuevo Producto</button>
+            <div className="inner-tabs" style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', borderBottom: '2px solid var(--border-color)', paddingBottom: '0.5rem' }}>
+                <button
+                    className={`tab-btn ${activeTab === 'locales' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('locales')}
+                    style={{ background: 'transparent', border: 'none', color: activeTab === 'locales' ? 'var(--primary-blue)' : 'var(--text-muted)', fontWeight: activeTab === 'locales' ? 700 : 500, borderBottom: activeTab === 'locales' ? '3px solid var(--primary-blue)' : 'none', padding: '0.5rem 1rem', fontSize: '1.1rem' }}
+                >
+                    📦 Catálogo Local
+                </button>
+                <button
+                    className={`tab-btn ${activeTab === 'siigo' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('siigo')}
+                    style={{ background: 'transparent', border: 'none', color: activeTab === 'siigo' ? 'var(--primary-blue)' : 'var(--text-muted)', fontWeight: activeTab === 'siigo' ? 700 : 500, borderBottom: activeTab === 'siigo' ? '3px solid var(--primary-blue)' : 'none', padding: '0.5rem 1rem', fontSize: '1.1rem' }}
+                >
+                    🗄️ Inventario Siigo Nube
+                </button>
             </div>
 
-            {(isAdding || editingId) && (
-                <div className="card" style={{ marginBottom: '2rem', border: editingId ? '2px solid var(--primary-blue)' : 'none' }}>
-                    <h3>{editingId ? 'Editar Producto' : 'Añadir Nuevo Producto'}</h3>
-                    <div className="form-grid-modern">
-                        <div className="form-row">
-                            <div className="form-group flex-2">
-                                <label>Nombre del Producto</label>
-                                <input className="input-field" placeholder="Ej: Laptop Pro" value={formData.nombre} onChange={e => setFormData({ ...formData, nombre: e.target.value })} />
-                            </div>
-                            <div className="form-group flex-1">
-                                <label>N° Parte</label>
-                                <input className="input-field" placeholder="Ref-001" value={formData.numPart} onChange={e => setFormData({ ...formData, numPart: e.target.value })} />
-                            </div>
-                        </div>
-
-                        <div className="form-row">
-                            <div className="form-group">
-                                <label>Descripción</label>
-                                <input className="input-field" placeholder="Detalles técnicos..." value={formData.descripcion} onChange={e => setFormData({ ...formData, descripcion: e.target.value })} />
-                            </div>
-                        </div>
-
-                        <div className="form-row">
-                            <div className="form-group">
-                                <label>Unidad</label>
-                                <input className="input-field" placeholder="Und, Pza, Mts..." value={formData.unidad} onChange={e => setFormData({ ...formData, unidad: e.target.value })} />
-                            </div>
-                            <div className="form-group">
-                                <label>Precio Compra</label>
-                                <input className="input-field" type="number" placeholder="0.00" value={formData.precioCompra} onChange={e => setFormData({ ...formData, precioCompra: Number(e.target.value) })} />
-                            </div>
-                        </div>
-                        <div className="form-row">
-                            <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem', marginTop: '1rem' }}>
+            {activeTab === 'siigo' ? (
+                <InventarioModule />
+            ) : (
+                <>
+                    <div className="module-header">
+                        <div>
+                            <h2>Catálogo de Productos</h2>
+                            <div className="search-container" style={{ marginTop: '0.5rem' }}>
                                 <input
-                                    type="checkbox"
-                                    id="exentoIva"
-                                    checked={formData.exentoIva || false}
-                                    onChange={e => setFormData({ ...formData, exentoIva: e.target.checked })}
-                                    style={{ width: '1.2rem', height: '1.2rem', cursor: 'pointer' }}
+                                    type="text"
+                                    className="input-field search-input"
+                                    placeholder="🔍 Buscar por nombre o N° Parte..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    style={{ width: '350px', borderRadius: '20px', paddingLeft: '2.5rem' }}
                                 />
-                                <label htmlFor="exentoIva" style={{ cursor: 'pointer', margin: 0, textTransform: 'none', fontSize: '0.95rem', color: 'var(--text-main)' }}>
-                                    Producto Exento de IVA
-                                </label>
                             </div>
                         </div>
+                        <button onClick={() => { setIsAdding(true); setEditingId(null); setFormData({ nombre: '', numPart: '', descripcion: '', unidad: 'Und', precioCompra: 0, exentoIva: false }); }}>+ Nuevo Producto</button>
                     </div>
-                    <div className="form-actions" style={{ marginTop: '1.5rem', display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
-                        <button className="btn-secondary" onClick={cancel}>Cancelar</button>
-                        <button onClick={handleSave} className="btn-success">{editingId ? 'Guardar Cambios' : 'Añadir Producto'}</button>
+
+                    {(isAdding || editingId) && (
+                        <div className="card" style={{ marginBottom: '2rem', border: editingId ? '2px solid var(--primary-blue)' : 'none' }}>
+                            <h3>{editingId ? 'Editar Producto' : 'Añadir Nuevo Producto'}</h3>
+                            <div className="form-grid-modern">
+                                <div className="form-row">
+                                    <div className="form-group flex-2">
+                                        <label>Nombre del Producto</label>
+                                        <input className="input-field" placeholder="Ej: Laptop Pro" value={formData.nombre} onChange={e => setFormData({ ...formData, nombre: e.target.value })} />
+                                    </div>
+                                    <div className="form-group flex-1">
+                                        <label>N° Parte</label>
+                                        <input className="input-field" placeholder="Ref-001" value={formData.numPart} onChange={e => setFormData({ ...formData, numPart: e.target.value })} />
+                                    </div>
+                                </div>
+
+                                <div className="form-row">
+                                    <div className="form-group">
+                                        <label>Descripción</label>
+                                        <input className="input-field" placeholder="Detalles técnicos..." value={formData.descripcion} onChange={e => setFormData({ ...formData, descripcion: e.target.value })} />
+                                    </div>
+                                </div>
+
+                                <div className="form-row">
+                                    <div className="form-group">
+                                        <label>Unidad</label>
+                                        <input className="input-field" placeholder="Und, Pza, Mts..." value={formData.unidad} onChange={e => setFormData({ ...formData, unidad: e.target.value })} />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Precio Compra</label>
+                                        <input className="input-field" type="number" placeholder="0.00" value={formData.precioCompra} onChange={e => setFormData({ ...formData, precioCompra: Number(e.target.value) })} />
+                                    </div>
+                                </div>
+                                <div className="form-row">
+                                    <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem', marginTop: '1rem' }}>
+                                        <input
+                                            type="checkbox"
+                                            id="exentoIva"
+                                            checked={formData.exentoIva || false}
+                                            onChange={e => setFormData({ ...formData, exentoIva: e.target.checked })}
+                                            style={{ width: '1.2rem', height: '1.2rem', cursor: 'pointer' }}
+                                        />
+                                        <label htmlFor="exentoIva" style={{ cursor: 'pointer', margin: 0, textTransform: 'none', fontSize: '0.95rem', color: 'var(--text-main)' }}>
+                                            Producto Exento de IVA
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="form-actions" style={{ marginTop: '1.5rem', display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+                                <button className="btn-secondary" onClick={cancel}>Cancelar</button>
+                                <button onClick={handleSave} className="btn-success">{editingId ? 'Guardar Cambios' : 'Añadir Producto'}</button>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="card table-card">
+                        <div style={{ overflowX: 'auto' }}>
+                            <table className="data-table">
+                                <thead>
+                                    <tr>
+                                        <th style={{ minWidth: '200px' }}>Producto</th>
+                                        <th style={{ minWidth: '150px' }}>N° Parte</th>
+                                        <th style={{ minWidth: '350px' }}>Descripción</th>
+                                        <th style={{ minWidth: '100px' }}>Unidad</th>
+                                        <th className="text-right" style={{ minWidth: '150px' }}>Costo Actual</th>
+                                        <th className="text-center" style={{ minWidth: '150px' }}>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {productos.filter(p =>
+                                        p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                        (p.numPart || '').toLowerCase().includes(searchTerm.toLowerCase())
+                                    ).map(p => (
+                                        <tr key={p.id}>
+                                            <td><strong>
+                                                {p.nombre}
+                                                {p.exentoIva && <span className="exento-badge" style={{ marginLeft: '0.5rem' }}>Sin IVA</span>}
+                                            </strong></td>
+                                            <td><code className="part-number-badge">{p.numPart || 'N/A'}</code></td>
+                                            <td style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{p.descripcion}</td>
+                                            <td>{p.unidad}</td>
+                                            <td className="text-right font-bold price-cell" style={{ fontFamily: 'Courier New, monospace' }}>
+                                                ${p.precioCompra.toLocaleString()}
+                                            </td>
+                                            <td className="text-center">
+                                                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                                                    <button className="btn-action" onClick={() => setSelectedProduct(p)} title="Ver Historial">📜</button>
+                                                    <button className="btn-action btn-edit" onClick={() => startEdit(p)} title="Editar">✏️</button>
+                                                    <button className="btn-action btn-delete" onClick={() => { if (window.confirm('¿Eliminar este producto?')) onDelete(p.id) }} title="Eliminar">🗑️</button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                </div>
+
+                    {
+                        selectedProduct && (
+                            <div className="modal-overlay" onClick={() => setSelectedProduct(null)}>
+                                <div className="modal-content card" onClick={e => e.stopPropagation()}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                                        <h3 style={{ margin: 0 }}>Historial de Precios</h3>
+                                        <button className="btn-close" onClick={() => setSelectedProduct(null)}>×</button>
+                                    </div>
+                                    <p style={{ marginBottom: '1rem' }}><strong>Producto:</strong> {selectedProduct.nombre}</p>
+                                    <ul className="history-list">
+                                        {selectedProduct.history.map((h, i) => (
+                                            <li key={i}>
+                                                <span className="history-date">{h.date}</span>
+                                                <span className="history-price">${h.price.toLocaleString()}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            </div>
+                        )
+                    }
+                </>
             )}
-
-            <div className="card table-card">
-                <div style={{ overflowX: 'auto' }}>
-                    <table className="data-table">
-                        <thead>
-                            <tr>
-                                <th style={{ minWidth: '200px' }}>Producto</th>
-                                <th style={{ minWidth: '150px' }}>N° Parte</th>
-                                <th style={{ minWidth: '350px' }}>Descripción</th>
-                                <th style={{ minWidth: '100px' }}>Unidad</th>
-                                <th className="text-right" style={{ minWidth: '150px' }}>Costo Actual</th>
-                                <th className="text-center" style={{ minWidth: '150px' }}>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {productos.filter(p =>
-                                p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                (p.numPart || '').toLowerCase().includes(searchTerm.toLowerCase())
-                            ).map(p => (
-                                <tr key={p.id}>
-                                    <td><strong>
-                                        {p.nombre}
-                                        {p.exentoIva && <span className="exento-badge" style={{ marginLeft: '0.5rem' }}>Sin IVA</span>}
-                                    </strong></td>
-                                    <td><code className="part-number-badge">{p.numPart || 'N/A'}</code></td>
-                                    <td style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{p.descripcion}</td>
-                                    <td>{p.unidad}</td>
-                                    <td className="text-right font-bold price-cell" style={{ fontFamily: 'Courier New, monospace' }}>
-                                        ${p.precioCompra.toLocaleString()}
-                                    </td>
-                                    <td className="text-center">
-                                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                                            <button className="btn-action" onClick={() => setSelectedProduct(p)} title="Ver Historial">📜</button>
-                                            <button className="btn-action btn-edit" onClick={() => startEdit(p)} title="Editar">✏️</button>
-                                            <button className="btn-action btn-delete" onClick={() => { if (window.confirm('¿Eliminar este producto?')) onDelete(p.id) }} title="Eliminar">🗑️</button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            {
-                selectedProduct && (
-                    <div className="modal-overlay" onClick={() => setSelectedProduct(null)}>
-                        <div className="modal-content card" onClick={e => e.stopPropagation()}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                                <h3 style={{ margin: 0 }}>Historial de Precios</h3>
-                                <button className="btn-close" onClick={() => setSelectedProduct(null)}>×</button>
-                            </div>
-                            <p style={{ marginBottom: '1rem' }}><strong>Producto:</strong> {selectedProduct.nombre}</p>
-                            <ul className="history-list">
-                                {selectedProduct.history.map((h, i) => (
-                                    <li key={i}>
-                                        <span className="history-date">{h.date}</span>
-                                        <span className="history-price">${h.price.toLocaleString()}</span>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    </div>
-                )
-            }
 
             <style>{`
         .form-grid-modern {

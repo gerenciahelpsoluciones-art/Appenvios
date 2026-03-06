@@ -2,7 +2,8 @@
 // Proxy seguro para la API de Siigo Nube - Elimina problemas de CORS
 
 const SIIGO_BASE_URL = 'https://api.siigo.com';
-const PARTNER_ID = 'AppEnviosHelpSoluciones';
+const PARTNER_ID = 'AppEnvios'; // Nombre de aplicación más corto y sin caracteres especiales
+
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -37,7 +38,6 @@ Deno.serve(async (req: Request) => {
                 headers: {
                     'Content-Type': 'application/json',
                     'Partner-Id': PARTNER_ID,
-                    'Partner-ID': PARTNER_ID, // Duplicate with ID for safety
                 },
                 body: JSON.stringify({ username, access_key }),
             });
@@ -85,7 +85,6 @@ Deno.serve(async (req: Request) => {
             const authHeaders = {
                 'Authorization': `Bearer ${token}`,
                 'Partner-Id': PARTNER_ID,
-                'Partner-ID': PARTNER_ID, // Redundant for compatibility
                 'Content-Type': 'application/json',
             };
 
@@ -104,7 +103,8 @@ Deno.serve(async (req: Request) => {
             }
 
             const firstData = await firstRes.json();
-            let allResults: any[] = firstData.results || [];
+            // Filtrar productos con stock > 0 directamente en el proxy
+            let allResults: any[] = (firstData.results || []).filter((p: any) => p.stock_control && p.available_quantity >= 1);
 
             // DEBUG: Loguear estructura del primer producto para diagnóstico
             if (allResults.length > 0) {
@@ -132,20 +132,34 @@ Deno.serve(async (req: Request) => {
 
             console.log(`Siigo: ${totalResults} productos en ${totalPages} páginas`);
 
-            // Traer páginas restantes en paralelo
+            // Traer páginas restantes en bloques (chunks) para no saturar memoria/sockets
             if (totalPages > 1) {
-                const pagePromises = [];
-                for (let page = 2; page <= totalPages; page++) {
-                    pagePromises.push(
-                        fetch(`${SIIGO_BASE_URL}/v1/products?page_size=100&page=${page}`, {
-                            method: 'GET',
-                            headers: authHeaders,
-                        }).then(r => r.json())
-                    );
-                }
-                const extraPages = await Promise.all(pagePromises);
-                for (const pageData of extraPages) {
-                    if (pageData.results) allResults = allResults.concat(pageData.results);
+                const chunkSize = 10;
+                for (let i = 2; i <= totalPages; i += chunkSize) {
+                    const chunkPromises = [];
+                    for (let page = i; page < i + chunkSize && page <= totalPages; page++) {
+                        chunkPromises.push(
+                            fetch(`${SIIGO_BASE_URL}/v1/products?page_size=100&page=${page}`, {
+                                method: 'GET',
+                                headers: authHeaders,
+                            }).then(async r => {
+                                if (!r.ok) return { results: [] };
+                                const text = await r.text();
+                                try {
+                                    return JSON.parse(text);
+                                } catch {
+                                    return { results: [] };
+                                }
+                            })
+                        );
+                    }
+                    const chunkResults = await Promise.all(chunkPromises);
+                    for (const pageData of chunkResults) {
+                        if (pageData.results) {
+                            const filteredChunk = pageData.results.filter((p: any) => p.stock_control && p.available_quantity >= 1);
+                            allResults = allResults.concat(filteredChunk);
+                        }
+                    }
                 }
             }
 

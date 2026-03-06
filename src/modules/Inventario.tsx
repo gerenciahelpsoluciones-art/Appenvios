@@ -122,12 +122,12 @@ const InventarioModule: React.FC = () => {
                         code: p.code || '—',
                         description: desc,
                         price: p.prices?.[0]?.price_list?.[0]?.value ?? 0,
-                        cost: p.costs?.[0]?.cost_list?.[0]?.value ?? p.unit_cost ?? 0,
-                        stock: p.stock_control ? (p.available_quantity ?? 0) : 0,
+                        cost: Number(p.costs?.[0]?.cost_list?.[0]?.value ?? p.unit_cost ?? 0),
+                        stock: Number(p.stock_control ? (p.available_quantity ?? 0) : 0),
                     };
-                });
+                }).filter((p: SiigoProduct) => p.stock > 0);
             setProducts(mapped);
-            console.log(`${mapped.length} productos cargados desde Siigo.`);
+            console.log(`${mapped.length} productos con stock > 0 cargados.`);
         } catch (err: any) {
             setError(err.message);
         } finally {
@@ -153,10 +153,9 @@ const InventarioModule: React.FC = () => {
 
     const filteredProducts = products.filter(p => {
         const term = searchTerm.toLowerCase();
-        return (
-            (p.code?.toLowerCase() ?? '').includes(term) ||
-            (p.description?.toLowerCase() ?? '').includes(term)
-        );
+        const matchesSearch = (p.code?.toLowerCase() ?? '').includes(term) ||
+            (p.description?.toLowerCase() ?? '').includes(term);
+        return matchesSearch && p.stock > 0;
     });
 
     return (
@@ -165,7 +164,7 @@ const InventarioModule: React.FC = () => {
                 <div>
                     <h2>Inventario Siigo Nube</h2>
                     <span style={{ fontSize: '0.7rem', color: '#10b981', background: '#ecfdf5', padding: '2px 8px', borderRadius: '4px', border: '1px solid #10b981' }}>
-                        VERSIÓN ACTIVA: v3-DEBUG
+                        VERSIÓN ACTIVA: v4-SOLO-STOCK
                     </span>
                 </div>
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
