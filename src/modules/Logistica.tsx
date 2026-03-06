@@ -93,6 +93,28 @@ const LogisticaModule: React.FC<IProps> = ({
     };
 
     const assignDriver = (d: Despacho, conductorId: string) => {
+        if (conductorId === 'VIRTUAL') {
+            // Virtual assignment — open email
+            const subject = encodeURIComponent(`Asignación de Despacho - ${d.consecutivoCotizacion}`);
+            const itemsList = d.items.map(i => `  • ${i.nombreProducto} (${i.numPart}) x${i.cantidad}`).join('%0A');
+            const body = encodeURIComponent(
+                `Estimado proveedor/transportista,\n\n` +
+                `Se le asigna el siguiente despacho:\n\n` +
+                `Cotización: ${d.consecutivoCotizacion}\n` +
+                `Cliente: ${d.clienteNombre}\n` +
+                `Dirección: ${d.direccion}\n` +
+                `Fecha: ${d.fechaSolicitud}\n` +
+                `Total: $${d.total.toLocaleString()}\n\n` +
+                `Productos:\n`
+            ) + itemsList + encodeURIComponent(`\n\nCordialmente,\nHelp Soluciones Informáticas`);
+            window.open(`mailto:?subject=${subject}&body=${body}`, '_self');
+            onUpdateDespacho({
+                ...d,
+                conductorId: 'VIRTUAL',
+                conductorNombre: 'Asignación Virtual'
+            });
+            return;
+        }
         const conductor = conductores.find(c => c.id === conductorId);
         onUpdateDespacho({
             ...d,
@@ -102,6 +124,26 @@ const LogisticaModule: React.FC<IProps> = ({
     };
 
     const assignDriverOC = (oc: OrdenCompra, conductorId: string) => {
+        if (conductorId === 'VIRTUAL') {
+            const subject = encodeURIComponent(`Asignación de Recogida - ${oc.consecutivo}`);
+            const itemsList = oc.items.map(i => `  • ${i.nombreProducto} (${i.numPart}) x${i.cantidad}`).join('%0A');
+            const body = encodeURIComponent(
+                `Estimado proveedor/transportista,\n\n` +
+                `Se le asigna la siguiente recogida:\n\n` +
+                `Orden: ${oc.consecutivo}\n` +
+                `Proveedor: ${oc.nombreProveedor}\n` +
+                `Fecha: ${oc.fecha}\n` +
+                `Total: $${oc.total.toLocaleString()}\n\n` +
+                `Productos:\n`
+            ) + itemsList + encodeURIComponent(`\n\nCordialmente,\nHelp Soluciones Informáticas`);
+            window.open(`mailto:?subject=${subject}&body=${body}`, '_self');
+            onUpdateOC({
+                ...oc,
+                conductorId: 'VIRTUAL',
+                conductorNombre: 'Asignación Virtual'
+            });
+            return;
+        }
         const conductor = conductores.find(c => c.id === conductorId);
         onUpdateOC({
             ...oc,
@@ -351,6 +393,7 @@ const LogisticaModule: React.FC<IProps> = ({
                                                     onChange={(e) => assignDriver(d, e.target.value)}
                                                 >
                                                     <option value="">Asignar...</option>
+                                                    <option value="VIRTUAL">📧 Asignación Virtual</option>
                                                     {conductores.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
                                                 </select>
                                             </td>
@@ -481,6 +524,7 @@ const LogisticaModule: React.FC<IProps> = ({
                                                     onChange={(e) => assignDriverOC(oc, e.target.value)}
                                                 >
                                                     <option value="">Asignar...</option>
+                                                    <option value="VIRTUAL">📧 Asignación Virtual</option>
                                                     {conductores.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
                                                 </select>
                                             </td>
