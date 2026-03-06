@@ -187,6 +187,73 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
         doc.save(`Acta_Entrega_Alquiler_${a.serial}.pdf`);
     };
 
+    const generateInformeGlobal = () => {
+        const activos = alquileres.filter(a => a.estado === 'Alquilado');
+        if (activos.length === 0) {
+            alert('No hay equipos alquilados actualmente para generar el informe.');
+            return;
+        }
+
+        const doc = new jsPDF();
+        const marginX = 15;
+        let startY = 20;
+
+        // Logo
+        if (logoBase64) {
+            doc.addImage(logoBase64, 'PNG', marginX, startY, 30, 30, '', 'FAST');
+        }
+
+        // Header Text
+        doc.setFontSize(16);
+        doc.setFont('helvetica', 'bold');
+        doc.text('INFORME GLOBAL DE ALQUILERES ACTIVOS', 60, startY + 15);
+
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Fecha de Generación: ${new Date().toLocaleDateString('es-ES')}`, 60, startY + 22);
+        doc.text(`Generado por: ${currentUser?.nombre || 'Administrador'}`, 60, startY + 28);
+
+        startY += 45;
+
+        // Sumatoria Total
+        const totalMensual = activos.reduce((sum, a) => sum + (a.valorMensual || 0), 0);
+
+        // Header Tabla
+        const tableBody = activos.map(a => [
+            a.clienteNombre || 'Sin Asignar',
+            `${a.descripcion}\nSN: ${a.serial}`,
+            a.fechaInicio || 'N/A',
+            `$${a.valorMensual.toLocaleString()}`
+        ]);
+
+        // @ts-ignore
+        doc.autoTable({
+            startY: startY,
+            head: [['Cliente', 'Equipo', 'Fecha Inicio', 'V. Mensual']],
+            body: tableBody,
+            theme: 'striped',
+            headStyles: { fillColor: [0, 74, 153], textColor: [255, 255, 255] },
+            styles: { fontSize: 9, cellPadding: 4 },
+            didDrawPage: function (data: any) {
+                // Footer
+                const str = 'Página ' + (doc as any).internal.getNumberOfPages();
+                doc.setFontSize(8);
+                doc.setTextColor(150);
+                doc.text(str, data.settings.margin.left, doc.internal.pageSize.height - 10);
+            }
+        });
+
+        // @ts-ignore
+        const finalY = doc.lastAutoTable.finalY + 15;
+
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(0, 0, 0);
+        doc.text(`Total Mensual Proyectado: $${totalMensual.toLocaleString()} COP`, doc.internal.pageSize.width - marginX, finalY, { align: 'right' });
+
+        doc.save(`Informe_Alquileres_${new Date().toISOString().split('T')[0]}.pdf`);
+    };
+
     const filtered = alquileres.filter(a =>
         a.descripcion.toLowerCase().includes(searchTerm.toLowerCase()) ||
         a.serial.toLowerCase().includes(searchTerm.toLowerCase())
@@ -205,6 +272,9 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
                         onChange={e => setSearchTerm(e.target.value)}
                         style={{ width: '300px' }}
                     />
+                    <button onClick={generateInformeGlobal} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        📊 Generar Informe
+                    </button>
                     <button onClick={() => setIsAdding(true)} className="btn-primary">+ Nuevo Equipo</button>
                 </div>
             </div>
