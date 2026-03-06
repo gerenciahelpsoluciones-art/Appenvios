@@ -458,16 +458,21 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
                 </div>
             )}
 
-            <div className="card table-card">
-                <table className="data-table">
+            <div className="card table-card" style={{ overflowX: 'auto' }}>
+                <table className="data-table" style={{ minWidth: '1100px' }}>
                     <thead>
                         <tr>
-                            <th style={{ width: '80px' }}>Foto</th>
-                            <th>Descripción / Serial</th>
-                            <th className="text-center">Estado</th>
-                            <th>Cliente / Fecha</th>
-                            <th className="text-right">V. Mensual</th>
-                            <th className="text-center">Acciones</th>
+                            <th style={{ width: '70px' }}>Foto</th>
+                            <th style={{ minWidth: '200px' }}>Descripción</th>
+                            <th style={{ minWidth: '120px' }}>Serial</th>
+                            <th style={{ minWidth: '120px' }}>Procesador</th>
+                            <th style={{ minWidth: '70px' }}>RAM</th>
+                            <th style={{ minWidth: '70px' }}>Disco</th>
+                            <th style={{ minWidth: '50px' }}>Gen</th>
+                            <th className="text-center" style={{ minWidth: '90px' }}>Estado</th>
+                            <th style={{ minWidth: '160px' }}>Cliente / Fecha</th>
+                            <th className="text-right" style={{ minWidth: '110px' }}>V. Mensual</th>
+                            <th className="text-center" style={{ minWidth: '180px' }}>Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -480,8 +485,14 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
                                 </td>
                                 <td>
                                     <div style={{ fontWeight: '600' }}>{a.descripcion}</div>
-                                    <div className="text-muted" style={{ fontSize: '0.8rem' }}>SN: {a.serial}</div>
                                 </td>
+                                <td>
+                                    <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontSize: '0.85rem' }}>{a.serial}</code>
+                                </td>
+                                <td style={{ fontSize: '0.85rem' }}>{a.procesador || '-'}</td>
+                                <td style={{ fontSize: '0.85rem' }}>{a.memoriaRam || '-'}</td>
+                                <td style={{ fontSize: '0.85rem' }}>{a.discoDuro || '-'}</td>
+                                <td style={{ fontSize: '0.85rem', textAlign: 'center' }}>{a.generacion || '-'}</td>
                                 <td className="text-center">
                                     <span style={{
                                         padding: '4px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 'bold',
@@ -497,7 +508,7 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
                                             <div style={{ fontWeight: '500' }}>{a.clienteNombre}</div>
                                             <div className="text-muted" style={{ fontSize: '0.8rem' }}>Desde: {a.fechaInicio}</div>
                                         </>
-                                    ) : '-'}
+                                    ) : <span className="text-muted">-</span>}
                                 </td>
                                 <td className="text-right" style={{ color: 'var(--primary-blue)', fontWeight: 'bold' }}>
                                     ${a.valorMensual.toLocaleString()}
