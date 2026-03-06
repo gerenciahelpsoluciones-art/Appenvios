@@ -1234,19 +1234,15 @@ function App() {
   };
 
   const handleAddAlquiler = async (a: Alquiler) => {
-    // Alquiler DB Table currently maps these exactly as CamelCase or doesn't have the snake_case ones configured yet.
-    // Based on the error 'Could not find the cliente_nombre column', we will use camelCase for now 
-    // to match what might exist, or fallback to inserting camelCase directly.
     const payload = {
       descripcion: a.descripcion,
       serial: a.serial,
-      fotoUrl: a.fotoUrl,
+      foto_url: a.fotoUrl,
       estado: a.estado,
-      clienteId: a.clienteId,
-      clienteNombre: a.clienteNombre,
-      fechaInicio: a.fechaInicio,
-      valorMensual: a.valorMensual,
-      usuarioId: a.usuarioId,
+      cliente_id: a.clienteId,
+      fecha_inicio: a.fechaInicio,
+      valor_mensual: a.valorMensual,
+      usuario_id: a.usuarioId,
       disco_duro: a.discoDuro,
       memoria_ram: a.memoriaRam
     };
@@ -1272,13 +1268,12 @@ function App() {
     const payload = {
       descripcion: a.descripcion,
       serial: a.serial,
-      fotoUrl: a.fotoUrl,
+      foto_url: a.fotoUrl,
       estado: a.estado,
-      clienteId: a.clienteId,
-      clienteNombre: a.clienteNombre,
-      fechaInicio: a.fechaInicio,
-      valorMensual: a.valorMensual,
-      usuarioId: a.usuarioId,
+      cliente_id: a.clienteId,
+      fecha_inicio: a.fechaInicio,
+      valor_mensual: a.valorMensual,
+      usuario_id: a.usuarioId,
       disco_duro: a.discoDuro,
       memoria_ram: a.memoriaRam
     };
