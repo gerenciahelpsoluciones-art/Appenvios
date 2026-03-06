@@ -131,6 +131,8 @@ export interface Alquiler {
   fechaInicio?: string;
   valorMensual: number;
   usuarioId: string;
+  discoDuro?: string;
+  memoriaRam?: string;
 }
 
 export interface CotizacionItem {
@@ -409,7 +411,9 @@ function App() {
           clienteNombre: a.cliente_nombre || a.clienteNombre,
           fechaInicio: a.fecha_inicio || a.fechaInicio,
           valorMensual: a.valor_mensual || a.valorMensual,
-          usuarioId: a.usuario_id || a.usuarioId
+          usuarioId: a.usuario_id || a.usuarioId,
+          discoDuro: a.disco_duro || a.discoDuro,
+          memoriaRam: a.memoria_ram || a.memoriaRam
         })));
       }
 
@@ -1243,6 +1247,8 @@ function App() {
       fechaInicio: a.fechaInicio,
       valorMensual: a.valorMensual,
       usuarioId: a.usuarioId,
+      disco_duro: a.discoDuro,
+      memoria_ram: a.memoriaRam
     };
     const { data, error } = await supabase.from('alquileres').insert([payload]).select();
     if (error) { alert('Error guardando equipo: ' + error.message); return false; }
@@ -1254,7 +1260,9 @@ function App() {
         clienteNombre: dbA.cliente_nombre || dbA.clienteNombre,
         fechaInicio: dbA.fecha_inicio || dbA.fechaInicio,
         valorMensual: dbA.valor_mensual || dbA.valorMensual,
-        usuarioId: dbA.usuario_id || dbA.usuarioId
+        usuarioId: dbA.usuario_id || dbA.usuarioId,
+        discoDuro: dbA.disco_duro || dbA.discoDuro,
+        memoriaRam: dbA.memoria_ram || dbA.memoriaRam
       } as Alquiler]);
     }
     return true;
@@ -1271,6 +1279,8 @@ function App() {
       fechaInicio: a.fechaInicio,
       valorMensual: a.valorMensual,
       usuarioId: a.usuarioId,
+      disco_duro: a.discoDuro,
+      memoria_ram: a.memoriaRam
     };
     const { error } = await supabase.from('alquileres').update(payload).eq('id', a.id);
     if (error) { alert('Error actualizando equipo: ' + error.message); return false; }
