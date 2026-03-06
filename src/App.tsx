@@ -1625,11 +1625,8 @@ function App() {
             </button>
           ))}
         </nav>
-        <div style={{ marginTop: 'auto', padding: '1rem' }}>
-          <button className="nav-item" onClick={handleLogout} style={{ color: '#fca5a5' }}>
-            <span className="nav-icon">🚪</span>
-            Cerrar Sesión
-          </button>
+        <div style={{ marginTop: 'auto', padding: '1.5rem', opacity: 0.5, fontSize: '0.8rem', textAlign: 'center' }}>
+          By Help Soluciones
         </div>
       </aside>
 
@@ -1649,6 +1646,25 @@ function App() {
             <span style={{ marginRight: '0.5rem' }}>{currentUser?.rol === 'Admin' ? '👑' : '👤'}</span>
             <span className="user-role">{currentUser?.rol}</span>
             <span className="user-name">{currentUser?.nombre}</span>
+            <button
+              onClick={handleLogout}
+              title="Cerrar Sesión"
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#ef4444',
+                fontSize: '1.5rem',
+                cursor: 'pointer',
+                marginLeft: '1rem',
+                lineHeight: 1,
+                padding: '0 0.25rem',
+                transition: 'transform 0.2s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            >
+              ×
+            </button>
           </div>
         </header>
         <div className="content-area">
