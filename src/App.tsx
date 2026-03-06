@@ -169,6 +169,7 @@ export interface Cotizacion {
   autorizadoPor?: string;
   fechaAutorizacion?: string;
   condiciones?: string;
+  ordenCompraCliente?: string;
 }
 
 export interface Conductor {

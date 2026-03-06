@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { Cotizacion, SalesBudget, AppUser, Cliente, Producto, Proveedor } from '../App';
 import { generateQuotationPDF } from '../utils/pdfGenerator';
+import { supabase } from '../lib/supabaseClient';
 
 interface IProps {
     cotizaciones: Cotizacion[];
@@ -62,6 +63,11 @@ const InformesModule: React.FC<IProps> = ({
     const [editItems, setEditItems] = useState<EditItem[]>([]);
     const [editClienteId, setEditClienteId] = useState('');
 
+    // Won Quote OC Modal State
+    const [wonQuoteModal, setWonQuoteModal] = useState<Cotizacion | null>(null);
+    const [wonQuoteFile, setWonQuoteFile] = useState<File | null>(null);
+    const [isUploading, setIsUploading] = useState(false);
+
     const handleSearch = () => {
         setAppliedFilters({ inicio: fechaInicio, fin: fechaFin, clienteId: selectedClienteId, asesorId: selectedAsesorId });
     };
@@ -101,11 +107,55 @@ const InformesModule: React.FC<IProps> = ({
     const difference = monthlySales - activeBudget;
 
     const updateStatus = (quote: Cotizacion, newStatus: 'Seguimiento' | 'Ganado' | 'Perdido') => {
-        if (newStatus === 'Ganado' && quote.requiereAutorizacion && !quote.autorizada) {
-            alert('Esta cotización requiere autorización del Gerente Comercial debido a su bajo margen de utilidad (<10%).');
+        if (newStatus === 'Ganado') {
+            if (quote.requiereAutorizacion && !quote.autorizada) {
+                alert('Esta cotización requiere autorización del Gerente Comercial debido a su bajo margen de utilidad (<10%).');
+                return;
+            }
+            // Abre el modal para adjuntar la OC
+            setWonQuoteModal(quote);
+            setWonQuoteFile(null);
             return;
         }
         onUpdateQuote({ ...quote, estado: newStatus });
+    };
+
+    const handleConfirmWon = async () => {
+        if (!wonQuoteModal) return;
+
+        let publicUrl = '';
+        if (wonQuoteFile) {
+            setIsUploading(true);
+            const timestamp = Date.now();
+            const safeName = wonQuoteFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+            const filePath = `ordenes_cliente/${wonQuoteModal.id}_${timestamp}_${safeName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('entregas')
+                .upload(filePath, wonQuoteFile, { upsert: true });
+
+            if (uploadError) {
+                console.error('Error subiendo archivo OC:', uploadError);
+                alert(`Error al subir archivo: ${uploadError.message}`);
+                setIsUploading(false);
+                return;
+            }
+
+            const { data: urlData } = supabase.storage
+                .from('entregas')
+                .getPublicUrl(filePath);
+
+            publicUrl = urlData?.publicUrl || '';
+        }
+
+        onUpdateQuote({
+            ...wonQuoteModal,
+            estado: 'Ganado',
+            ordenCompraCliente: publicUrl || undefined
+        });
+        setWonQuoteModal(null);
+        setIsUploading(false);
+        alert('Cotización marcada como Ganada exitosamente.');
     };
 
     const authorizeQuote = (quote: Cotizacion) => {
@@ -629,6 +679,52 @@ const InformesModule: React.FC<IProps> = ({
                     </table>
                 </div>
             </div>
+
+            {/* ========== WON QUOTE OC MODAL ========== */}
+            {wonQuoteModal && (
+                <div className="modal-overlay" onClick={() => !isUploading && setWonQuoteModal(null)}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '450px' }}>
+                        <div className="modal-header">
+                            <h3>🏆 Ganar Cotización {wonQuoteModal.consecutivo}</h3>
+                            <button className="modal-close" onClick={() => !isUploading && setWonQuoteModal(null)} disabled={isUploading}>×</button>
+                        </div>
+                        <div className="modal-body" style={{ padding: '1.5rem 0' }}>
+                            <p style={{ marginBottom: '1rem', color: '#4b5563', fontSize: '0.95rem' }}>
+                                ¡Felicidades por cerrar este negocio con <strong>{wonQuoteModal.clienteNombre}</strong>!
+                                Por favor adjunte la Orden de Compra del cliente (Opcional).
+                            </p>
+                            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                                <label style={{ fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>Archivo de Orden de Compra (PDF/Imagen)</label>
+                                <input
+                                    type="file"
+                                    className="input-field"
+                                    accept=".pdf,image/*"
+                                    onChange={e => setWonQuoteFile(e.target.files?.[0] || null)}
+                                    disabled={isUploading}
+                                />
+                                {wonQuoteFile && <small style={{ color: '#059669', display: 'block', marginTop: '0.5rem' }}>✓ Archivo listo para subir</small>}
+                            </div>
+                            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '2rem' }}>
+                                <button
+                                    className="btn-cancel"
+                                    onClick={() => setWonQuoteModal(null)}
+                                    disabled={isUploading}
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    className="btn-save"
+                                    style={{ background: '#059669', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                                    onClick={handleConfirmWon}
+                                    disabled={isUploading}
+                                >
+                                    {isUploading ? 'Subiendo...' : 'Confirmar Ganado'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* ========== EDIT MODAL ========== */}
             {editingQuote && (
