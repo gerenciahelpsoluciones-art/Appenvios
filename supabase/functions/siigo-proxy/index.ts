@@ -87,8 +87,8 @@ Deno.serve(async (req: Request) => {
                 'Content-Type': 'application/json',
             };
 
-            // Obtener primera página y total de resultados
-            const firstRes = await fetch(`${SIIGO_BASE_URL}/v1/products?page_size=50&page=1`, {
+            // Obtener primera página (sin filtros para ver qué devuelve)
+            const firstRes = await fetch(`${SIIGO_BASE_URL}/v1/products?page_size=100`, {
                 method: 'GET',
                 headers: authHeaders,
             });
