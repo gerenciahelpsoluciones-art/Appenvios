@@ -356,7 +356,8 @@ function App() {
           contactoContabilidad: c.contacto_contabilidad,
           poseeCredito: !!c.posee_credito,
           cupoCredito: c.cupo_credito,
-          utilidadTotal: Number(c.utilidad_total || 0)
+          utilidadTotal: Number(c.utilidad_total || 0),
+          ordenCompraCliente: c.orden_compra_cliente
         })));
       }
 
@@ -875,7 +876,8 @@ function App() {
       requiere_autorizacion: c.requiereAutorizacion,
       autorizada: c.autorizada,
       autorizado_por: c.autorizadoPor,
-      fecha_autorizacion: c.fechaAutorizacion
+      fecha_autorizacion: c.fechaAutorizacion,
+      orden_compra_cliente: c.ordenCompraCliente
     };
 
     const { error: updateError } = await supabase.from('cotizaciones').update(quotePayload).eq('id', c.id);

@@ -36,7 +36,7 @@ const LogisticaModule: React.FC<IProps> = ({
     onUpdateDevolucion,
     onDeleteDevolucion
 }) => {
-    const [activeTab, setActiveTab] = useState<'despachos' | 'recogidas' | 'devoluciones'>('despachos');
+    const [activeTab, setActiveTab] = useState<'despachos' | 'recogidas' | 'devoluciones' | 'cotizaciones'>('despachos');
     const [filterEstado, setFilterEstado] = useState<string>('Todos');
     const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -54,6 +54,11 @@ const LogisticaModule: React.FC<IProps> = ({
     const sortedDespachos = [...despachos].sort((a, b) => new Date(b.fechaSolicitud).getTime() - new Date(a.fechaSolicitud).getTime());
     const sortedOC = [...ordenesCompra].sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
     const sortedDevoluciones = [...devoluciones].sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
+
+    // Cotizaciones ganadas (sorted newest first)
+    const cotizacionesGanadas = cotizaciones
+        .filter(c => c.estado === 'Ganado')
+        .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
 
     // Filter Logic
     const filteredDespachos = filterEstado === 'Todos'
@@ -299,6 +304,12 @@ const LogisticaModule: React.FC<IProps> = ({
                             onClick={() => { setActiveTab('devoluciones'); setFilterEstado('Todos'); }}
                         >
                             🔄 Devoluciones
+                        </button>
+                        <button
+                            className={`btn-tab ${activeTab === 'cotizaciones' ? 'active' : ''}`}
+                            onClick={() => { setActiveTab('cotizaciones'); setFilterEstado('Todos'); }}
+                        >
+                            📋 Cotizaciones Ganadas
                         </button>
                     </div>
                     <select
@@ -598,7 +609,7 @@ const LogisticaModule: React.FC<IProps> = ({
                         </table>
                     </div>
                 </div>
-            ) : (
+            ) : activeTab === 'devoluciones' ? (
                 /* DEVOLUCIONES VIEW */
                 <div className="card table-card" style={{ marginTop: '1.5rem' }}>
                     <div style={{ overflowX: 'auto' }}>
@@ -683,6 +694,114 @@ const LogisticaModule: React.FC<IProps> = ({
                                 ))}
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            ) : (
+                /* COTIZACIONES GANADAS VIEW */
+                <div className="card table-card" style={{ marginTop: '1.5rem' }}>
+                    <div style={{ overflowX: 'auto' }}>
+                        {cotizacionesGanadas.length > 0 ? (
+                            <table className="data-table">
+                                <thead>
+                                    <tr>
+                                        <th style={{ width: '40px' }}></th>
+                                        <th style={{ minWidth: '150px' }}>Consecutivo</th>
+                                        <th style={{ minWidth: '100px' }}>Fecha</th>
+                                        <th style={{ minWidth: '200px' }}>Cliente</th>
+                                        <th style={{ minWidth: '160px' }}>Ejecutivo</th>
+                                        <th className="text-right" style={{ minWidth: '130px' }}>Total</th>
+                                        <th className="text-center" style={{ minWidth: '80px' }}>OC Cliente</th>
+                                        <th className="text-center" style={{ minWidth: '130px' }}>Estado Despacho</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {cotizacionesGanadas.map(cot => {
+                                        const despachoAsociado = despachos.find(d => d.cotizacionId === cot.id);
+                                        return (
+                                            <React.Fragment key={cot.id}>
+                                                <tr className={expandedId === cot.id ? 'row-expanded' : ''}>
+                                                    <td>
+                                                        <button className="btn-expand" onClick={() => toggleExpand(cot.id)}>
+                                                            {expandedId === cot.id ? '▼' : '►'}
+                                                        </button>
+                                                    </td>
+                                                    <td><strong>{cot.consecutivo}</strong></td>
+                                                    <td>{cot.fecha}</td>
+                                                    <td>{cot.clienteNombre}</td>
+                                                    <td>{cot.ejecutivo}</td>
+                                                    <td className="text-right" style={{ fontWeight: 'bold' }}>
+                                                        ${Math.round(cot.total).toLocaleString()}
+                                                    </td>
+                                                    <td className="text-center">
+                                                        {cot.ordenCompraCliente ? (
+                                                            <button
+                                                                className="btn-download"
+                                                                onClick={() => window.open(cot.ordenCompraCliente, '_blank')}
+                                                                title="Ver Orden de Compra del Cliente"
+                                                            >📋</button>
+                                                        ) : (
+                                                            <span style={{ opacity: 0.2 }} title="Sin OC adjunta">📋</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="text-center">
+                                                        {despachoAsociado ? (
+                                                            <span className={`status-badge status-${despachoAsociado.estado.toLowerCase().replace(' ', '-')}`}>
+                                                                {despachoAsociado.estado}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="status-badge status-sin-despacho">Sin Despacho</span>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                                {expandedId === cot.id && (
+                                                    <tr className="detail-row">
+                                                        <td colSpan={8}>
+                                                            <div className="product-details-box animate-fade-in">
+                                                                <h4>🔍 Items de la Cotización</h4>
+                                                                <table className="inner-table">
+                                                                    <thead>
+                                                                        <tr>
+                                                                            <th>Producto</th>
+                                                                            <th>N° Parte</th>
+                                                                            <th className="text-right">Cantidad</th>
+                                                                            <th className="text-right">Precio Venta (Unit)</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                        {(cot.items || []).map((item, idx) => {
+                                                                            const prod = productos.find(p => p.id === item.productoId);
+                                                                            const margin = Math.min(item.utilidad, 99.99) / 100;
+                                                                            const ventaUnit = item.costoUnitario / (1 - margin);
+                                                                            return (
+                                                                                <tr key={idx}>
+                                                                                    <td>{prod?.nombre || 'Producto'}</td>
+                                                                                    <td><code>{prod?.numPart || 'N/A'}</code></td>
+                                                                                    <td className="text-right">{item.cantidad}</td>
+                                                                                    <td className="text-right">${Math.round(ventaUnit).toLocaleString()}</td>
+                                                                                </tr>
+                                                                            );
+                                                                        })}
+                                                                    </tbody>
+                                                                </table>
+                                                                <div style={{ marginTop: '1rem', display: 'flex', gap: '2rem', fontSize: '0.9rem' }}>
+                                                                    <span><strong>Subtotal:</strong> ${Math.round(cot.subtotal).toLocaleString()}</span>
+                                                                    <span><strong>IVA:</strong> ${Math.round(cot.iva).toLocaleString()}</span>
+                                                                    <span style={{ color: 'var(--primary-blue)', fontWeight: 'bold' }}><strong>Total:</strong> ${Math.round(cot.total).toLocaleString()}</span>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </React.Fragment>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        ) : (
+                            <div style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>
+                                <p style={{ fontSize: '1.1rem' }}>No hay cotizaciones ganadas para mostrar.</p>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
@@ -840,6 +959,8 @@ const LogisticaModule: React.FC<IProps> = ({
                 .status-entregado { background: #d1fae5; color: #065f46; }
                 .status-recogido { background: #e0e7ff; color: #3730a3; }
                 .status-en-bodega { background: #dcfce7; color: #166534; }
+                .status-sin-despacho { background: #f1f5f9; color: #64748b; }
+                .status-ganado { background: #d1fae5; color: #065f46; }
 
                 .action-buttons { display: flex; gap: 0.25rem; justify-content: center; }
                 .btn-status {

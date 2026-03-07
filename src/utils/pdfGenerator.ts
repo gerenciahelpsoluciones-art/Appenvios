@@ -157,6 +157,24 @@ export const generateQuotationPDF = (data: PDFData) => {
         doc.text(`Tel: ${data.ejecutivo?.telefono || ''}`, 14, currentY + 40);
         doc.text(`Email: ${data.ejecutivo?.correo || ''}`, 14, currentY + 45);
 
+        // Company Footer
+        const footerY = currentY + 60;
+        if (footerY > 270) {
+            doc.addPage();
+            currentY = 10;
+        }
+        const fY = footerY > 270 ? 20 : footerY;
+        doc.setDrawColor(0, 74, 153);
+        doc.setLineWidth(0.5);
+        doc.line(14, fY, 196, fY);
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(0, 74, 153);
+        doc.text("HELP SOLUCIONES INFORMATICAS HSI SAS", 105, fY + 5, { align: 'center' });
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(80, 80, 80);
+        doc.text("NIT 900686378-7 | Celular: 3043358650 - 3003453610 | gerencia@helpsoluciones.com.co", 105, fY + 10, { align: 'center' });
+
         const safeClientName = (data.cliente?.nombre || 'CLIENTE').toUpperCase();
         const fileName = `COTIZACION HELP SOLUCIONES - ${safeClientName} - ${data.consecutivo || 'S-N'}.pdf`;
         doc.save(fileName);
