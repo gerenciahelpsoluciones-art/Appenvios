@@ -796,7 +796,8 @@ function App() {
       proveedor_nombre: r.proveedorNombre,
       conductor_id: r.conductorId,
       conductor_nombre: r.conductorNombre,
-      fecha_ingreso: r.fechaIngreso
+      fecha_ingreso: r.fechaIngreso,
+      foto: r.foto
     }).eq('id', r.id);
     if (!error) setReparaciones(prev => prev.map(item => item.id === r.id ? r : item));
   };
