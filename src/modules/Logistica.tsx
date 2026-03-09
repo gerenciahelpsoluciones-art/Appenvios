@@ -240,8 +240,14 @@ const LogisticaModule: React.FC<IProps> = ({
 
     const renderTabContent = () => {
         if (activeTab === 'despachos') {
-            return (
-                <div className="card table-card" style={{ marginTop: '1.5rem' }}>
+            const pending = filteredDespachos.filter(d => !['Despachado', 'Entregado', 'Entrega Parcial'].includes(d.estado));
+            const completed = filteredDespachos.filter(d => ['Despachado', 'Entregado', 'Entrega Parcial'].includes(d.estado));
+
+            const renderTable = (list: Despacho[], title: string, isCompleted: boolean) => (
+                <div className="card table-card" style={{ marginTop: '1.5rem', opacity: isCompleted ? 0.9 : 1, border: isCompleted ? '1px dashed #cbd5e1' : 'none' }}>
+                    <h3 style={{ padding: '1rem', margin: 0, color: isCompleted ? '#059669' : '#1e293b', borderBottom: '1px solid #e2e8f0', background: isCompleted ? '#f1f5f9' : 'transparent' }}>
+                        {isCompleted ? '✅' : '📦'} {title} ({list.length})
+                    </h3>
                     <div style={{ overflowX: 'auto' }}>
                         <table className="data-table">
                             <thead>
@@ -259,7 +265,7 @@ const LogisticaModule: React.FC<IProps> = ({
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredDespachos.map((d) => (
+                                {list.map((d) => (
                                     <React.Fragment key={d.id}>
                                         <tr className={expandedId === d.id ? 'row-expanded' : ''}>
                                             <td>
@@ -360,6 +366,13 @@ const LogisticaModule: React.FC<IProps> = ({
                             </tbody>
                         </table>
                     </div>
+                </div>
+            );
+
+            return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                    {renderTable(pending, 'Pendientes de Despacho', false)}
+                    {completed.length > 0 && renderTable(completed, 'Despachos Realizados / Finalizados', true)}
                 </div>
             );
         } else if (activeTab === 'recogidas') {
