@@ -69,10 +69,9 @@ export const generateQuotationPDF = (data: PDFData) => {
         // Table Data
         const tableBody = data.items.map(item => {
             const prod = data.productos.find(p => p.id === item.productoId);
-            const margin = Math.min(item.utilidad, 99.99) / 100;
-            const ventaUnit = Math.round(item.costoUnitario / (1 - margin));
+            const ventaUnit = item.precioVenta !== undefined ? item.precioVenta : Math.round((item.costoUnitario || 0) / (1 - Math.min(item.utilidad || 0, 99.99) / 100));
             const subtotal = Math.round(ventaUnit * item.cantidad);
-            const valorIVA = Math.round(subtotal * (item.iva / 100));
+            const valorIVA = Math.round(subtotal * ((item.iva || 0) / 100));
             return [
                 prod?.nombre || 'N/A',
                 item.unidad || 'Und',
