@@ -639,7 +639,12 @@ function App() {
   };
   const updateProveedor = async (p: Proveedor) => {
     const { error } = await supabase.from('proveedores').update(p).eq('id', p.id);
-    if (!error) setProveedores(proveedores.map(item => item.id === p.id ? p : item));
+    if (!error) {
+      setProveedores(proveedores.map(item => item.id === p.id ? p : item));
+    } else {
+      console.error('Error al actualizar proveedor:', error);
+      alert(`Error al actualizar proveedor: ${error.message}`);
+    }
   };
   const deleteProveedor = async (id: string) => {
     const { error } = await supabase.from('proveedores').delete().eq('id', id);
