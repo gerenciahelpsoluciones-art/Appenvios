@@ -10,6 +10,7 @@ interface IProps {
 const FacturacionModule: React.FC<IProps> = ({ despachos, cotizaciones, onUpdateDespacho }) => {
     const [activeTab, setActiveTab] = useState<'pendientes' | 'historial'>('pendientes');
     const [searchTerm, setSearchTerm] = useState('');
+    const [viewingCot, setViewingCot] = useState<Cotizacion | null>(null);
 
     // Filtering logic
     const entregados = despachos.filter(d => d.estado === 'Entregado');
@@ -89,10 +90,17 @@ const FacturacionModule: React.FC<IProps> = ({ despachos, cotizaciones, onUpdate
                                     </td>
                                     <td>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.85rem' }}>
-                                            {/* Cotización status */}
-                                            <span style={{ color: cot ? '#0369a1' : '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                                📄 Cotización: {cot ? <strong>Disponible</strong> : 'No Encontrada'}
-                                            </span>
+                                            {/* Botón Cotización */}
+                                            {cot ? (
+                                                <button
+                                                    onClick={() => setViewingCot(cot)}
+                                                    style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', borderRadius: '6px', padding: '0.3rem 0.7rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', width: 'fit-content' }}
+                                                >
+                                                    📄 Ver Cotización
+                                                </button>
+                                            ) : (
+                                                <span style={{ color: '#94a3b8', fontSize: '0.82rem' }}>📄 Cotización no encontrada</span>
+                                            )}
 
                                             {/* Orden de Compra Cliente */}
                                             {cot?.ordenCompraCliente ? (
@@ -171,6 +179,69 @@ const FacturacionModule: React.FC<IProps> = ({ despachos, cotizaciones, onUpdate
                     </tbody>
                 </table>
             </div>
+
+            {/* MODAL VER COTIZACIÓN */}
+            {viewingCot && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+                    <div style={{ background: 'white', borderRadius: '12px', padding: '2rem', maxWidth: '700px', width: '95%', maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 25px 50px rgba(0,0,0,0.25)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '1rem' }}>
+                            <div>
+                                <h3 style={{ margin: 0, color: '#0f172a' }}>📄 Cotización: {viewingCot.consecutivo}</h3>
+                                <small style={{ color: '#64748b' }}>Fecha: {viewingCot.fecha} · Ejecutivo: {viewingCot.ejecutivo || 'N/A'}</small>
+                            </div>
+                            <button onClick={() => setViewingCot(null)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#64748b', lineHeight: 1 }}>×</button>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+                            <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px' }}>
+                                <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '0.3rem' }}>CLIENTE</div>
+                                <strong>{viewingCot.clienteNombre}</strong>
+                            </div>
+                            <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px' }}>
+                                <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '0.3rem' }}>ESTADO COTIZACIÓN</div>
+                                <strong>{viewingCot.estado}</strong>
+                            </div>
+                        </div>
+
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem', marginBottom: '1.5rem' }}>
+                            <thead>
+                                <tr style={{ background: '#f1f5f9' }}>
+                                    <th style={{ padding: '0.75rem', textAlign: 'left' }}>Producto</th>
+                                    <th style={{ padding: '0.75rem', textAlign: 'center' }}>Cant.</th>
+                                    <th style={{ padding: '0.75rem', textAlign: 'right' }}>Precio Unit.</th>
+                                    <th style={{ padding: '0.75rem', textAlign: 'right' }}>IVA %</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {viewingCot.items.map((item: any, idx: number) => (
+                                    <tr key={idx} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                                        <td style={{ padding: '0.65rem 0.75rem' }}>{item.nombreProducto || item.productoId}</td>
+                                        <td style={{ padding: '0.65rem 0.75rem', textAlign: 'center' }}>{item.cantidad}</td>
+                                        <td style={{ padding: '0.65rem 0.75rem', textAlign: 'right' }}>${(item.costoUnitario || 0).toLocaleString()}</td>
+                                        <td style={{ padding: '0.65rem 0.75rem', textAlign: 'right' }}>{item.iva}%</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.4rem', fontSize: '0.9rem', borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
+                            <span>Subtotal: <strong>${(viewingCot.subtotal || 0).toLocaleString()}</strong></span>
+                            <span>IVA: <strong>${(viewingCot.iva || 0).toLocaleString()}</strong></span>
+                            <span style={{ fontSize: '1.1rem', color: '#0f172a' }}>Total: <strong>${(viewingCot.total || 0).toLocaleString()}</strong></span>
+                        </div>
+
+                        {viewingCot.ordenCompraCliente && (
+                            <div style={{ marginTop: '1rem', padding: '0.75rem 1rem', background: '#eff6ff', borderRadius: '8px', color: '#1d4ed8', fontWeight: 600 }}>
+                                🛒 Orden de Compra Cliente: {viewingCot.ordenCompraCliente}
+                            </div>
+                        )}
+
+                        <button onClick={() => setViewingCot(null)} style={{ marginTop: '1.5rem', width: '100%', padding: '0.75rem', background: '#0f172a', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '1rem' }}>
+                            Cerrar
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
