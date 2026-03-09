@@ -8,7 +8,8 @@ import {
     type AppUser,
     type Devolucion,
     type DevolucionItem,
-    type Reparacion
+    type Reparacion,
+    type Cliente
 } from '../App';
 
 interface IProps {
@@ -17,6 +18,7 @@ interface IProps {
     devoluciones: Devolucion[];
     conductores: Conductor[];
     proveedores: Proveedor[];
+    clientes: Cliente[];
     productos: Producto[];
     currentUser: AppUser | null;
     onUpdateDespacho: (d: Despacho) => void;
@@ -36,6 +38,7 @@ const LogisticaModule: React.FC<IProps> = ({
     devoluciones,
     conductores,
     proveedores,
+    clientes,
     productos,
     currentUser,
     onUpdateDespacho,
@@ -54,7 +57,9 @@ const LogisticaModule: React.FC<IProps> = ({
 
     // Manual Modal State
     const [isAddManualOpen, setIsAddManualOpen] = useState(false);
+    const [recogidaTipoOrigen, setRecogidaTipoOrigen] = useState<'Proveedor' | 'Cliente'>('Proveedor');
     const [selectedProvId, setSelectedProvId] = useState('');
+    const [selectedClientId, setSelectedClientId] = useState('');
     const [manualItems, setManualItems] = useState<DevolucionItem[]>([]);
     const [selProdId, setSelProdId] = useState('');
     const [selCant, setSelCant] = useState(1);
@@ -146,17 +151,38 @@ const LogisticaModule: React.FC<IProps> = ({
     };
 
     const handleSaveManualRecogida = async () => {
-        if (!selectedProvId || manualItems.length === 0) {
-            alert("Seleccione proveedor e items.");
+        if (recogidaTipoOrigen === 'Proveedor' && !selectedProvId) {
+            alert("Seleccione un proveedor e items.");
             return;
         }
-        const prov = proveedores.find(p => p.id === selectedProvId);
+        if (recogidaTipoOrigen === 'Cliente' && !selectedClientId) {
+            alert("Seleccione un cliente e items.");
+            return;
+        }
+        if (manualItems.length === 0) {
+            alert("Debe agregar al menos un ítem.");
+            return;
+        }
+
+        let origenId = '';
+        let origenNombre = '';
+
+        if (recogidaTipoOrigen === 'Proveedor') {
+            const prov = proveedores.find(p => p.id === selectedProvId);
+            origenId = selectedProvId;
+            origenNombre = prov?.nombre || 'PROV MANUAL';
+        } else {
+            const cli = clientes.find(c => c.id === selectedClientId);
+            origenId = selectedClientId;
+            origenNombre = cli?.nombre || 'CLIENTE MANUAL';
+        }
+
         const newOC: OrdenCompra = {
             id: crypto.randomUUID(),
             consecutivo: `REC-${Date.now().toString().slice(-6)}`,
             fecha: new Date().toISOString().split('T')[0],
-            proveedorId: selectedProvId,
-            nombreProveedor: prov?.nombre || 'PROV MANUAL',
+            proveedorId: origenId,
+            nombreProveedor: origenNombre,
             items: manualItems.map(mi => ({
                 id: mi.id,
                 productoId: mi.productoId,
@@ -695,7 +721,15 @@ const LogisticaModule: React.FC<IProps> = ({
                     </select>
 
                     {activeTab === 'recogidas' && (
-                        <button className="btn btn-primary" onClick={() => { setIsAddManualOpen(true); setManualItems([]); setSelectedProvId(''); setSelProdId(''); setSelCant(1); }}>
+                        <button className="btn btn-primary" onClick={() => {
+                            setIsAddManualOpen(true);
+                            setManualItems([]);
+                            setSelectedProvId('');
+                            setSelectedClientId('');
+                            setRecogidaTipoOrigen('Proveedor');
+                            setSelProdId('');
+                            setSelCant(1);
+                        }}>
                             + Recogida Manual
                         </button>
                     )}
@@ -715,17 +749,61 @@ const LogisticaModule: React.FC<IProps> = ({
                     <div className="modal-content card" style={{ maxWidth: '850px', width: '95%' }}>
                         <h3>{activeTab === 'devoluciones' ? 'Nueva Devolución Manual' : 'Nueva Recogida Manual'}</h3>
                         <div className="form-grid-modern">
-                            <div className="form-group">
-                                <label>Proveedor</label>
-                                <select
-                                    className="input-field"
-                                    value={selectedProvId}
-                                    onChange={e => setSelectedProvId(e.target.value)}
-                                >
-                                    <option value="">-- Seleccionar Proveedor --</option>
-                                    {proveedores.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
-                                </select>
-                            </div>
+                            {activeTab === 'recogidas' && (
+                                <div className="form-group" style={{ gridColumn: '1 / -1', marginBottom: '1rem' }}>
+                                    <label style={{ fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>Tipo de Origen</label>
+                                    <div style={{ display: 'flex', gap: '1.5rem', background: '#f8fafc', padding: '0.75rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', margin: 0 }}>
+                                            <input
+                                                type="radio"
+                                                name="tipoOrigen"
+                                                value="Proveedor"
+                                                checked={recogidaTipoOrigen === 'Proveedor'}
+                                                onChange={() => setRecogidaTipoOrigen('Proveedor')}
+                                            />
+                                            🏭 Proveedor
+                                        </label>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', margin: 0 }}>
+                                            <input
+                                                type="radio"
+                                                name="tipoOrigen"
+                                                value="Cliente"
+                                                checked={recogidaTipoOrigen === 'Cliente'}
+                                                onChange={() => setRecogidaTipoOrigen('Cliente')}
+                                            />
+                                            🏢 Cliente
+                                        </label>
+                                    </div>
+                                </div>
+                            )}
+
+                            {(activeTab === 'devoluciones' || (activeTab === 'recogidas' && recogidaTipoOrigen === 'Proveedor')) && (
+                                <div className="form-group">
+                                    <label>Proveedor</label>
+                                    <select
+                                        className="input-field"
+                                        value={selectedProvId}
+                                        onChange={e => setSelectedProvId(e.target.value)}
+                                    >
+                                        <option value="">-- Seleccionar Proveedor --</option>
+                                        {proveedores.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+                                    </select>
+                                </div>
+                            )}
+
+                            {(activeTab === 'recogidas' && recogidaTipoOrigen === 'Cliente') && (
+                                <div className="form-group">
+                                    <label>Cliente</label>
+                                    <select
+                                        className="input-field"
+                                        value={selectedClientId}
+                                        onChange={e => setSelectedClientId(e.target.value)}
+                                    >
+                                        <option value="">-- Seleccionar Cliente --</option>
+                                        {clientes.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                                    </select>
+                                </div>
+                            )}
 
                             <div className="item-entry-box card" style={{ background: '#f1f5f9', padding: '1rem', marginTop: '1rem' }}>
                                 <h4>Añadir Productos</h4>

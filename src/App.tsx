@@ -1384,6 +1384,7 @@ function App() {
           devoluciones={devoluciones}
           conductores={conductores}
           proveedores={proveedores}
+          clientes={clientes}
           productos={productos}
           currentUser={currentUser!}
           onUpdateDespacho={updateDespacho}
