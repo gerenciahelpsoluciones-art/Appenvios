@@ -7,7 +7,8 @@ import {
     type Producto,
     type AppUser,
     type Devolucion,
-    type DevolucionItem
+    type DevolucionItem,
+    type Reparacion
 } from '../App';
 
 interface IProps {
@@ -25,6 +26,8 @@ interface IProps {
     onAddDevolucion: (dev: Devolucion) => any;
     onUpdateDevolucion: (dev: Devolucion) => any;
     onDeleteDevolucion: (id: string) => any;
+    reparaciones: Reparacion[];
+    onUpdateReparacion: (r: Reparacion) => any;
 }
 
 const LogisticaModule: React.FC<IProps> = ({
@@ -41,9 +44,11 @@ const LogisticaModule: React.FC<IProps> = ({
     onAddOC,
     onAddDevolucion,
     onUpdateDevolucion,
-    onDeleteDevolucion
+    onDeleteDevolucion,
+    reparaciones,
+    onUpdateReparacion
 }) => {
-    const [activeTab, setActiveTab] = useState<'despachos' | 'recogidas' | 'devoluciones'>('despachos');
+    const [activeTab, setActiveTab] = useState<'despachos' | 'recogidas' | 'devoluciones' | 'reparaciones'>('despachos');
     const [filterEstado, setFilterEstado] = useState<string>('Todos');
     const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -58,6 +63,9 @@ const LogisticaModule: React.FC<IProps> = ({
     const sortedDespachos = [...despachos].sort((a, b) => new Date(b.fechaSolicitud).getTime() - new Date(a.fechaSolicitud).getTime());
     const sortedOC = [...ordenesCompra].sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
     const sortedDevoluciones = [...devoluciones].sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
+    const sortedReparaciones = [...(reparaciones || [])]
+        .filter(r => r.tipoServicio === 'Proveedor')
+        .sort((a, b) => new Date(b.fechaIngreso).getTime() - new Date(a.fechaIngreso).getTime());
 
     // Filter Logic
     const filteredDespachos = filterEstado === 'Todos'
@@ -71,6 +79,10 @@ const LogisticaModule: React.FC<IProps> = ({
     const filteredDevoluciones = filterEstado === 'Todos'
         ? sortedDevoluciones
         : sortedDevoluciones.filter(d => d.estado === filterEstado);
+
+    const filteredReparaciones = filterEstado === 'Todos'
+        ? sortedReparaciones
+        : sortedReparaciones.filter(r => r.estado === filterEstado);
 
     const toggleExpand = (id: string) => setExpandedId(expandedId === id ? null : id);
 
@@ -96,6 +108,14 @@ const LogisticaModule: React.FC<IProps> = ({
 
     const assignDriverDevolucion = async (d: Devolucion, driverId: string) => {
         await onUpdateDevolucion({ ...d, conductorId: driverId });
+    };
+
+    const handleReparacionStatusChange = (r: Reparacion, newStatus: string) => {
+        onUpdateReparacion({ ...r, estado: newStatus as any });
+    };
+
+    const assignDriverReparacion = (r: Reparacion, driverId: string) => {
+        onUpdateReparacion({ ...r, conductorId: driverId });
     };
 
     const downloadFile = (url: string, filename: string) => {
@@ -243,6 +263,8 @@ const LogisticaModule: React.FC<IProps> = ({
                                                 >
                                                     <option value="">Asignar...</option>
                                                     <option value="VIRTUAL">📧 Asignación Virtual</option>
+                                                    <option value="TRANSPORTADORA_RECOGE">📦 Recoge transportadora</option>
+                                                    <option value="TRANSPORTADORA_DESPACHO">🚚 Despacho transportadora</option>
                                                     {conductores.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
                                                 </select>
                                             </td>
@@ -365,6 +387,8 @@ const LogisticaModule: React.FC<IProps> = ({
                                                 >
                                                     <option value="">Asignar...</option>
                                                     <option value="VIRTUAL">📧 Asignación Virtual</option>
+                                                    <option value="TRANSPORTADORA_RECOGE">📦 Recoge transportadora</option>
+                                                    <option value="TRANSPORTADORA_DESPACHO">🚚 Despacho transportadora</option>
                                                     {conductores.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
                                                 </select>
                                             </td>
@@ -439,7 +463,7 @@ const LogisticaModule: React.FC<IProps> = ({
                     </div>
                 </div>
             );
-        } else {
+        } else if (activeTab === 'devoluciones') {
             // DEVOLUCIONES
             return (
                 <div className="card table-card" style={{ marginTop: '1.5rem' }}>
@@ -475,6 +499,9 @@ const LogisticaModule: React.FC<IProps> = ({
                                                     onChange={(e) => assignDriverDevolucion(d, e.target.value)}
                                                 >
                                                     <option value="">Asignar Conductor</option>
+                                                    <option value="VIRTUAL">📧 Asignación Virtual</option>
+                                                    <option value="TRANSPORTADORA_RECOGE">📦 Recoge transportadora</option>
+                                                    <option value="TRANSPORTADORA_DESPACHO">🚚 Despacho transportadora</option>
                                                     {conductores.map(c => (
                                                         <option key={c.id} value={c.id}>{c.nombre}</option>
                                                     ))}
@@ -523,6 +550,73 @@ const LogisticaModule: React.FC<IProps> = ({
                                             </tr>
                                         )}
                                     </React.Fragment>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            );
+        } else if (activeTab === 'reparaciones') {
+            // REPARACIONES EXTERNAS
+            return (
+                <div className="card table-card" style={{ marginTop: '1.5rem' }}>
+                    <div style={{ overflowX: 'auto' }}>
+                        <table className="data-table">
+                            <thead>
+                                <tr>
+                                    <th style={{ width: '40px' }}></th>
+                                    <th style={{ minWidth: '120px' }}>Consecutivo</th>
+                                    <th style={{ minWidth: '100px' }}>Fecha Ing.</th>
+                                    <th style={{ minWidth: '150px' }}>Cliente</th>
+                                    <th style={{ minWidth: '150px' }}>Equipo/Serial</th>
+                                    <th style={{ minWidth: '150px' }}>Proveedor Ext.</th>
+                                    <th className="text-center" style={{ minWidth: '150px' }}>Conductor</th>
+                                    <th className="text-center" style={{ minWidth: '120px' }}>Estado</th>
+                                    <th className="text-center" style={{ minWidth: '160px' }}>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filteredReparaciones.map((r) => (
+                                    <tr key={r.id}>
+                                        <td></td>
+                                        <td><strong>{r.consecutivo}</strong></td>
+                                        <td>{r.fechaIngreso}</td>
+                                        <td>{r.clienteNombre}</td>
+                                        <td>
+                                            <div style={{ fontSize: '0.85rem' }}>
+                                                <strong>{r.tipo}</strong> {r.marca}<br />
+                                                <code>{r.serial}</code>
+                                            </div>
+                                        </td>
+                                        <td><strong>{r.proveedorNombre || 'N/A'}</strong></td>
+                                        <td className="text-center">
+                                            <select
+                                                className="select-small"
+                                                value={r.conductorId || ''}
+                                                onChange={(e) => assignDriverReparacion(r, e.target.value)}
+                                            >
+                                                <option value="">Asignar...</option>
+                                                <option value="VIRTUAL">📧 Asignación Virtual</option>
+                                                <option value="TRANSPORTADORA_RECOGE">📦 Recoge transportadora</option>
+                                                <option value="TRANSPORTADORA_DESPACHO">🚚 Despacho transportadora</option>
+                                                {conductores.map(c => (
+                                                    <option key={c.id} value={c.id}>{c.nombre}</option>
+                                                ))}
+                                            </select>
+                                        </td>
+                                        <td className="text-center">
+                                            <span className={`status-badge status-${r.estado.toLowerCase().replace(/ /g, '-')}`}>
+                                                {r.estado}
+                                            </span>
+                                        </td>
+                                        <td className="text-center">
+                                            <div className="action-buttons">
+                                                <button className="btn-status" onClick={() => handleReparacionStatusChange(r, 'En Diagnóstico')} title="En Diagnóstico">🔍</button>
+                                                <button className="btn-status" onClick={() => handleReparacionStatusChange(r, 'En Reparación')} title="En Reparación">⚙️</button>
+                                                <button className="btn-status" onClick={() => handleReparacionStatusChange(r, 'Reparado')} title="Reparado">✅</button>
+                                            </div>
+                                        </td>
+                                    </tr>
                                 ))}
                             </tbody>
                         </table>
@@ -585,6 +679,17 @@ const LogisticaModule: React.FC<IProps> = ({
                                 <option value="Pendiente">Pendiente</option>
                                 <option value="Enviado">Enviado</option>
                                 <option value="Completado">Completado</option>
+                            </>
+                        )}
+                        {activeTab === 'reparaciones' && (
+                            <>
+                                <option value="Recibido">Recibido</option>
+                                <option value="En Diagnóstico">En Diagnóstico</option>
+                                <option value="En Reparación">En Reparación</option>
+                                <option value="Esperando Repuestos">Esperando Repuestos</option>
+                                <option value="Reparado">Reparado</option>
+                                <option value="Entregado">Entregado</option>
+                                <option value="Cerrado">Cerrado</option>
                             </>
                         )}
                     </select>

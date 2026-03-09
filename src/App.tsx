@@ -227,6 +227,8 @@ export interface Reparacion {
   tipoServicio: 'HELP SOLUCIONES' | 'Proveedor';
   proveedorId?: string;
   proveedorNombre?: string;
+  conductorId?: string;
+  conductorNombre?: string;
   foto?: string;
   fechaIngreso: string;
 }
@@ -1391,6 +1393,8 @@ function App() {
           onAddDevolucion={addDevolucion}
           onUpdateDevolucion={updateDevolucion}
           onDeleteDevolucion={deleteDevolucion}
+          reparaciones={reparaciones}
+          onUpdateReparacion={updateReparacion}
         />;
       case 'reparaciones':
         return <ReparacionesModule
