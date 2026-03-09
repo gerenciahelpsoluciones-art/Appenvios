@@ -747,7 +747,7 @@ function App() {
 
   const addReparacion = async (r: Reparacion) => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { id, clienteId, clienteNombre, tipoServicio, proveedorId, proveedorNombre, fechaIngreso, ...cleanR } = r;
+    const { id, clienteId, clienteNombre, tipoServicio, proveedorId, proveedorNombre, conductorId, conductorNombre, fechaIngreso, ...cleanR } = r;
     const { data, error } = await supabase.from('reparaciones').insert([{
       ...cleanR,
       cliente_id: r.clienteId,
@@ -755,6 +755,8 @@ function App() {
       tipo_servicio: r.tipoServicio,
       proveedor_id: r.proveedorId,
       proveedor_nombre: r.proveedorNombre,
+      conductor_id: r.conductorId,
+      conductor_nombre: r.conductorNombre,
       fecha_ingreso: r.fechaIngreso
     }]).select();
     if (error) {
@@ -768,13 +770,15 @@ function App() {
         tipoServicio: dbR.tipo_servicio,
         proveedorId: dbR.proveedor_id,
         proveedorNombre: dbR.proveedor_nombre,
+        conductorId: dbR.conductor_id,
+        conductorNombre: dbR.conductor_nombre,
         fechaIngreso: dbR.fecha_ingreso
       } as Reparacion, ...prev]);
     }
   };
   const updateReparacion = async (r: Reparacion) => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { id, clienteId, clienteNombre, tipoServicio, proveedorId, proveedorNombre, fechaIngreso, ...cleanR } = r;
+    const { id, clienteId, clienteNombre, tipoServicio, proveedorId, proveedorNombre, conductorId, conductorNombre, fechaIngreso, ...cleanR } = r;
     const { error } = await supabase.from('reparaciones').update({
       ...cleanR,
       cliente_id: r.clienteId,
@@ -782,6 +786,8 @@ function App() {
       tipo_servicio: r.tipoServicio,
       proveedor_id: r.proveedorId,
       proveedor_nombre: r.proveedorNombre,
+      conductor_id: r.conductorId,
+      conductor_nombre: r.conductorNombre,
       fecha_ingreso: r.fechaIngreso
     }).eq('id', r.id);
     if (!error) setReparaciones(prev => prev.map(item => item.id === r.id ? r : item));
