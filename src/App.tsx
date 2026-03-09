@@ -1252,7 +1252,10 @@ function App() {
     { id: 'vendedores', label: 'Vendedores', icon: '👨‍💼' },
     { id: 'alquileres', label: 'Alquileres', icon: '💻' },
     { id: 'facturacion', label: 'Facturación', icon: '💲' },
-  ].filter(item => currentUser?.permisos.includes(item.id));
+  ].filter(item => {
+    if (item.id === 'facturacion' && currentUser?.rol === 'Admin') return true;
+    return currentUser?.permisos.includes(item.id);
+  });
 
   const handleLogin = (user: AppUser) => {
     setIsLoggedIn(true);

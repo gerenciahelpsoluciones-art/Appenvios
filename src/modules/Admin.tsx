@@ -31,6 +31,7 @@ const MODULES = [
     { id: 'alquileres', label: 'Alquileres' },
     { id: 'admin', label: 'Administración' },
     { id: 'vendedores', label: 'Vendedores' },
+    { id: 'facturacion', label: 'Facturación' },
 ];
 
 const AdminModule: React.FC<IProps> = ({
