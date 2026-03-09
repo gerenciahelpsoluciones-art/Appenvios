@@ -13,6 +13,7 @@ import AdminModule from './modules/Admin'
 import Login from './modules/Login'
 import VendedoresModule from './modules/Vendedores'
 import AlquileresModule from './modules/Alquileres'
+import FacturacionModule from './modules/Facturacion'
 import { supabase } from './lib/supabaseClient'
 import { logoBase64 } from './assets/logoBase64'
 
@@ -212,6 +213,7 @@ export interface Despacho {
   fotoEntrega?: string;
   fotoRemision?: string;
   georeferencia?: string;
+  facturado?: boolean;
 }
 
 export interface Reparacion {
@@ -711,7 +713,8 @@ function App() {
       conductor_nombre: d.conductorNombre,
       foto_entrega: d.fotoEntrega,
       foto_remision: d.fotoRemision,
-      georeferencia: d.georeferencia
+      georeferencia: d.georeferencia,
+      facturado: d.facturado || false
     };
 
     const { error } = await supabase.from('despachos').update(payload).eq('id', d.id);
@@ -1248,6 +1251,7 @@ function App() {
     { id: 'admin', label: 'Administración', icon: '⚙️' },
     { id: 'vendedores', label: 'Vendedores', icon: '👨‍💼' },
     { id: 'alquileres', label: 'Alquileres', icon: '💻' },
+    { id: 'facturacion', label: 'Facturación', icon: '💲' },
   ].filter(item => currentUser?.permisos.includes(item.id));
 
   const handleLogin = (user: AppUser) => {
@@ -1418,6 +1422,12 @@ function App() {
           onAdd={addReparacion}
           onUpdate={updateReparacion}
           onDelete={deleteReparacion}
+        />;
+      case 'facturacion':
+        return <FacturacionModule
+          despachos={despachos}
+          cotizaciones={cotizaciones}
+          onUpdateDespacho={updateDespacho}
         />;
       case 'informes':
         const restrictedQuotes = currentUser.rol === 'Admin'
