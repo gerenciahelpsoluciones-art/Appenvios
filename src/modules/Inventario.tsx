@@ -280,8 +280,6 @@ const InventarioModule: React.FC = () => {
                             <th>Código</th>
                             <th>Descripción</th>
                             <th className="text-right">Costo</th>
-                            <th className="text-right">Precio</th>
-                            <th className="text-center">Stock</th>
                             <th className="text-center">Estado</th>
                         </tr>
                     </thead>
@@ -290,13 +288,9 @@ const InventarioModule: React.FC = () => {
                             <tr key={p.id}>
                                 <td><code>{p.code}</code></td>
                                 <td>{p.description}</td>
-                                <td className="text-right" style={{ color: '#64748b' }}>
+                                <td className="text-right" style={{ color: '#64748b', fontWeight: 'bold' }}>
                                     {p.cost > 0 ? `$${p.cost.toLocaleString('es-CO')}` : '—'}
                                 </td>
-                                <td className="text-right">
-                                    {p.price > 0 ? `$${p.price.toLocaleString('es-CO')}` : '$0'}
-                                </td>
-                                <td className="text-center">{p.stock}</td>
                                 <td className="text-center">
                                     <span className={`status-badge status-${p.stock > 0 ? 'ganado' : 'perdido'}`}>
                                         {p.stock > 0 ? 'En Stock' : 'Agotado'}
@@ -305,7 +299,7 @@ const InventarioModule: React.FC = () => {
                             </tr>
                         )) : (
                             <tr>
-                                <td colSpan={6} className="text-center" style={{ padding: '3rem', color: 'var(--text-muted)' }}>
+                                <td colSpan={4} className="text-center" style={{ padding: '3rem', color: 'var(--text-muted)' }}>
                                     {loading ? '⏳ Consultando Siigo...' : 'No hay productos. Presione "Sincronizar" para cargar.'}
                                 </td>
                             </tr>
