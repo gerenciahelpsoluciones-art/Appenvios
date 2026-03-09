@@ -440,7 +440,9 @@ function App() {
           tipoServicio: r.tipo_servicio,
           proveedorId: r.proveedor_id,
           proveedorNombre: r.proveedor_nombre,
-          fechaIngreso: r.fecha_ingreso
+          fechaIngreso: r.fecha_ingreso,
+          conductorId: r.conductor_id,
+          conductorNombre: r.conductor_nombre
         })));
       }
 
