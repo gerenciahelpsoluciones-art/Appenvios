@@ -13,9 +13,10 @@ interface IProps {
     onDeleteOC: (id: string) => void;
     currentUser: AppUser;
     totalOrdenes?: number;
+    currentTrm: number;
 }
 
-const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenesCompra, onAddOC, onUpdateOC, onDeleteOC, currentUser, totalOrdenes }) => {
+const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenesCompra, onAddOC, onUpdateOC, onDeleteOC, currentUser, totalOrdenes, currentTrm }) => {
     const [isAdding, setIsAdding] = useState(false);
     const [selectedProveedor, setSelectedProveedor] = useState<string>('');
     const [condiciones, setCondiciones] = useState('Contado');
@@ -304,7 +305,11 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenes
                                             const p = productos.find(x => x.id === e.target.value);
                                             setSelectedProdId(e.target.value);
                                             if (p) {
-                                                setPrecioUnitario(p.precioCompra || 0);
+                                                let cost = p.precioCompra || 0;
+                                                if (p.moneda === 'USD' && currentTrm > 0) {
+                                                    cost = Math.round(cost * currentTrm);
+                                                }
+                                                setPrecioUnitario(cost);
                                                 setExentoIva(p.exentoIva || false);
                                             }
                                         }}

@@ -85,6 +85,9 @@ export interface Producto {
   descripcion: string;
   unidad: string;
   precioCompra: number;
+  moneda: 'COP' | 'USD';
+  trmReferencia?: number;
+  tipo: 'Producto' | 'Servicio';
   exentoIva?: boolean;
   history: { date: string; price: number }[];
 }
@@ -285,6 +288,7 @@ function App() {
   const [budgets, setBudgets] = useState<SalesBudget[]>([]);
   const [users, setUsers] = useState<AppUser[]>([]);
   const [realtimeStatus, setRealtimeStatus] = useState<string>('Desconectado');
+  const [currentTrm, setCurrentTrm] = useState<number>(0);
 
   // Session state
   const [isLoggedIn, setIsLoggedIn] = useState(() => localStorage.getItem('hs_is_logged_in') === 'true');
@@ -341,6 +345,9 @@ function App() {
           ...p,
           numPart: p.num_part,
           precioCompra: p.precio_compra,
+          moneda: p.moneda || 'COP',
+          trmReferencia: p.trm_referencia,
+          tipo: p.tipo || 'Producto',
           exentoIva: !!p.exento_iva
         })));
       }
@@ -467,6 +474,17 @@ function App() {
           usuarioId: b.usuario_id,
           nombreVendedor: b.nombre_vendedor
         })));
+      }
+
+      // Fetch TRM
+      try {
+        const res = await fetch('https://co.dolarapi.com/v1/trm');
+        const data = await res.json();
+        if (data && data.valor) {
+          setCurrentTrm(data.valor);
+        }
+      } catch (err) {
+        console.error('Error fetching TRM in App:', err);
       }
     } catch (error) {
       console.error('Error fetching initial data:', error);
@@ -659,11 +677,14 @@ function App() {
 
   const addProducto = async (p: Producto) => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { id, numPart, precioCompra, exentoIva, ...cleanProd } = p;
+    const { id, numPart, precioCompra, exentoIva, moneda, trmReferencia, tipo, ...cleanProd } = p;
     const { data, error } = await supabase.from('productos').insert([{
       ...cleanProd,
       num_part: p.numPart,
       precio_compra: p.precioCompra,
+      moneda: p.moneda || 'COP',
+      trm_referencia: p.trmReferencia,
+      tipo: p.tipo || 'Producto',
       exento_iva: p.exentoIva || false
     }]).select();
     if (error) {
@@ -674,17 +695,23 @@ function App() {
         ...dbProd,
         numPart: dbProd.num_part,
         precioCompra: dbProd.precio_compra,
+        moneda: dbProd.moneda || 'COP',
+        trmReferencia: dbProd.trm_referencia,
+        tipo: dbProd.tipo || 'Producto',
         exentoIva: !!dbProd.exento_iva
       } as Producto]);
     }
   };
   const updateProducto = async (p: Producto) => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { id, numPart, precioCompra, exentoIva, ...cleanProd } = p;
+    const { id, numPart, precioCompra, exentoIva, moneda, trmReferencia, tipo, ...cleanProd } = p;
     const { error } = await supabase.from('productos').update({
       ...cleanProd,
       num_part: p.numPart,
       precio_compra: p.precioCompra,
+      moneda: p.moneda || 'COP',
+      trm_referencia: p.trmReferencia,
+      tipo: p.tipo || 'Producto',
       exento_iva: p.exentoIva || false
     }).eq('id', p.id);
     if (!error) setProductos(productos.map(item => item.id === p.id ? p : item));
@@ -1356,6 +1383,7 @@ function App() {
           onAddQuote={addCotizacion}
           onSendWhatsApp={sendWhatsAppNotification}
           currentUser={currentUser}
+          currentTrm={currentTrm}
         />;
       case 'ordenes-compra':
         const filteredOCsToModule = currentUser.rol === 'Admin'
@@ -1371,9 +1399,10 @@ function App() {
           onDeleteOC={deleteOrdenCompra}
           currentUser={currentUser}
           totalOrdenes={ordenesCompra.length}
+          currentTrm={currentTrm}
         />;
       case 'productos':
-        return <ProductosModule productos={productos} onAdd={addProducto} onUpdate={updateProducto} onDelete={deleteProducto} />;
+        return <ProductosModule productos={productos} onAdd={addProducto} onUpdate={updateProducto} onDelete={deleteProducto} currentTrm={currentTrm} />;
       case 'proveedores':
         return <ProveedoresModule proveedores={proveedores} onAdd={addProveedor} onUpdate={updateProveedor} onDelete={deleteProveedor} />;
       case 'conductores':

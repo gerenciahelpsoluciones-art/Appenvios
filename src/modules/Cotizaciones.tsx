@@ -21,6 +21,7 @@ interface IProps {
     onAddQuote: (c: Cotizacion) => void;
     onSendWhatsApp: (phone: string, message: string) => void;
     currentUser: AppUser;
+    currentTrm: number;
 }
 
 const CotizacionesModule: React.FC<IProps> = ({
@@ -29,7 +30,8 @@ const CotizacionesModule: React.FC<IProps> = ({
     cotizaciones,
     onAddQuote,
     onSendWhatsApp,
-    currentUser
+    currentUser,
+    currentTrm
 }) => {
     // Helper to generate dynamic consecutive
     const generateConsecutivo = () => {
@@ -97,7 +99,13 @@ BBVA - Cuenta Corriente No. 390021475`;
             if (item.id === id) {
                 if (field === 'productoId') {
                     const prod = productos.find(p => p.id === value);
-                    const costo = prod?.precioCompra || 0;
+                    let costo = prod?.precioCompra || 0;
+
+                    // Conversion logic if product is in USD
+                    if (prod?.moneda === 'USD' && currentTrm > 0) {
+                        costo = Math.round(costo * currentTrm);
+                    }
+
                     const defaultUtil = 15;
                     const defaultVenta = costo > 0 ? Math.round(costo / (1 - (defaultUtil / 100))) : 0;
                     return { ...item, productoId: value, costoUnitario: costo, precioVenta: defaultVenta, utilidad: defaultUtil, unidad: prod?.unidad || 'Und', iva: prod?.exentoIva ? 0 : 19 };

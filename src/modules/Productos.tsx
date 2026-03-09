@@ -7,9 +7,10 @@ interface IProps {
     onAdd: (p: Producto) => void;
     onUpdate: (p: Producto) => void;
     onDelete: (id: string) => void;
+    currentTrm: number;
 }
 
-const ProductosModule: React.FC<IProps> = ({ productos, onAdd, onUpdate, onDelete }) => {
+const ProductosModule: React.FC<IProps> = ({ productos, onAdd, onUpdate, onDelete, currentTrm }) => {
     const [activeTab, setActiveTab] = useState<'locales' | 'siigo'>('locales');
     const [selectedProduct, setSelectedProduct] = useState<Producto | null>(null);
     const [isAdding, setIsAdding] = useState(false);
@@ -21,6 +22,8 @@ const ProductosModule: React.FC<IProps> = ({ productos, onAdd, onUpdate, onDelet
         descripcion: '',
         unidad: 'Und',
         precioCompra: 0,
+        moneda: 'COP',
+        tipo: 'Producto',
         exentoIva: false
     });
 
@@ -31,6 +34,8 @@ const ProductosModule: React.FC<IProps> = ({ productos, onAdd, onUpdate, onDelet
                 const updated: Producto = {
                     ...formData as Producto,
                     id: editingId,
+                    moneda: formData.moneda || 'COP',
+                    trmReferencia: formData.moneda === 'USD' ? (formData.trmReferencia || currentTrm || undefined) : undefined,
                     history: existing ? [...existing.history, { date: new Date().toISOString().split('T')[0], price: formData.precioCompra || 0 }] : []
                 };
                 onUpdate(updated);
@@ -39,12 +44,15 @@ const ProductosModule: React.FC<IProps> = ({ productos, onAdd, onUpdate, onDelet
                 const prod: Producto = {
                     ...formData as Producto,
                     id: crypto.randomUUID(),
+                    moneda: formData.moneda || 'COP',
+                    tipo: formData.tipo || 'Producto',
+                    trmReferencia: formData.moneda === 'USD' ? (currentTrm || undefined) : undefined,
                     history: [{ date: new Date().toISOString().split('T')[0], price: formData.precioCompra || 0 }]
                 };
                 onAdd(prod);
                 setIsAdding(false);
             }
-            setFormData({ nombre: '', numPart: '', descripcion: '', unidad: 'Und', precioCompra: 0, exentoIva: false });
+            setFormData({ nombre: '', numPart: '', descripcion: '', unidad: 'Und', precioCompra: 0, moneda: 'COP', tipo: 'Producto', exentoIva: false });
         }
     };
 
@@ -57,7 +65,7 @@ const ProductosModule: React.FC<IProps> = ({ productos, onAdd, onUpdate, onDelet
     const cancel = () => {
         setIsAdding(false);
         setEditingId(null);
-        setFormData({ nombre: '', numPart: '', descripcion: '', unidad: 'Und', precioCompra: 0, exentoIva: false });
+        setFormData({ nombre: '', numPart: '', descripcion: '', unidad: 'Und', precioCompra: 0, moneda: 'COP', tipo: 'Producto', exentoIva: false });
     };
 
     return (
@@ -97,7 +105,7 @@ const ProductosModule: React.FC<IProps> = ({ productos, onAdd, onUpdate, onDelet
                                 />
                             </div>
                         </div>
-                        <button onClick={() => { setIsAdding(true); setEditingId(null); setFormData({ nombre: '', numPart: '', descripcion: '', unidad: 'Und', precioCompra: 0, exentoIva: false }); }}>+ Nuevo Producto</button>
+                        <button onClick={() => { setIsAdding(true); setEditingId(null); setFormData({ nombre: '', numPart: '', descripcion: '', unidad: 'Und', precioCompra: 0, moneda: 'COP', tipo: 'Producto', exentoIva: false }); }}>+ Nuevo Producto</button>
                     </div>
 
                     {(isAdding || editingId) && (
@@ -106,8 +114,23 @@ const ProductosModule: React.FC<IProps> = ({ productos, onAdd, onUpdate, onDelet
                             <div className="form-grid-modern">
                                 <div className="form-row">
                                     <div className="form-group flex-2">
-                                        <label>Nombre del Producto</label>
-                                        <input className="input-field" placeholder="Ej: Laptop Pro" value={formData.nombre} onChange={e => setFormData({ ...formData, nombre: e.target.value })} />
+                                        <label>Nombre del Producto / Servicio</label>
+                                        <input className="input-field" placeholder="Ej: Laptop Pro, Licencia, Soporte..." value={formData.nombre} onChange={e => setFormData({ ...formData, nombre: e.target.value })} />
+                                    </div>
+                                    <div className="form-group flex-1">
+                                        <label>Tipo</label>
+                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                            <button
+                                                className={`btn-toggle ${formData.tipo === 'Producto' ? 'active' : ''}`}
+                                                style={{ flex: 1, padding: '0.55rem', background: formData.tipo === 'Producto' ? 'var(--primary-blue)' : '#f1f5f9', color: formData.tipo === 'Producto' ? 'white' : 'var(--text-main)', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 600, transition: 'all 0.2s' }}
+                                                onClick={() => setFormData({ ...formData, tipo: 'Producto' })}
+                                            >📦 Producto</button>
+                                            <button
+                                                className={`btn-toggle ${formData.tipo === 'Servicio' ? 'active' : ''}`}
+                                                style={{ flex: 1, padding: '0.55rem', background: formData.tipo === 'Servicio' ? 'var(--primary-blue)' : '#f1f5f9', color: formData.tipo === 'Servicio' ? 'white' : 'var(--text-main)', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 600, transition: 'all 0.2s' }}
+                                                onClick={() => setFormData({ ...formData, tipo: 'Servicio' })}
+                                            >🛠️ Servicio</button>
+                                        </div>
                                     </div>
                                     <div className="form-group flex-1">
                                         <label>N° Parte</label>
@@ -127,11 +150,45 @@ const ProductosModule: React.FC<IProps> = ({ productos, onAdd, onUpdate, onDelet
                                         <label>Unidad</label>
                                         <input className="input-field" placeholder="Und, Pza, Mts..." value={formData.unidad} onChange={e => setFormData({ ...formData, unidad: e.target.value })} />
                                     </div>
+                                    <div className="form-group" style={{ flex: 0.5 }}>
+                                        <label>Moneda</label>
+                                        <select
+                                            className="input-field"
+                                            value={formData.moneda}
+                                            onChange={e => setFormData({ ...formData, moneda: e.target.value as 'COP' | 'USD' })}
+                                        >
+                                            <option value="COP">Peso (COP)</option>
+                                            <option value="USD">Dólar (USD)</option>
+                                        </select>
+                                    </div>
                                     <div className="form-group">
-                                        <label>Precio Compra</label>
-                                        <input className="input-field" type="number" placeholder="0.00" value={formData.precioCompra} onChange={e => setFormData({ ...formData, precioCompra: Number(e.target.value) })} />
+                                        <label>Costo de Compra</label>
+                                        <div style={{ position: 'relative' }}>
+                                            <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontWeight: 600 }}>
+                                                {formData.moneda === 'USD' ? 'US$' : '$'}
+                                            </span>
+                                            <input
+                                                className="input-field"
+                                                type="number"
+                                                step="0.01"
+                                                placeholder="0.00"
+                                                style={{ paddingLeft: '2.5rem' }}
+                                                value={formData.precioCompra}
+                                                onChange={e => setFormData({ ...formData, precioCompra: Number(e.target.value) })}
+                                            />
+                                        </div>
                                     </div>
                                 </div>
+                                {formData.moneda === 'USD' && currentTrm > 0 && (
+                                    <div style={{ background: '#f0f9ff', padding: '0.75rem', borderRadius: '8px', border: '1px solid #bae6fd', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <span style={{ fontSize: '0.85rem', color: '#0369a1' }}>
+                                            📈 TRM Hoy: <strong>${currentTrm.toLocaleString()}</strong>
+                                        </span>
+                                        <span style={{ fontSize: '0.85rem', color: '#0369a1' }}>
+                                            Valor ref: <strong>${(formData.precioCompra! * currentTrm).toLocaleString()} COP</strong>
+                                        </span>
+                                    </div>
+                                )}
                                 <div className="form-row">
                                     <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem', marginTop: '1rem' }}>
                                         <input
@@ -159,7 +216,8 @@ const ProductosModule: React.FC<IProps> = ({ productos, onAdd, onUpdate, onDelet
                             <table className="data-table">
                                 <thead>
                                     <tr>
-                                        <th style={{ minWidth: '200px' }}>Producto</th>
+                                        <th style={{ width: '60px' }}>Tipo</th>
+                                        <th style={{ minWidth: '200px' }}>Producto / Servicio</th>
                                         <th style={{ minWidth: '150px' }}>N° Parte</th>
                                         <th style={{ minWidth: '350px' }}>Descripción</th>
                                         <th style={{ minWidth: '100px' }}>Unidad</th>
@@ -173,6 +231,11 @@ const ProductosModule: React.FC<IProps> = ({ productos, onAdd, onUpdate, onDelet
                                         (p.numPart || '').toLowerCase().includes(searchTerm.toLowerCase())
                                     ).map(p => (
                                         <tr key={p.id}>
+                                            <td className="text-center">
+                                                <span title={p.tipo} style={{ fontSize: '1.4rem' }}>
+                                                    {p.tipo === 'Servicio' ? '🛠️' : '📦'}
+                                                </span>
+                                            </td>
                                             <td><strong>
                                                 {p.nombre}
                                                 {p.exentoIva && <span className="exento-badge" style={{ marginLeft: '0.5rem' }}>Sin IVA</span>}
@@ -181,7 +244,14 @@ const ProductosModule: React.FC<IProps> = ({ productos, onAdd, onUpdate, onDelet
                                             <td style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{p.descripcion}</td>
                                             <td>{p.unidad}</td>
                                             <td className="text-right font-bold price-cell" style={{ fontFamily: 'Courier New, monospace' }}>
-                                                ${p.precioCompra.toLocaleString()}
+                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                                                    <span>{p.moneda === 'USD' ? 'US$' : '$'}{p.precioCompra.toLocaleString()}</span>
+                                                    {p.moneda === 'USD' && p.trmReferencia && (
+                                                        <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 'normal' }}>
+                                                            TRM: ${p.trmReferencia.toLocaleString()}
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </td>
                                             <td className="text-center">
                                                 <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
@@ -210,7 +280,9 @@ const ProductosModule: React.FC<IProps> = ({ productos, onAdd, onUpdate, onDelet
                                         {selectedProduct.history.map((h, i) => (
                                             <li key={i}>
                                                 <span className="history-date">{h.date}</span>
-                                                <span className="history-price">${h.price.toLocaleString()}</span>
+                                                <span className="history-price">
+                                                    {selectedProduct.moneda === 'USD' ? 'US$' : '$'}{h.price.toLocaleString()}
+                                                </span>
                                             </li>
                                         ))}
                                     </ul>
