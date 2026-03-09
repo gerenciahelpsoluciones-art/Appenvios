@@ -12,6 +12,7 @@ interface QuoteItem {
     precioVenta: number;
     utilidad: number; // %
     iva: number; // %
+    moneda?: 'COP' | 'USD';
 }
 
 interface IProps {
@@ -100,15 +101,21 @@ BBVA - Cuenta Corriente No. 390021475`;
                 if (field === 'productoId') {
                     const prod = productos.find(p => p.id === value);
                     let costo = prod?.precioCompra || 0;
+                    const monedaItem = prod?.moneda || 'COP';
 
                     // Conversion logic if product is in USD
-                    if (prod?.moneda === 'USD' && currentTrm > 0) {
+                    if (monedaItem === 'USD' && currentTrm > 0) {
                         costo = Math.round(costo * currentTrm);
+
+                        // Add TRM note if not present
+                        if (!condiciones.includes('TRM')) {
+                            setCondiciones(prev => prev + `\n\nNota: Los precios de productos en USD se convirtieron a COP usando una TRM de $${currentTrm.toLocaleString()}.`);
+                        }
                     }
 
                     const defaultUtil = 15;
                     const defaultVenta = costo > 0 ? Math.round(costo / (1 - (defaultUtil / 100))) : 0;
-                    return { ...item, productoId: value, costoUnitario: costo, precioVenta: defaultVenta, utilidad: defaultUtil, unidad: prod?.unidad || 'Und', iva: prod?.exentoIva ? 0 : 19 };
+                    return { ...item, productoId: value, costoUnitario: costo, precioVenta: defaultVenta, utilidad: defaultUtil, unidad: prod?.unidad || 'Und', iva: prod?.exentoIva ? 0 : 19, moneda: monedaItem };
                 }
                 if (field === 'costoUnitario') {
                     const newCosto = Number(value);
@@ -218,7 +225,8 @@ BBVA - Cuenta Corriente No. 390021475`;
                 estado: 'Seguimiento',
                 requiereAutorizacion: marginPercent < 10,
                 autorizada: false,
-                condiciones: condiciones
+                condiciones: condiciones,
+                trm: currentTrm
             });
 
             // If margin >= 10, generate PDF
@@ -351,7 +359,7 @@ BBVA - Cuenta Corriente No. 390021475`;
                                         <option value="">-- Producto --</option>
                                         {productos.map(p => (
                                             <option key={p.id} value={p.id}>
-                                                {p.nombre} {p.numPart ? `(${p.numPart})` : ''}
+                                                {p.moneda === 'USD' ? '🇺🇸' : '🇨🇴'} {p.nombre} {p.numPart ? `(${p.numPart})` : ''}
                                             </option>
                                         ))}
                                     </select>
@@ -365,7 +373,16 @@ BBVA - Cuenta Corriente No. 390021475`;
                                     />
                                 </td>
                                 <td><input className="table-input num" type="number" value={item.cantidad} onChange={e => updateItem(item.id, 'cantidad', Number(e.target.value))} /></td>
-                                <td><input className="table-input num" type="number" value={item.costoUnitario} onChange={e => updateItem(item.id, 'costoUnitario', e.target.value === '' ? '' : Number(e.target.value))} /></td>
+                                <td>
+                                    <div style={{ position: 'relative' }}>
+                                        <input className="table-input num" type="number" value={item.costoUnitario} onChange={e => updateItem(item.id, 'costoUnitario', e.target.value === '' ? '' : Number(e.target.value))} />
+                                        {item.moneda === 'USD' && (
+                                            <span style={{ position: 'absolute', right: '5px', top: '-10px', fontSize: '0.65rem', color: '#0369a1', background: '#e0f2fe', padding: '1px 4px', borderRadius: '4px', border: '1px solid #bae6fd' }}>
+                                                USD conv.
+                                            </span>
+                                        )}
+                                    </div>
+                                </td>
                                 <td>
                                     <input
                                         className="table-input num"

@@ -316,7 +316,7 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenes
                                     >
                                         <option value="">Seleccione producto</option>
                                         {productos.map(p => (
-                                            <option key={p.id} value={p.id}>[{p.numPart}] {p.nombre}</option>
+                                            <option key={p.id} value={p.id}>{p.moneda === 'USD' ? '🇺🇸 ' : '🇨🇴 '}[{p.numPart}] {p.nombre}</option>
                                         ))}
                                     </select>
                                 </div>
@@ -330,13 +330,20 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenes
                                     />
                                 </div>
                                 <div className="form-group flex-1">
-                                    <label>Precio Unitario</label>
-                                    <input
-                                        type="number"
-                                        className="input-field"
-                                        value={precioUnitario}
-                                        onChange={e => setPrecioUnitario(Number(e.target.value))}
-                                    />
+                                    <label>Precio Unitario (COP)</label>
+                                    <div style={{ position: 'relative' }}>
+                                        <input
+                                            className="input-field"
+                                            type="number"
+                                            value={precioUnitario}
+                                            onChange={e => setPrecioUnitario(Number(e.target.value))}
+                                        />
+                                        {productos.find(p => p.id === selectedProdId)?.moneda === 'USD' && (
+                                            <span style={{ position: 'absolute', right: '10px', top: '-12px', fontSize: '0.65rem', color: '#0369a1', background: '#e0f2fe', padding: '2px 6px', borderRadius: '4px', border: '1px solid #bae6fd' }}>
+                                                Conv. USD a COP (TRM: ${currentTrm.toLocaleString()})
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                                 <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingBottom: '12px' }}>
                                     <input

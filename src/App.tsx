@@ -151,6 +151,7 @@ export interface CotizacionItem {
   costoUnitario: number;
   utilidad: number;
   iva: number;
+  moneda?: 'COP' | 'USD';
 }
 
 export interface Cotizacion {
@@ -176,6 +177,7 @@ export interface Cotizacion {
   condiciones?: string;
   ordenCompraCliente?: string;
   ordenCompraUrl?: string;
+  trm?: number;
 }
 
 export interface Conductor {
@@ -1286,6 +1288,7 @@ function App() {
     { id: 'alquileres', label: 'Alquileres', icon: '💻' },
     { id: 'facturacion', label: 'Facturación', icon: '💲' },
   ].filter(item => {
+    if (item.id === 'productos') return true; // Everyone can see/edit products
     if (item.id === 'facturacion' && currentUser?.rol === 'Admin') return true;
     return currentUser?.permisos.includes(item.id);
   });
