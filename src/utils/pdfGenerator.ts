@@ -20,8 +20,8 @@ export interface PDFData {
     };
 }
 
-export const generateQuotationPDF = (data: PDFData) => {
-    console.log("Generating PDF with data:", data);
+export const generateQuotationPDF = (data: PDFData, action: 'save' | 'view' = 'save') => {
+    console.log(`Generating PDF (${action}) with data:`, data);
     try {
         const doc = new jsPDF();
 
@@ -176,7 +176,13 @@ export const generateQuotationPDF = (data: PDFData) => {
 
         const safeClientName = (data.cliente?.nombre || 'CLIENTE').toUpperCase();
         const fileName = `COTIZACION HELP SOLUCIONES - ${safeClientName} - ${data.consecutivo || 'S-N'}.pdf`;
-        doc.save(fileName);
+
+        if (action === 'view') {
+            const blobUrl = doc.output('bloburl');
+            window.open(blobUrl, '_blank');
+        } else {
+            doc.save(fileName);
+        }
     } catch (error: any) {
         console.error("Error generating PDF:", error);
         alert(`Error detallado al generar el PDF: ${error.message || 'Error desconocido'}. Por favor reporte este mensaje.`);

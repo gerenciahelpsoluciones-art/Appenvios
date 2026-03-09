@@ -172,6 +172,7 @@ export interface Cotizacion {
   fechaAutorizacion?: string;
   condiciones?: string;
   ordenCompraCliente?: string;
+  ordenCompraUrl?: string;
 }
 
 export interface Conductor {
@@ -361,7 +362,8 @@ function App() {
           poseeCredito: !!c.posee_credito,
           cupoCredito: c.cupo_credito,
           utilidadTotal: Number(c.utilidad_total || 0),
-          ordenCompraCliente: c.orden_compra_cliente
+          ordenCompraCliente: c.orden_compra_cliente,
+          ordenCompraUrl: c.orden_compra_url
         })));
       }
 
@@ -896,7 +898,8 @@ function App() {
       autorizada: c.autorizada,
       autorizado_por: c.autorizadoPor,
       fecha_autorizacion: c.fechaAutorizacion,
-      orden_compra_cliente: c.ordenCompraCliente
+      orden_compra_cliente: c.ordenCompraCliente,
+      orden_compra_url: c.ordenCompraUrl
     };
 
     const { error: updateError } = await supabase.from('cotizaciones').update(quotePayload).eq('id', c.id);
@@ -1433,7 +1436,10 @@ function App() {
         return <FacturacionModule
           despachos={despachos}
           cotizaciones={cotizaciones}
+          clientes={clientes}
+          productos={productos}
           onUpdateDespacho={updateDespacho}
+          onUpdateQuote={updateCotizacion}
         />;
       case 'informes':
         const restrictedQuotes = currentUser.rol === 'Admin'

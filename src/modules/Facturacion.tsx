@@ -1,13 +1,18 @@
 import React, { useState } from 'react';
-import type { Despacho, Cotizacion } from '../App';
+import type { Despacho, Cotizacion, Cliente, Producto } from '../App';
+import { generateQuotationPDF } from '../utils/pdfGenerator';
+import { supabase } from '../lib/supabaseClient';
 
 interface IProps {
     despachos: Despacho[];
     cotizaciones: Cotizacion[];
+    clientes: Cliente[];
+    productos: Producto[];
     onUpdateDespacho: (d: Despacho) => void;
+    onUpdateQuote: (c: Cotizacion) => void;
 }
 
-const FacturacionModule: React.FC<IProps> = ({ despachos, cotizaciones, onUpdateDespacho }) => {
+const FacturacionModule: React.FC<IProps> = ({ despachos, cotizaciones, clientes, productos, onUpdateDespacho, onUpdateQuote }) => {
     const [activeTab, setActiveTab] = useState<'pendientes' | 'historial'>('pendientes');
     const [searchTerm, setSearchTerm] = useState('');
     const [viewingCot, setViewingCot] = useState<Cotizacion | null>(null);
@@ -32,6 +37,56 @@ const FacturacionModule: React.FC<IProps> = ({ despachos, cotizaciones, onUpdate
     };
 
     const findCotizacion = (id: string) => cotizaciones.find(c => c.id === id);
+
+    const handleGeneratePDF = (cot: Cotizacion, action: 'save' | 'view' = 'save') => {
+        const cliente = clientes.find(c => c.id === cot.clienteId);
+        if (!cliente) {
+            alert('No se encontró la información del cliente para generar el PDF.');
+            return;
+        }
+        generateQuotationPDF({
+            consecutivo: cot.consecutivo,
+            cliente,
+            items: cot.items,
+            productos,
+            subtotal: cot.subtotal,
+            iva: cot.iva,
+            total: cot.total,
+            condiciones: (cot as any).condiciones || '',
+            ejecutivo: {
+                nombre: cot.ejecutivo || 'N/A',
+                cargo: 'Ejecutivo Comercial',
+                telefono: cot.ejecutivoTelefono || '',
+                correo: cot.ejecutivoEmail || ''
+            }
+        }, action);
+    };
+
+    const handleOCUpload = async (cot: Cotizacion, file: File | null) => {
+        if (!file) return;
+
+        const timestamp = Date.now();
+        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const filePath = `ordenes_compra_clientes/${cot.id}/${timestamp}_${safeName}`;
+
+        const { error: uploadError } = await supabase.storage
+            .from('entregas') // Reusing the 'entregas' bucket as it's already configured
+            .upload(filePath, file, { upsert: true });
+
+        if (uploadError) {
+            console.error('Error subiendo O.C.:', uploadError);
+            alert(`Error al subir O.C.: ${uploadError.message}`);
+            return;
+        }
+
+        const { data: urlData } = supabase.storage
+            .from('entregas')
+            .getPublicUrl(filePath);
+
+        const publicUrl = urlData?.publicUrl || '';
+        onUpdateQuote({ ...cot, ordenCompraUrl: publicUrl });
+        alert('✅ Orden de Compra adjuntada correctamente.');
+    };
 
     return (
         <div className="module-container">
@@ -92,26 +147,62 @@ const FacturacionModule: React.FC<IProps> = ({ despachos, cotizaciones, onUpdate
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.85rem' }}>
                                             {/* Botón Cotización */}
                                             {cot ? (
-                                                <button
-                                                    onClick={() => setViewingCot(cot)}
-                                                    style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', borderRadius: '6px', padding: '0.3rem 0.7rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', width: 'fit-content' }}
-                                                >
-                                                    📄 Ver Cotización
-                                                </button>
+                                                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                                    <button
+                                                        onClick={() => setViewingCot(cot)}
+                                                        style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', borderRadius: '6px', padding: '0.3rem 0.7rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                                                    >
+                                                        📄 Ver Cotización
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleGeneratePDF(cot, 'view')}
+                                                        style={{ background: '#f0fdfa', border: '1px solid #ccfbf1', color: '#0d9488', borderRadius: '6px', padding: '0.3rem 0.7rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                                                    >
+                                                        👁️ Visualizar
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleGeneratePDF(cot, 'save')}
+                                                        style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', borderRadius: '6px', padding: '0.3rem 0.7rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                                                    >
+                                                        🖨️ PDF
+                                                    </button>
+                                                </div>
                                             ) : (
                                                 <span style={{ color: '#94a3b8', fontSize: '0.82rem' }}>📄 Cotización no encontrada</span>
                                             )}
 
                                             {/* Orden de Compra Cliente */}
-                                            {cot?.ordenCompraCliente ? (
-                                                <span style={{ color: '#0284c7', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                                    🛒 O.C. Cliente: <strong>{cot.ordenCompraCliente}</strong>
-                                                </span>
-                                            ) : (
-                                                <span style={{ color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                                    🛒 O.C. Cliente: N/A
-                                                </span>
-                                            )}
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                                                {cot?.ordenCompraCliente ? (
+                                                    <span style={{ color: '#0284c7' }}>
+                                                        🛒 O.C. Cliente: <strong>{cot.ordenCompraCliente}</strong>
+                                                    </span>
+                                                ) : (
+                                                    <span style={{ color: '#94a3b8' }}>
+                                                        🛒 O.C. Cliente: N/A
+                                                    </span>
+                                                )}
+
+                                                {cot?.ordenCompraUrl ? (
+                                                    <a
+                                                        href={cot.ordenCompraUrl}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        style={{ background: '#f0f9ff', border: '1px solid #bae6fd', color: '#0369a1', borderRadius: '4px', padding: '0.1rem 0.4rem', fontSize: '0.75rem', fontWeight: 'bold', textDecoration: 'none' }}
+                                                    >
+                                                        🔗 Ver Archivo
+                                                    </a>
+                                                ) : cot ? (
+                                                    <label style={{ background: '#f1f5f9', border: '1px dotted #cbd5e1', color: '#64748b', borderRadius: '4px', padding: '0.1rem 0.4rem', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 'bold' }}>
+                                                        📎 Adjuntar O.C.
+                                                        <input
+                                                            type="file"
+                                                            style={{ display: 'none' }}
+                                                            onChange={(e) => handleOCUpload(cot, e.target.files?.[0] || null)}
+                                                        />
+                                                    </label>
+                                                ) : null}
+                                            </div>
 
                                             {/* Remision / Foto Entrega */}
                                             {d.fotoRemision || d.fotoEntrega ? (
@@ -215,7 +306,7 @@ const FacturacionModule: React.FC<IProps> = ({ despachos, cotizaciones, onUpdate
                             <tbody>
                                 {viewingCot.items.map((item: any, idx: number) => (
                                     <tr key={idx} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                                        <td style={{ padding: '0.65rem 0.75rem' }}>{item.nombreProducto || item.productoId}</td>
+                                        <td style={{ padding: '0.65rem 0.75rem' }}>{item.nombreProducto || productos.find(p => p.id === item.productoId)?.nombre || item.productoId}</td>
                                         <td style={{ padding: '0.65rem 0.75rem', textAlign: 'center' }}>{item.cantidad}</td>
                                         <td style={{ padding: '0.65rem 0.75rem', textAlign: 'right' }}>${(item.costoUnitario || 0).toLocaleString()}</td>
                                         <td style={{ padding: '0.65rem 0.75rem', textAlign: 'right' }}>{item.iva}%</td>
@@ -236,9 +327,17 @@ const FacturacionModule: React.FC<IProps> = ({ despachos, cotizaciones, onUpdate
                             </div>
                         )}
 
-                        <button onClick={() => setViewingCot(null)} style={{ marginTop: '1.5rem', width: '100%', padding: '0.75rem', background: '#0f172a', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '1rem' }}>
-                            Cerrar
-                        </button>
+                        <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+                            <button
+                                onClick={() => handleGeneratePDF(viewingCot)}
+                                style={{ flex: 1, padding: '0.75rem', background: '#dc2626', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                            >
+                                🖨️ Descargar PDF
+                            </button>
+                            <button onClick={() => setViewingCot(null)} style={{ flex: 1, padding: '0.75rem', background: '#0f172a', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '1rem' }}>
+                                Cerrar
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
