@@ -9,7 +9,7 @@ interface QuoteItem {
     unidad: string;
     cantidad: number;
     costoUnitario: number;
-    utilidad: number; // %
+    precioVenta: number;
     iva: number; // %
 }
 
@@ -84,7 +84,7 @@ BBVA - Cuenta Corriente No. 390021475`;
             unidad: 'Und',
             cantidad: 1,
             costoUnitario: 0,
-            utilidad: 15,
+            precioVenta: 0,
             iva: 19
         };
         setItems([...items, newItem]);
@@ -95,7 +95,10 @@ BBVA - Cuenta Corriente No. 390021475`;
             if (item.id === id) {
                 if (field === 'productoId') {
                     const prod = productos.find(p => p.id === value);
-                    return { ...item, productoId: value, costoUnitario: prod?.precioCompra || 0, unidad: prod?.unidad || 'Und', iva: prod?.exentoIva ? 0 : 19 };
+                    const costo = prod?.precioCompra || 0;
+                    // Default 15% margin on cost when selecting a product
+                    const defaultVenta = costo > 0 ? Math.round(costo / (1 - 0.15)) : 0;
+                    return { ...item, productoId: value, costoUnitario: costo, precioVenta: defaultVenta, unidad: prod?.unidad || 'Und', iva: prod?.exentoIva ? 0 : 19 };
                 }
                 return { ...item, [field]: value };
             }
@@ -107,18 +110,7 @@ BBVA - Cuenta Corriente No. 390021475`;
     const updateVenta = (id: string, nuevoPrecioVenta: number) => {
         const newItems = items.map(item => {
             if (item.id === id) {
-                // If the sale price is 0 or less than the cost, the margin is 0 or negative.
-                if (nuevoPrecioVenta <= 0) {
-                    return { ...item, utilidad: 0 };
-                }
-                // Calculate margin percentage based on the formula: Margin % = ((Sale Price - Cost) / Sale Price) * 100
-                // Example: Cost 100, Sale 150 -> Margin = ((150-100)/150)*100 = 33.33%
-                let newMargin = ((nuevoPrecioVenta - item.costoUnitario) / nuevoPrecioVenta) * 100;
-
-                // Truncate or round to 2 decimals to prevent infinite JS fractions
-                newMargin = Math.round(newMargin * 100) / 100;
-
-                return { ...item, utilidad: newMargin };
+                return { ...item, precioVenta: nuevoPrecioVenta };
             }
             return item;
         });
@@ -126,13 +118,16 @@ BBVA - Cuenta Corriente No. 390021475`;
     };
 
     const calculateVenta = (item: QuoteItem) => {
-        // Limitar la utilidad máxima al 99.99% para evitar divisiones por cero o negativos.
-        const margin = Math.min(item.utilidad, 99.99) / 100;
-        return item.costoUnitario / (1 - margin);
+        return item.precioVenta;
+    };
+
+    const calculateMarginPercent = (item: QuoteItem) => {
+        if (item.precioVenta <= 0) return 0;
+        return ((item.precioVenta - item.costoUnitario) / item.precioVenta) * 100;
     };
 
     const calculateMarginTotal = (item: QuoteItem) => {
-        return (calculateVenta(item) - item.costoUnitario) * item.cantidad;
+        return (item.precioVenta - item.costoUnitario) * item.cantidad;
     };
 
     const calculateSubtotalItem = (item: QuoteItem) => {
@@ -151,9 +146,11 @@ BBVA - Cuenta Corriente No. 390021475`;
     const ivaGeneral = items.reduce((acc, item) => acc + calculateIVAItem(item), 0);
     const grandTotal = subtotalGeneral + ivaGeneral;
 
-    // Average margin percent is weighted by subtotal
+    // Average margin percent weighted by item count
     const profitTotal = items.reduce((acc, item) => acc + calculateMarginTotal(item), 0);
-    const marginPercent = items.reduce((acc, item) => acc + item.utilidad, 0) / (items.length || 1);
+    const marginPercent = items.length > 0
+        ? items.reduce((acc, item) => acc + calculateMarginPercent(item), 0) / items.length
+        : 0;
 
     const generatePDF = () => {
         if (!selectedCliente) {
@@ -186,7 +183,8 @@ BBVA - Cuenta Corriente No. 390021475`;
                     unidad: item.unidad,
                     cantidad: item.cantidad,
                     costoUnitario: item.costoUnitario,
-                    utilidad: item.utilidad,
+                    precioVenta: item.precioVenta,
+                    utilidad: Math.round(calculateMarginPercent(item) * 100) / 100,
                     iva: item.iva
                 })),
                 subtotal: subtotalGeneral,
@@ -348,13 +346,22 @@ BBVA - Cuenta Corriente No. 390021475`;
                                 </td>
                                 <td><input className="table-input num" type="number" value={item.cantidad} onChange={e => updateItem(item.id, 'cantidad', Number(e.target.value))} /></td>
                                 <td><input className="table-input num" type="number" value={item.costoUnitario} onChange={e => updateItem(item.id, 'costoUnitario', Number(e.target.value))} /></td>
-                                <td><input className="table-input num" type="number" value={item.utilidad} onChange={e => updateItem(item.id, 'utilidad', Number(e.target.value))} step="0.01" /></td>
+                                <td>
+                                    <input
+                                        className="table-input num"
+                                        type="number"
+                                        value={Math.round(calculateMarginPercent(item) * 100) / 100}
+                                        readOnly
+                                        title="Margen calculado automáticamente"
+                                        style={{ background: 'var(--background-light)', color: 'var(--text-muted)', cursor: 'not-allowed' }}
+                                    />
+                                </td>
                                 <td>
                                     <input
                                         className="table-input num"
                                         style={{ color: 'var(--primary-blue)', fontWeight: 'bold' }}
                                         type="number"
-                                        value={Math.round(calculateVenta(item))}
+                                        value={item.precioVenta}
                                         onChange={e => updateVenta(item.id, Number(e.target.value))}
                                     />
                                 </td>
