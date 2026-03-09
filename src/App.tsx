@@ -1364,6 +1364,7 @@ function App() {
           despachos={despachos}
           ordenesCompra={ordenesCompra}
           devoluciones={devoluciones}
+          reparaciones={reparaciones}
           proveedores={proveedores}
           clientes={clientes}
           onAdd={addConductor}
@@ -1372,6 +1373,7 @@ function App() {
           onUpdateDespacho={updateDespacho}
           onUpdateOC={updateOrdenCompra}
           onUpdateDevolucion={updateDevolucion}
+          onUpdateReparacion={updateReparacion}
           onSendWhatsApp={sendWhatsAppNotification}
         />;
       case 'alquileres':

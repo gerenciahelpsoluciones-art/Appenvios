@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { Conductor, Despacho, OrdenCompra, Cliente, Proveedor, Devolucion } from '../App';
+import type { Conductor, Despacho, OrdenCompra, Cliente, Proveedor, Devolucion, Reparacion } from '../App';
 import { supabase } from '../lib/supabaseClient';
 
 interface IProps {
@@ -7,6 +7,7 @@ interface IProps {
     despachos: Despacho[];
     ordenesCompra: OrdenCompra[];
     devoluciones: Devolucion[];
+    reparaciones: Reparacion[];
     proveedores: Proveedor[];
     clientes: Cliente[];
     onAdd: (c: Conductor) => void;
@@ -15,6 +16,7 @@ interface IProps {
     onUpdateDespacho: (d: Despacho) => void;
     onUpdateOC: (oc: OrdenCompra) => void;
     onUpdateDevolucion: (d: Devolucion) => void;
+    onUpdateReparacion: (r: Reparacion) => void;
     onSendWhatsApp: (phone: string, message: string) => void;
 }
 
@@ -23,6 +25,7 @@ const ConductoresModule: React.FC<IProps> = ({
     despachos,
     ordenesCompra,
     devoluciones,
+    reparaciones,
     proveedores,
     clientes,
     onAdd,
@@ -31,6 +34,7 @@ const ConductoresModule: React.FC<IProps> = ({
     onUpdateDespacho,
     onUpdateOC,
     onUpdateDevolucion,
+    onUpdateReparacion,
     onSendWhatsApp
 }) => {
     const [isAdding, setIsAdding] = useState(false);
@@ -142,6 +146,10 @@ const ConductoresModule: React.FC<IProps> = ({
             ...devoluciones.filter(dev => selectedTasks.includes(dev.id)).map(dev => {
                 const prov = proveedores.find(p => p.id === dev.proveedorId);
                 return prov?.coordenadas || prov?.direccion || dev.nombreProveedor;
+            }),
+            ...reparaciones.filter(r => selectedTasks.includes(r.id)).map(r => {
+                const prov = proveedores.find(p => p.id === r.proveedorId);
+                return prov?.coordenadas || prov?.direccion || r.proveedorNombre || r.clienteNombre;
             })
         ].filter(p => !!p);
 
@@ -156,11 +164,13 @@ const ConductoresModule: React.FC<IProps> = ({
         window.open(`${baseUrl}${routeString}`, '_blank');
     };
 
-    const markAsCompleted = (item: any, isOC: boolean) => {
-        if (isOC) {
+    const markAsCompleted = (item: any, type: 'oc' | 'dev' | 'despacho' | 'rep') => {
+        if (type === 'oc') {
             onUpdateOC({ ...item, estado: 'Recogido' });
-        } else if (item.consecutivo?.startsWith('DEV')) {
+        } else if (type === 'dev') {
             onUpdateDevolucion({ ...item, estado: 'Completado' });
+        } else if (type === 'rep') {
+            onUpdateReparacion({ ...item, estado: 'Entregado' });
         } else {
             const despacho = item as Despacho;
             onUpdateDespacho({ ...despacho, estado: 'Entregado' });
@@ -178,6 +188,7 @@ const ConductoresModule: React.FC<IProps> = ({
     const allAssignedDespachos = viewingRoutesId ? despachos.filter(d => d.conductorId === viewingRoutesId) : [];
     const allAssignedOCs = viewingRoutesId ? ordenesCompra.filter(oc => oc.conductorId === viewingRoutesId) : [];
     const allAssignedDevs = viewingRoutesId ? devoluciones.filter(dev => dev.conductorId === viewingRoutesId) : [];
+    const allAssignedReps = viewingRoutesId ? reparaciones.filter(r => r.conductorId === viewingRoutesId) : [];
 
     const pendingDespachos = allAssignedDespachos.filter(d => d.estado !== 'Entregado');
     const completedDespachos = allAssignedDespachos.filter(d => d.estado === 'Entregado');
@@ -187,6 +198,9 @@ const ConductoresModule: React.FC<IProps> = ({
 
     const pendingDevs = allAssignedDevs.filter(dev => dev.estado !== 'Completado');
     const completedDevs = allAssignedDevs.filter(dev => dev.estado === 'Completado');
+
+    const pendingReps = allAssignedReps.filter(r => r.estado !== 'Entregado' && r.estado !== 'Cerrado');
+    const completedReps = allAssignedReps.filter(r => r.estado === 'Entregado' || r.estado === 'Cerrado');
 
     const currentConductor = conductores.find(c => c.id === viewingRoutesId);
 
@@ -344,7 +358,7 @@ const ConductoresModule: React.FC<IProps> = ({
                                             <button className="btn-geo" onClick={() => openMap(d.direccion)} title="Mapa">📍 Localizar</button>
                                             <button
                                                 className="btn-complete"
-                                                onClick={() => markAsCompleted(d, false)}
+                                                onClick={() => markAsCompleted(d, 'despacho')}
                                                 disabled={d.estado === 'Entregado'}
                                             >
                                                 🏁 Entregado
@@ -401,7 +415,7 @@ const ConductoresModule: React.FC<IProps> = ({
                                             </button>
                                             <button
                                                 className="btn-complete"
-                                                onClick={() => markAsCompleted(oc, true)}
+                                                onClick={() => markAsCompleted(oc, 'oc')}
                                                 disabled={oc.estado === 'Recogido'}
                                                 style={{ backgroundColor: '#8b5cf6' }}
                                             >
@@ -448,7 +462,7 @@ const ConductoresModule: React.FC<IProps> = ({
                                             <button className="btn-geo" onClick={() => openMap(dev.nombreProveedor)} title="Mapa">📍 Localizar</button>
                                             <button
                                                 className="btn-complete"
-                                                onClick={() => markAsCompleted(dev, false)}
+                                                onClick={() => markAsCompleted(dev, 'dev')}
                                                 disabled={dev.estado === 'Completado'}
                                                 style={{ backgroundColor: '#f59e0b' }}
                                             >
@@ -471,12 +485,47 @@ const ConductoresModule: React.FC<IProps> = ({
                                 </div>
                             )) : <p className="empty-msg">No tiene devoluciones asignadas.</p>}
                         </div>
+
+                        <div className="task-column">
+                            <h4>🛠️ Reparaciones (Ext.)</h4>
+                            {pendingReps.length > 0 ? pendingReps.map(r => (
+                                <div key={r.id} className={`task-card rep-task ${selectedTasks.includes(r.id) ? 'selected-task' : ''}`} style={{ borderLeftColor: '#0ea5e9' }}>
+                                    <div className="task-main">
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                            <span className={`status-tag status-${r.estado.toLowerCase().replace(' ', '-')}`} style={{ background: '#e0f2fe', color: '#0369a1' }}>{r.estado}</span>
+                                            <input
+                                                type="checkbox"
+                                                className="task-checkbox"
+                                                checked={selectedTasks.includes(r.id)}
+                                                onChange={() => toggleTaskSelection(r.id)}
+                                            />
+                                        </div>
+                                        <p>{r.proveedorNombre || 'Proveedor Externo'}</p>
+                                        <strong>Equip: {r.tipo} {r.marca}</strong>
+                                        <small>Reparación de {r.clienteNombre}</small>
+                                    </div>
+                                    <div className="task-actions">
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                                            <button className="btn-geo" onClick={() => openMap(r.proveedorNombre || r.clienteNombre)} title="Mapa">📍 Localizar</button>
+                                            <button
+                                                className="btn-complete"
+                                                onClick={() => markAsCompleted(r, 'rep')}
+                                                disabled={r.estado === 'Entregado'}
+                                                style={{ backgroundColor: '#0ea5e9' }}
+                                            >
+                                                🏁 Entregado
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )) : <p className="empty-msg">No tiene reparaciones asignadas.</p>}
+                        </div>
                     </div>
 
-                    {(completedDespachos.length > 0 || completedOCs.length > 0) && (
+                    {(completedDespachos.length > 0 || completedOCs.length > 0 || completedDevs.length > 0 || completedReps.length > 0) && (
                         <div className="completed-section animate-fade-in" style={{ marginTop: '3rem', borderTop: '2px dashed #cbd5e1', paddingTop: '2rem' }}>
                             <h3 style={{ color: '#059669', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
-                                ✅ Tareas Finalizadas ({completedDespachos.length + completedOCs.length + completedDevs.length})
+                                ✅ Tareas Finalizadas ({completedDespachos.length + completedOCs.length + completedDevs.length + completedReps.length})
                             </h3>
                             <div className="completed-grid" style={{ overflowX: 'auto' }}>
                                 <table className="data-table" style={{ background: '#f8fafc' }}>
@@ -515,6 +564,15 @@ const ConductoresModule: React.FC<IProps> = ({
                                                 <td>{dev.nombreProveedor}</td>
                                                 <td><small>Bodega Proveedor</small></td>
                                                 <td className="text-center"><span className="status-tag" style={{ background: '#dcfce7', color: '#15803d' }}>COMPLETADO</span></td>
+                                            </tr>
+                                        ))}
+                                        {completedReps.map(r => (
+                                            <tr key={r.id} style={{ opacity: 0.8 }}>
+                                                <td><span className="badge-type" style={{ background: '#e0f2fe', color: '#0369a1' }}>Reparación</span></td>
+                                                <td><strong>{r.consecutivo}</strong></td>
+                                                <td>{r.proveedorNombre || 'N/A'}</td>
+                                                <td><small>Proveedor</small></td>
+                                                <td className="text-center"><span className="status-tag status-entregado">ENTREGADO</span></td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -641,7 +699,7 @@ const ConductoresModule: React.FC<IProps> = ({
                 .badge-type.pickup { background: #f3e8ff; color: #7e22ce; }
                 .status-tag.status-entregado { background: #dcfce7; color: #15803d; padding: 0.2rem 0.6rem; border-radius: 20px; font-size: 0.75rem; font-weight: 800; }
                 .status-tag.status-recogido { background: #f3e8ff; color: #7e22ce; padding: 0.2rem 0.6rem; border-radius: 20px; font-size: 0.75rem; font-weight: 800; }
-                .tasks-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+                .tasks-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; }
                 .upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
                 .btn-geo { background: #3b82f6; }
                 .upload-group label { display: block; font-size: 0.75rem; font-weight: 700; margin-bottom: 0.2rem; color: var(--text-muted); }
