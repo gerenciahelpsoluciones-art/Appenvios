@@ -143,86 +143,88 @@ const FacturacionModule: React.FC<IProps> = ({ despachos, cotizaciones, clientes
                                         <div style={{ fontWeight: '600', color: '#0f172a' }}>{d.clienteNombre}</div>
                                         <div className="text-muted" style={{ fontSize: '0.85rem' }}>NIT: {d.clienteId}</div>
                                     </td>
-                                    <td>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.85rem' }}>
-                                            {/* Botón Cotización */}
-                                            {cot ? (
-                                                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                                    <button
-                                                        onClick={() => setViewingCot(cot)}
-                                                        style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', borderRadius: '6px', padding: '0.3rem 0.7rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
-                                                    >
-                                                        📄 Ver Cotización
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleGeneratePDF(cot, 'view')}
-                                                        style={{ background: '#f0fdfa', border: '1px solid #ccfbf1', color: '#0d9488', borderRadius: '6px', padding: '0.3rem 0.7rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
-                                                    >
-                                                        👁️ Visualizar
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleGeneratePDF(cot, 'save')}
-                                                        style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', borderRadius: '6px', padding: '0.3rem 0.7rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
-                                                    >
-                                                        🖨️ PDF
-                                                    </button>
-                                                </div>
-                                            ) : (
-                                                <span style={{ color: '#94a3b8', fontSize: '0.82rem' }}>📄 Cotización no encontrada</span>
-                                            )}
-
-                                            {/* Orden de Compra Cliente */}
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
-                                                {cot?.ordenCompraCliente ? (
-                                                    <span style={{ color: '#0284c7' }}>
-                                                        🛒 O.C. Cliente: <strong>{cot.ordenCompraCliente}</strong>
-                                                    </span>
+                                    <td style={{ verticalAlign: 'top' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem', padding: '0.25rem 0' }}>
+                                            {/* Sección Cotización */}
+                                            <div className="evidence-group" style={{ background: '#f8fafc', padding: '0.5rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                                <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '0.4rem', letterSpacing: '0.025em' }}>Cotización</div>
+                                                {cot ? (
+                                                    <div style={{ display: 'flex', gap: '0.3rem', flexDirection: 'column' }}>
+                                                        <button
+                                                            onClick={() => setViewingCot(cot)}
+                                                            className="btn-evidence"
+                                                            style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}
+                                                        >
+                                                            📋 Detalles
+                                                        </button>
+                                                        <div style={{ display: 'flex', gap: '0.3rem' }}>
+                                                            <button
+                                                                onClick={() => handleGeneratePDF(cot, 'view')}
+                                                                className="btn-evidence-icon"
+                                                                style={{ background: '#f0fdfa', color: '#0d9488', border: '1px solid #ccfbf1', flex: 1 }}
+                                                                title="Visualizar PDF"
+                                                            >
+                                                                👁️
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleGeneratePDF(cot, 'save')}
+                                                                className="btn-evidence-icon"
+                                                                style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', flex: 1 }}
+                                                                title="Descargar PDF"
+                                                            >
+                                                                🖨️
+                                                            </button>
+                                                        </div>
+                                                    </div>
                                                 ) : (
-                                                    <span style={{ color: '#94a3b8' }}>
-                                                        🛒 O.C. Cliente: N/A
-                                                    </span>
+                                                    <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontStyle: 'italic' }}>No encontrada</div>
                                                 )}
+                                            </div>
 
+                                            {/* Sección O.C. Cliente */}
+                                            <div className="evidence-group" style={{ background: '#f8fafc', padding: '0.5rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                                <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '0.4rem', letterSpacing: '0.025em' }}>O.C. Cliente</div>
+                                                <div style={{ fontSize: '0.8rem', fontWeight: 600, color: cot?.ordenCompraCliente ? '#0f172a' : '#94a3b8', marginBottom: '0.4rem' }}>
+                                                    {cot?.ordenCompraCliente || 'Sin número'}
+                                                </div>
                                                 {cot?.ordenCompraUrl ? (
                                                     <a
                                                         href={cot.ordenCompraUrl}
                                                         target="_blank"
                                                         rel="noreferrer"
-                                                        style={{ background: '#f0f9ff', border: '1px solid #bae6fd', color: '#0369a1', borderRadius: '4px', padding: '0.1rem 0.4rem', fontSize: '0.75rem', fontWeight: 'bold', textDecoration: 'none' }}
+                                                        className="btn-evidence"
+                                                        style={{ background: '#f0f9ff', color: '#0369a1', border: '1px solid #bae6fd', textAlign: 'center', textDecoration: 'none', display: 'block' }}
                                                     >
                                                         🔗 Ver Archivo
                                                     </a>
                                                 ) : cot ? (
-                                                    <label style={{ background: '#f1f5f9', border: '1px dotted #cbd5e1', color: '#64748b', borderRadius: '4px', padding: '0.1rem 0.4rem', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 'bold' }}>
-                                                        📎 Adjuntar O.C.
-                                                        <input
-                                                            type="file"
-                                                            style={{ display: 'none' }}
-                                                            onChange={(e) => handleOCUpload(cot, e.target.files?.[0] || null)}
-                                                        />
+                                                    <label className="btn-evidence" style={{ background: '#ffffff', color: '#64748b', border: '1px dashed #cbd5e1', textAlign: 'center', cursor: 'pointer', display: 'block' }}>
+                                                        📎 Adjuntar
+                                                        <input type="file" style={{ display: 'none' }} onChange={(e) => handleOCUpload(cot, e.target.files?.[0] || null)} />
                                                     </label>
                                                 ) : null}
                                             </div>
 
-                                            {/* Remision / Foto Entrega */}
-                                            {d.fotoRemision || d.fotoEntrega ? (
-                                                <div style={{ display: 'flex', gap: '0.8rem', marginTop: '0.2rem' }}>
-                                                    {d.fotoRemision && (
-                                                        <a href={d.fotoRemision} target="_blank" rel="noreferrer" style={{ color: '#16a34a', textDecoration: 'none', fontWeight: 'bold', background: '#dcfce7', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
-                                                            📸 Ver Remisión
-                                                        </a>
-                                                    )}
-                                                    {d.fotoEntrega && (
-                                                        <a href={d.fotoEntrega} target="_blank" rel="noreferrer" style={{ color: '#16a34a', textDecoration: 'none', fontWeight: 'bold', background: '#dcfce7', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
-                                                            📸 Ver Foto
-                                                        </a>
-                                                    )}
-                                                </div>
-                                            ) : (
-                                                <span style={{ color: '#ef4444', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                                    ⚠️ Sin evidencias gráficas
-                                                </span>
-                                            )}
+                                            {/* Sección Logística */}
+                                            <div className="evidence-group" style={{ background: '#f8fafc', padding: '0.5rem', borderRadius: '8px', border: '1px solid #e2e8f0', gridColumn: 'span 1' }}>
+                                                <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '0.4rem', letterSpacing: '0.025em' }}>Logística</div>
+                                                {d.fotoRemision || d.fotoEntrega ? (
+                                                    <div style={{ display: 'flex', gap: '0.3rem', flexDirection: 'column' }}>
+                                                        {d.fotoRemision && (
+                                                            <a href={d.fotoRemision} target="_blank" rel="noreferrer" className="btn-evidence" style={{ background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', textDecoration: 'none', textAlign: 'center' }}>
+                                                                📦 Remisión
+                                                            </a>
+                                                        )}
+                                                        {d.fotoEntrega && (
+                                                            <a href={d.fotoEntrega} target="_blank" rel="noreferrer" className="btn-evidence" style={{ background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', textDecoration: 'none', textAlign: 'center' }}>
+                                                                🚚 Entrega
+                                                            </a>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <div style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: 600 }}>⚠️ Sin fotos</div>
+                                                )}
+                                            </div>
                                         </div>
                                     </td>
                                     <td className="text-right">
@@ -273,74 +275,165 @@ const FacturacionModule: React.FC<IProps> = ({ despachos, cotizaciones, clientes
 
             {/* MODAL VER COTIZACIÓN */}
             {viewingCot && (
-                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-                    <div style={{ background: 'white', borderRadius: '12px', padding: '2rem', maxWidth: '700px', width: '95%', maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 25px 50px rgba(0,0,0,0.25)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '1rem' }}>
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
+                    <div className="card animate-fade-in" style={{ maxWidth: '800px', width: '100%', maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: 0 }}>
+                        <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc' }}>
                             <div>
-                                <h3 style={{ margin: 0, color: '#0f172a' }}>📄 Cotización: {viewingCot.consecutivo}</h3>
-                                <small style={{ color: '#64748b' }}>Fecha: {viewingCot.fecha} · Ejecutivo: {viewingCot.ejecutivo || 'N/A'}</small>
+                                <h3 style={{ margin: 0, color: '#0f172a', fontSize: '1.25rem' }}>📄 Detalles de la Cotización</h3>
+                                <div style={{ color: '#64748b', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+                                    <span style={{ fontWeight: 700, color: '#0369a1' }}>{viewingCot.consecutivo}</span> · {viewingCot.fecha}
+                                </div>
                             </div>
-                            <button onClick={() => setViewingCot(null)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#64748b', lineHeight: 1 }}>×</button>
+                            <button onClick={() => setViewingCot(null)} style={{ background: '#f1f5f9', border: 'none', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b', fontSize: '1.2rem' }}>×</button>
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-                            <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px' }}>
-                                <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '0.3rem' }}>CLIENTE</div>
-                                <strong>{viewingCot.clienteNombre}</strong>
+                        <div style={{ padding: '2rem', overflowY: 'auto', flex: 1 }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+                                <div className="detail-item">
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Cliente</label>
+                                    <div style={{ fontSize: '1rem', fontWeight: 600, color: '#0f172a' }}>{viewingCot.clienteNombre}</div>
+                                </div>
+                                <div className="detail-item">
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Ejecutivo</label>
+                                    <div style={{ fontSize: '1rem', fontWeight: 600, color: '#0f172a' }}>{viewingCot.ejecutivo || 'No asignado'}</div>
+                                </div>
+                                <div className="detail-item">
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Estado</label>
+                                    <div><span style={{ background: viewingCot.estado === 'Ganado' ? '#dcfce7' : '#fef3c7', color: viewingCot.estado === 'Ganado' ? '#166534' : '#92400e', padding: '0.25rem 0.75rem', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 700 }}>{viewingCot.estado}</span></div>
+                                </div>
                             </div>
-                            <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px' }}>
-                                <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '0.3rem' }}>ESTADO COTIZACIÓN</div>
-                                <strong>{viewingCot.estado}</strong>
+
+                            <div style={{ marginBottom: '2rem' }}>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '1rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.5rem' }}>Productos / Servicios</label>
+                                <div style={{ border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden' }}>
+                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+                                        <thead>
+                                            <tr style={{ background: '#f8fafc' }}>
+                                                <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: 600 }}>Descripción</th>
+                                                <th style={{ padding: '0.75rem 1rem', textAlign: 'center', fontWeight: 600 }}>Cant.</th>
+                                                <th style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 600 }}>P. Unitario</th>
+                                                <th style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 600 }}>Total</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {viewingCot.items.map((item: any, idx: number) => {
+                                                const subtotal = (item.costoUnitario || 0) * (item.cantidad || 0);
+                                                return (
+                                                    <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                                        <td style={{ padding: '0.75rem 1rem' }}>
+                                                            <div style={{ fontWeight: 500 }}>{item.nombreProducto || productos.find(p => p.id === item.productoId)?.nombre || item.productoId}</div>
+                                                            <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{item.unidad || 'Und'}</div>
+                                                        </td>
+                                                        <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>{item.cantidad}</td>
+                                                        <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>${(item.costoUnitario || 0).toLocaleString()}</td>
+                                                        <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 600 }}>${subtotal.toLocaleString()}</td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '2rem' }}>
+                                <div style={{ flex: 1, minWidth: '250px' }}>
+                                    {(viewingCot.ordenCompraCliente || viewingCot.ordenCompraUrl) && (
+                                        <div style={{ background: '#f0f9ff', padding: '1rem', borderRadius: '12px', border: '1px solid #bae6fd' }}>
+                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#0369a1', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Orden de Compra Cliente</label>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span style={{ fontWeight: 700, color: '#0c4a6e' }}>{viewingCot.ordenCompraCliente || 'N/A'}</span>
+                                                {viewingCot.ordenCompraUrl && (
+                                                    <a href={viewingCot.ordenCompraUrl} target="_blank" rel="noreferrer" className="btn-evidence" style={{ background: 'white', color: '#0284c7', border: '1px solid #0284c7', textDecoration: 'none' }}>
+                                                        👁️ Ver O.C.
+                                                    </a>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                                <div style={{ minWidth: '200px', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
+                                        <span style={{ color: '#64748b' }}>Subtotal:</span>
+                                        <span style={{ fontWeight: 600 }}>${(viewingCot.subtotal || 0).toLocaleString()}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
+                                        <span style={{ color: '#64748b' }}>IVA:</span>
+                                        <span style={{ fontWeight: 600 }}>${(viewingCot.iva || 0).toLocaleString()}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.25rem', paddingTop: '0.5rem', borderTop: '2px solid #f1f5f9', marginTop: '0.25rem' }}>
+                                        <span style={{ fontWeight: 700, color: '#0f172a' }}>Total:</span>
+                                        <span style={{ fontWeight: 800, color: '#0369a1' }}>${(viewingCot.total || 0).toLocaleString()}</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem', marginBottom: '1.5rem' }}>
-                            <thead>
-                                <tr style={{ background: '#f1f5f9' }}>
-                                    <th style={{ padding: '0.75rem', textAlign: 'left' }}>Producto</th>
-                                    <th style={{ padding: '0.75rem', textAlign: 'center' }}>Cant.</th>
-                                    <th style={{ padding: '0.75rem', textAlign: 'right' }}>Precio Unit.</th>
-                                    <th style={{ padding: '0.75rem', textAlign: 'right' }}>IVA %</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {viewingCot.items.map((item: any, idx: number) => (
-                                    <tr key={idx} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                                        <td style={{ padding: '0.65rem 0.75rem' }}>{item.nombreProducto || productos.find(p => p.id === item.productoId)?.nombre || item.productoId}</td>
-                                        <td style={{ padding: '0.65rem 0.75rem', textAlign: 'center' }}>{item.cantidad}</td>
-                                        <td style={{ padding: '0.65rem 0.75rem', textAlign: 'right' }}>${(item.costoUnitario || 0).toLocaleString()}</td>
-                                        <td style={{ padding: '0.65rem 0.75rem', textAlign: 'right' }}>{item.iva}%</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.4rem', fontSize: '0.9rem', borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
-                            <span>Subtotal: <strong>${(viewingCot.subtotal || 0).toLocaleString()}</strong></span>
-                            <span>IVA: <strong>${(viewingCot.iva || 0).toLocaleString()}</strong></span>
-                            <span style={{ fontSize: '1.1rem', color: '#0f172a' }}>Total: <strong>${(viewingCot.total || 0).toLocaleString()}</strong></span>
-                        </div>
-
-                        {viewingCot.ordenCompraCliente && (
-                            <div style={{ marginTop: '1rem', padding: '0.75rem 1rem', background: '#eff6ff', borderRadius: '8px', color: '#1d4ed8', fontWeight: 600 }}>
-                                🛒 Orden de Compra Cliente: {viewingCot.ordenCompraCliente}
-                            </div>
-                        )}
-
-                        <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+                        <div style={{ padding: '1.5rem 2rem', background: '#f8fafc', borderTop: '1px solid #e2e8f0', display: 'flex', gap: '1rem' }}>
                             <button
-                                onClick={() => handleGeneratePDF(viewingCot)}
-                                style={{ flex: 1, padding: '0.75rem', background: '#dc2626', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                                onClick={() => handleGeneratePDF(viewingCot, 'view')}
+                                style={{ flex: 1, padding: '0.75rem', background: '#0D9488', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: 700, fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', transition: 'all 0.2s' }}
                             >
-                                🖨️ Descargar PDF
+                                👁️ Visualizar PDF
                             </button>
-                            <button onClick={() => setViewingCot(null)} style={{ flex: 1, padding: '0.75rem', background: '#0f172a', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '1rem' }}>
+                            <button
+                                onClick={() => handleGeneratePDF(viewingCot, 'save')}
+                                style={{ flex: 1, padding: '0.75rem', background: '#dc2626', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: 700, fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', transition: 'all 0.2s' }}
+                            >
+                                📥 Descargar PDF
+                            </button>
+                            <button onClick={() => setViewingCot(null)} style={{ padding: '0.75rem 1.5rem', background: 'white', color: '#64748b', border: '1px solid #e2e8f0', borderRadius: '10px', cursor: 'pointer', fontWeight: 600 }}>
                                 Cerrar
                             </button>
                         </div>
                     </div>
                 </div>
             )}
+
+            <style>{`
+                .btn-evidence {
+                    padding: 0.35rem 0.6rem;
+                    border-radius: 6px;
+                    font-size: 0.75rem;
+                    font-weight: 700;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    border: 1px solid transparent;
+                }
+                .btn-evidence:hover {
+                    transform: translateY(-1px);
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+                }
+                .btn-evidence-icon {
+                    padding: 0.35rem;
+                    border-radius: 6px;
+                    font-size: 1rem;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                }
+                .btn-evidence-icon:hover {
+                    transform: scale(1.1);
+                }
+                .evidence-group {
+                    transition: all 0.2s;
+                }
+                .evidence-group:hover {
+                    border-color: #3b82f6 !important;
+                    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+                }
+                .animate-fade-in {
+                    animation: fadeIn 0.3s ease-out;
+                }
+                @keyframes fadeIn {
+                    from { opacity: 0; transform: translateY(10px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                .data-table th {
+                    text-transform: uppercase;
+                    font-size: 0.75rem;
+                    letter-spacing: 0.05em;
+                    color: #64748b;
+                }
+            `}</style>
         </div>
     );
 };
