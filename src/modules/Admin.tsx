@@ -110,7 +110,9 @@ const AdminModule: React.FC<IProps> = ({
             alert('Seleccione un vendedor y defina un monto válido');
             return;
         }
-        const vendor = users.find(u => u.id === budgetForm.usuarioId);
+        const vendor = budgetForm.usuarioId === 'company-total'
+            ? { nombre: 'Empresa / General' }
+            : users.find(u => u.id === budgetForm.usuarioId);
 
         if (editingBudgetId) {
             onUpdateBudget({
@@ -281,6 +283,7 @@ const AdminModule: React.FC<IProps> = ({
                                 <label>Vendedor</label>
                                 <select className="input-field" value={budgetForm.usuarioId} onChange={e => setBudgetForm({ ...budgetForm, usuarioId: e.target.value })}>
                                     <option value="">Seleccione...</option>
+                                    <option value="company-total">🏢 Empresa (Global)</option>
                                     {users.filter(u => u.rol === 'Comercial' || (u.cargo && u.cargo.toLowerCase().includes('comercial'))).map(u => (
                                         <option key={u.id} value={u.id}>{u.nombre}</option>
                                     ))}

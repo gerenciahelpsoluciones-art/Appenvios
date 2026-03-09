@@ -135,18 +135,29 @@ const FacturacionModule: React.FC<IProps> = ({ despachos, cotizaciones, clientes
                             const cot = findCotizacion(d.cotizacionId);
                             return (
                                 <tr key={d.id}>
-                                    <td>
+                                    <td style={{ opacity: activeTab === 'historial' ? 0.75 : 1 }}>
                                         <strong>{d.consecutivoCotizacion}</strong>
                                         <div className="text-muted" style={{ fontSize: '0.85rem' }}>Entrega: {d.fechaSolicitud}</div>
                                     </td>
-                                    <td>
+                                    <td style={{ opacity: activeTab === 'historial' ? 0.75 : 1 }}>
                                         <div style={{ fontWeight: '600', color: '#0f172a' }}>{d.clienteNombre}</div>
                                         <div className="text-muted" style={{ fontSize: '0.85rem' }}>NIT: {d.clienteId}</div>
                                     </td>
-                                    <td style={{ verticalAlign: 'top' }}>
-                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem', padding: '0.25rem 0' }}>
+                                    <td style={{ verticalAlign: 'top', padding: activeTab === 'historial' ? '0.5rem 0.75rem' : '0.75rem' }}>
+                                        <div style={{
+                                            display: 'grid',
+                                            gridTemplateColumns: activeTab === 'historial' ? 'repeat(3, 1fr)' : 'repeat(auto-fit, minmax(140px, 1fr))',
+                                            gap: '0.5rem',
+                                            padding: '0.25rem 0'
+                                        }}>
                                             {/* Sección Cotización */}
-                                            <div className="evidence-group" style={{ background: '#f8fafc', padding: '0.5rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                            <div className="evidence-group" style={{
+                                                background: activeTab === 'historial' ? '#f1f5f9' : '#f8fafc',
+                                                padding: '0.4rem',
+                                                borderRadius: '8px',
+                                                border: activeTab === 'historial' ? '1px solid #cbd5e1' : '1px solid #e2e8f0',
+                                                opacity: activeTab === 'historial' ? 0.9 : 1
+                                            }}>
                                                 <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '0.4rem', letterSpacing: '0.025em' }}>Cotización</div>
                                                 {cot ? (
                                                     <div style={{ display: 'flex', gap: '0.3rem', flexDirection: 'column' }}>
@@ -182,7 +193,13 @@ const FacturacionModule: React.FC<IProps> = ({ despachos, cotizaciones, clientes
                                             </div>
 
                                             {/* Sección O.C. Cliente */}
-                                            <div className="evidence-group" style={{ background: '#f8fafc', padding: '0.5rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                            <div className="evidence-group" style={{
+                                                background: activeTab === 'historial' ? '#f1f5f9' : '#f8fafc',
+                                                padding: '0.4rem',
+                                                borderRadius: '8px',
+                                                border: activeTab === 'historial' ? '1px solid #cbd5e1' : '1px solid #e2e8f0',
+                                                opacity: activeTab === 'historial' ? 0.9 : 1
+                                            }}>
                                                 <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '0.4rem', letterSpacing: '0.025em' }}>O.C. Cliente</div>
                                                 <div style={{ fontSize: '0.8rem', fontWeight: 600, color: cot?.ordenCompraCliente ? '#0f172a' : '#94a3b8', marginBottom: '0.4rem' }}>
                                                     {cot?.ordenCompraCliente || 'Sin número'}
@@ -206,7 +223,14 @@ const FacturacionModule: React.FC<IProps> = ({ despachos, cotizaciones, clientes
                                             </div>
 
                                             {/* Sección Logística */}
-                                            <div className="evidence-group" style={{ background: '#f8fafc', padding: '0.5rem', borderRadius: '8px', border: '1px solid #e2e8f0', gridColumn: 'span 1' }}>
+                                            <div className="evidence-group" style={{
+                                                background: activeTab === 'historial' ? '#f1f5f9' : '#f8fafc',
+                                                padding: '0.4rem',
+                                                borderRadius: '8px',
+                                                border: activeTab === 'historial' ? '1px solid #cbd5e1' : '1px solid #e2e8f0',
+                                                gridColumn: 'span 1',
+                                                opacity: activeTab === 'historial' ? 0.9 : 1
+                                            }}>
                                                 <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '0.4rem', letterSpacing: '0.025em' }}>Logística</div>
                                                 {d.fotoRemision || d.fotoEntrega ? (
                                                     <div style={{ display: 'flex', gap: '0.3rem', flexDirection: 'column' }}>

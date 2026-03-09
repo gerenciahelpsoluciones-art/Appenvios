@@ -64,6 +64,7 @@ const InformesModule: React.FC<IProps> = ({
     // Won Quote OC Modal State
     const [wonQuoteModal, setWonQuoteModal] = useState<Cotizacion | null>(null);
     const [wonQuoteFile, setWonQuoteFile] = useState<File | null>(null);
+    const [wonQuoteNumber, setWonQuoteNumber] = useState('');
     const [isUploading, setIsUploading] = useState(false);
 
     const handleSearch = () => {
@@ -95,11 +96,34 @@ const InformesModule: React.FC<IProps> = ({
         return y === currentYear && (m - 1) === currentMonth && c.estado === 'Ganado';
     }).reduce((acc, c) => acc + c.total, 0);
 
-    const activeBudget = budgets.find(b =>
-        b.usuarioId === currentUser.id &&
-        b.anio === currentYear &&
-        b.mes === currentMonth
-    )?.monto || 0;
+    const advisorFiltered = appliedFilters.asesorId;
+
+    let activeBudget = 0;
+    if (advisorFiltered) {
+        // Individual advisor budget
+        activeBudget = budgets.find(b =>
+            b.usuarioId === advisorFiltered &&
+            b.anio === currentYear &&
+            b.mes === currentMonth
+        )?.monto || 0;
+    } else {
+        // Global budget logic:
+        // 1. Try to find explicit corporate budget first
+        const corporateBudget = budgets.find(b =>
+            b.usuarioId === 'company-total' &&
+            b.anio === currentYear &&
+            b.mes === currentMonth
+        );
+
+        if (corporateBudget) {
+            activeBudget = corporateBudget.monto;
+        } else {
+            // 2. Fallback: Sum of all individual budgets for that month
+            activeBudget = budgets
+                .filter(b => b.usuarioId !== 'company-total' && b.anio === currentYear && b.mes === currentMonth)
+                .reduce((acc, b) => acc + b.monto, 0);
+        }
+    }
 
     const executionPercent = activeBudget > 0 ? (monthlySales / activeBudget) * 100 : 0;
     const difference = monthlySales - activeBudget;
@@ -113,6 +137,7 @@ const InformesModule: React.FC<IProps> = ({
             // Abre el modal para adjuntar la OC
             setWonQuoteModal(quote);
             setWonQuoteFile(null);
+            setWonQuoteNumber('');
             return;
         }
         onUpdateQuote({ ...quote, estado: newStatus });
@@ -149,7 +174,8 @@ const InformesModule: React.FC<IProps> = ({
         onUpdateQuote({
             ...wonQuoteModal,
             estado: 'Ganado',
-            ordenCompraCliente: publicUrl || undefined
+            ordenCompraCliente: wonQuoteNumber || undefined,
+            ordenCompraUrl: publicUrl || undefined
         });
         setWonQuoteModal(null);
         setIsUploading(false);
@@ -315,7 +341,7 @@ const InformesModule: React.FC<IProps> = ({
                 <h3>Rendimiento del Mes Actual</h3>
                 <div className="stats-grid">
                     <div className="stat-card budget-card">
-                        <div className="stat-label">Presupuesto Mensual</div>
+                        <div className="stat-label">Presupuesto {appliedFilters.asesorId ? 'Personal' : 'Empresa (Total)'}</div>
                         <div className="stat-value">${activeBudget.toLocaleString()}</div>
                         <div className="stat-trend">Meta asignada</div>
                     </div>
@@ -683,6 +709,17 @@ const InformesModule: React.FC<IProps> = ({
                                 ¡Felicidades por cerrar este negocio con <strong>{wonQuoteModal.clienteNombre}</strong>!
                                 Por favor adjunte la Orden de Compra del cliente (Opcional).
                             </p>
+                            <div className="form-group" style={{ marginBottom: '1rem' }}>
+                                <label style={{ fontWeight: 600, display: 'block', marginBottom: '0.4rem' }}>Número de Orden de Compra (O.C.)</label>
+                                <input
+                                    type="text"
+                                    className="input-field"
+                                    placeholder="Ej: OC-12345"
+                                    value={wonQuoteNumber}
+                                    onChange={e => setWonQuoteNumber(e.target.value)}
+                                    disabled={isUploading}
+                                />
+                            </div>
                             <div className="form-group" style={{ marginBottom: '1.5rem' }}>
                                 <label style={{ fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>Archivo de Orden de Compra (PDF/Imagen)</label>
                                 <input
