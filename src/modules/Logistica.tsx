@@ -676,6 +676,12 @@ const LogisticaModule: React.FC<IProps> = ({
                         >
                             🔄 Devoluciones
                         </button>
+                        <button
+                            className={`btn-tab ${activeTab === 'reparaciones' ? 'active' : ''}`}
+                            onClick={() => { setActiveTab('reparaciones'); setFilterEstado('Todos'); }}
+                        >
+                            🛠️ Reparaciones Ext.
+                        </button>
                     </div>
                     <select
                         className="input-field"
