@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { Cliente, Producto, Proveedor, Cotizacion, AppUser } from '../App';
+import type { Cliente, Producto, Cotizacion, AppUser } from '../App';
 import { generateQuotationPDF } from '../utils/pdfGenerator';
 
 interface QuoteItem {
@@ -16,10 +16,8 @@ interface QuoteItem {
 interface IProps {
     clientes: Cliente[];
     productos: Producto[];
-    proveedores: Proveedor[];
     cotizaciones: Cotizacion[];
     onAddQuote: (c: Cotizacion) => void;
-    onUpdateQuote: (c: Cotizacion) => void;
     onSendWhatsApp: (phone: string, message: string) => void;
     currentUser: AppUser;
 }
@@ -27,10 +25,8 @@ interface IProps {
 const CotizacionesModule: React.FC<IProps> = ({
     clientes,
     productos,
-    proveedores,
     cotizaciones,
     onAddQuote,
-    onUpdateQuote,
     onSendWhatsApp,
     currentUser
 }) => {

@@ -1326,10 +1326,8 @@ function App() {
         return <CotizacionesModule
           clientes={filteredClientes}
           productos={productos}
-          proveedores={proveedores}
           cotizaciones={cotizaciones}
           onAddQuote={addCotizacion}
-          onUpdateQuote={updateCotizacion}
           onSendWhatsApp={sendWhatsAppNotification}
           currentUser={currentUser}
         />;
@@ -1379,7 +1377,6 @@ function App() {
         />;
       case 'logistica':
         return <LogisticaModule
-          cotizaciones={cotizaciones}
           despachos={despachos}
           ordenesCompra={ordenesCompra}
           devoluciones={devoluciones}
@@ -1419,7 +1416,6 @@ function App() {
           proveedores={proveedores}
           despachos={despachos}
           ordenesCompra={ordenesCompra}
-          alquileres={alquileres}
           users={users}
         />;
       case 'admin':

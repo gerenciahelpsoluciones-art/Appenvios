@@ -1,26 +1,33 @@
 import React, { useState } from 'react';
-import type { Despacho, OrdenCompra, Conductor, Proveedor, Producto, AppUser, Devolucion, DevolucionItem, Cotizacion } from '../App';
+import {
+    type Despacho,
+    type OrdenCompra,
+    type Conductor,
+    type Proveedor,
+    type Producto,
+    type AppUser,
+    type Devolucion,
+    type DevolucionItem
+} from '../App';
 
 interface IProps {
-    cotizaciones: Cotizacion[];
     despachos: Despacho[];
     ordenesCompra: OrdenCompra[];
     devoluciones: Devolucion[];
     conductores: Conductor[];
     proveedores: Proveedor[];
     productos: Producto[];
-    currentUser: AppUser;
+    currentUser: AppUser | null;
     onUpdateDespacho: (d: Despacho) => void;
     onDeleteDespacho: (id: string) => void;
-    onUpdateOC: (oc: OrdenCompra) => Promise<boolean | void>;
-    onAddOC: (oc: OrdenCompra) => Promise<boolean | void>;
-    onAddDevolucion: (d: Devolucion) => Promise<boolean>;
-    onUpdateDevolucion: (d: Devolucion) => Promise<void>;
-    onDeleteDevolucion: (id: string) => Promise<void>;
+    onUpdateOC: (oc: OrdenCompra) => void;
+    onAddOC: (oc: OrdenCompra) => void;
+    onAddDevolucion: (dev: Devolucion) => any;
+    onUpdateDevolucion: (dev: Devolucion) => any;
+    onDeleteDevolucion: (id: string) => any;
 }
 
 const LogisticaModule: React.FC<IProps> = ({
-    cotizaciones,
     despachos,
     ordenesCompra,
     devoluciones,
@@ -36,7 +43,7 @@ const LogisticaModule: React.FC<IProps> = ({
     onUpdateDevolucion,
     onDeleteDevolucion
 }) => {
-    const [activeTab, setActiveTab] = useState<'despachos' | 'recogidas' | 'devoluciones' | 'cotizaciones'>('despachos');
+    const [activeTab, setActiveTab] = useState<'despachos' | 'recogidas' | 'devoluciones'>('despachos');
     const [filterEstado, setFilterEstado] = useState<string>('Todos');
     const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -44,21 +51,13 @@ const LogisticaModule: React.FC<IProps> = ({
     const [isAddManualOpen, setIsAddManualOpen] = useState(false);
     const [selectedProvId, setSelectedProvId] = useState('');
     const [manualItems, setManualItems] = useState<DevolucionItem[]>([]);
-    const [obs, setObs] = useState('');
-
-    // Manual Item Entry
     const [selProdId, setSelProdId] = useState('');
     const [selCant, setSelCant] = useState(1);
+    const [obs, setObs] = useState('');
 
-    // Sort by date (newest first)
     const sortedDespachos = [...despachos].sort((a, b) => new Date(b.fechaSolicitud).getTime() - new Date(a.fechaSolicitud).getTime());
     const sortedOC = [...ordenesCompra].sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
     const sortedDevoluciones = [...devoluciones].sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
-
-    // Cotizaciones ganadas (sorted newest first)
-    const cotizacionesGanadas = cotizaciones
-        .filter(c => c.estado === 'Ganado')
-        .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
 
     // Filter Logic
     const filteredDespachos = filterEstado === 'Todos'
@@ -66,211 +65,123 @@ const LogisticaModule: React.FC<IProps> = ({
         : sortedDespachos.filter(d => d.estado === filterEstado);
 
     const filteredRecogidas = filterEstado === 'Todos'
-        ? sortedOC.filter(oc => oc.tipo === 'Recogida')
-        : sortedOC.filter(oc => oc.estado === filterEstado && oc.tipo === 'Recogida');
+        ? sortedOC
+        : sortedOC.filter(oc => oc.estado === filterEstado);
 
     const filteredDevoluciones = filterEstado === 'Todos'
         ? sortedDevoluciones
         : sortedDevoluciones.filter(d => d.estado === filterEstado);
 
-    // Handlers
-    const downloadFile = (url: string, _fileName: string) => {
-        if (!url) {
-            alert('No hay archivo disponible para descargar.');
-            return;
-        }
+    const toggleExpand = (id: string) => setExpandedId(expandedId === id ? null : id);
 
-        // If it's a full URL (from Supabase Storage), open in new tab
-        if (url.startsWith('http://') || url.startsWith('https://')) {
-            window.open(url, '_blank');
-        } else {
-            // Legacy: just a filename, show a message
-            alert(`El archivo "${url}" fue registrado pero no se subió al almacenamiento. Solicite al conductor que lo reenvíe.`);
-        }
+    const handleStatusChange = (d: Despacho, newStatus: string) => {
+        onUpdateDespacho({ ...d, estado: newStatus as any });
     };
 
-    const handleStatusChange = (d: Despacho, newStatus: Despacho['estado']) => {
-        onUpdateDespacho({ ...d, estado: newStatus });
+    const assignDriver = (d: Despacho, driverId: string) => {
+        onUpdateDespacho({ ...d, conductorId: driverId });
     };
 
-    const handleOCStatusChange = (oc: OrdenCompra, newStatus: OrdenCompra['estado']) => {
-        onUpdateOC({ ...oc, estado: newStatus });
+    const handleOCStatusChange = (oc: OrdenCompra, newStatus: string) => {
+        onUpdateOC({ ...oc, estado: newStatus as any });
     };
 
-    const assignDriver = (d: Despacho, conductorId: string) => {
-        if (conductorId === 'VIRTUAL') {
-            // Virtual assignment — open email
-            const subject = encodeURIComponent(`Asignación de Despacho - ${d.consecutivoCotizacion}`);
-            const itemsList = d.items.map(i => `  • ${i.nombreProducto} (${i.numPart}) x${i.cantidad}`).join('%0A');
-            const body = encodeURIComponent(
-                `Estimado proveedor/transportista,\n\n` +
-                `Se le asigna el siguiente despacho:\n\n` +
-                `Cotización: ${d.consecutivoCotizacion}\n` +
-                `Cliente: ${d.clienteNombre}\n` +
-                `Dirección: ${d.direccion}\n` +
-                `Fecha: ${d.fechaSolicitud}\n` +
-                `Total: $${d.total.toLocaleString()}\n\n` +
-                `Productos:\n`
-            ) + itemsList + encodeURIComponent(`\n\nCordialmente,\nHelp Soluciones Informáticas`);
-            window.open(`mailto:?subject=${subject}&body=${body}`, '_self');
-            onUpdateDespacho({
-                ...d,
-                conductorId: 'VIRTUAL',
-                conductorNombre: 'Asignación Virtual'
-            });
-            return;
-        }
-        const conductor = conductores.find(c => c.id === conductorId);
-        onUpdateDespacho({
-            ...d,
-            conductorId: conductorId,
-            conductorNombre: conductor?.nombre || ''
-        });
+    const assignDriverOC = (oc: OrdenCompra, driverId: string) => {
+        onUpdateOC({ ...oc, conductorId: driverId });
     };
 
-    const assignDriverOC = (oc: OrdenCompra, conductorId: string) => {
-        if (conductorId === 'VIRTUAL') {
-            const subject = encodeURIComponent(`Asignación de Recogida - ${oc.consecutivo}`);
-            const itemsList = oc.items.map(i => `  • ${i.nombreProducto} (${i.numPart}) x${i.cantidad}`).join('%0A');
-            const body = encodeURIComponent(
-                `Estimado proveedor/transportista,\n\n` +
-                `Se le asigna la siguiente recogida:\n\n` +
-                `Orden: ${oc.consecutivo}\n` +
-                `Proveedor: ${oc.nombreProveedor}\n` +
-                `Fecha: ${oc.fecha}\n` +
-                `Total: $${oc.total.toLocaleString()}\n\n` +
-                `Productos:\n`
-            ) + itemsList + encodeURIComponent(`\n\nCordialmente,\nHelp Soluciones Informáticas`);
-            window.open(`mailto:?subject=${subject}&body=${body}`, '_self');
-            onUpdateOC({
-                ...oc,
-                conductorId: 'VIRTUAL',
-                conductorNombre: 'Asignación Virtual'
-            });
-            return;
-        }
-        const conductor = conductores.find(c => c.id === conductorId);
-        onUpdateOC({
-            ...oc,
-            conductorId: conductorId,
-            conductorNombre: conductor?.nombre || ''
-        });
+    const handleDevolutionStatusChange = async (d: Devolucion, newStatus: string) => {
+        await onUpdateDevolucion({ ...d, estado: newStatus as any });
     };
 
-    const assignDriverDevolucion = (d: Devolucion, conductorId: string) => {
-        const conductor = conductores.find(c => c.id === conductorId);
-        onUpdateDevolucion({
-            ...d,
-            conductorId: conductorId,
-            conductorNombre: conductor?.nombre || ''
-        });
+    const assignDriverDevolucion = async (d: Devolucion, driverId: string) => {
+        await onUpdateDevolucion({ ...d, conductorId: driverId });
     };
 
-    const toggleExpand = (id: string) => {
-        setExpandedId(expandedId === id ? null : id);
+    const downloadFile = (url: string, filename: string) => {
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
     const handleAddManualItem = () => {
-        const prod = productos.find(p => p.id === selProdId);
-        if (prod && selCant > 0) {
-            setManualItems([...manualItems, {
-                id: crypto.randomUUID(),
-                productoId: prod.id,
-                nombreProducto: prod.nombre,
-                numPart: prod.numPart,
-                serial: '', // Will be used for returns
-                cantidad: selCant
-            }]);
-            setSelProdId('');
-            setSelCant(1);
-        }
+        if (!selProdId) return;
+        const p = productos.find(x => x.id === selProdId);
+        if (!p) return;
+        const newItem: DevolucionItem = {
+            id: crypto.randomUUID(),
+            productoId: p.id,
+            nombreProducto: p.nombre,
+            numPart: p.numPart,
+            cantidad: selCant,
+            serial: ''
+        };
+        setManualItems([...manualItems, newItem]);
+        setSelProdId('');
+        setSelCant(1);
     };
 
     const handleSaveManualRecogida = async () => {
-        const prov = proveedores.find(p => p.id === selectedProvId);
-        if (!prov || manualItems.length === 0) {
-            alert('Seleccione un proveedor y añada al menos un producto');
+        if (!selectedProvId || manualItems.length === 0) {
+            alert("Seleccione proveedor e items.");
             return;
         }
-
-        const newRecogida: OrdenCompra = {
+        const prov = proveedores.find(p => p.id === selectedProvId);
+        const newOC: OrdenCompra = {
             id: crypto.randomUUID(),
-            consecutivo: `REC-M-${(ordenesCompra.length + 1).toString().padStart(4, '0')}`,
+            consecutivo: `REC-${Date.now().toString().slice(-6)}`,
             fecha: new Date().toISOString().split('T')[0],
-            proveedorId: prov.id,
-            nombreProveedor: prov.nombre,
-            items: manualItems.map(item => ({
-                id: crypto.randomUUID(),
-                productoId: item.productoId,
-                nombreProducto: item.nombreProducto,
-                numPart: item.numPart,
-                cantidad: item.cantidad,
+            proveedorId: selectedProvId,
+            nombreProveedor: prov?.nombre || 'PROV MANUAL',
+            items: manualItems.map(mi => ({
+                id: mi.id,
+                productoId: mi.productoId,
+                nombreProducto: mi.nombreProducto,
+                numPart: mi.numPart,
+                cantidad: mi.cantidad,
                 precioUnitario: 0
             })),
             subtotal: 0,
             iva: 0,
             total: 0,
-            condicionesComerciales: 'Recogida Manual',
-            observaciones: obs,
+            condicionesComerciales: '',
+            observaciones: '',
             estado: 'Pendiente',
-            usuarioId: currentUser.id,
-            tipo: 'Recogida',
-            verificada: false
+            verificada: false,
+            usuarioId: currentUser?.id || '',
+            tipo: 'Recogida'
         };
-
-        const success = await onAddOC(newRecogida);
-        if (success === false) return; // DB Error
-
-        setObs('');
+        onAddOC(newOC);
+        setIsAddManualOpen(false);
     };
 
     const handleSaveManualDevolucion = async () => {
-        const prov = proveedores.find(p => p.id === selectedProvId);
-        if (!prov || manualItems.length === 0) {
-            alert('Seleccione un proveedor y añada al menos un producto');
+        if (!selectedProvId || manualItems.length === 0) {
+            alert("Seleccione proveedor e items.");
             return;
         }
-
-        const newDevolucion: Devolucion = {
+        const prov = proveedores.find(p => p.id === selectedProvId);
+        const newDev: Devolucion = {
             id: crypto.randomUUID(),
-            consecutivo: `DEV-M-${(devoluciones.length + 1).toString().padStart(4, '0')}`,
+            consecutivo: `DEV-${Date.now().toString().slice(-6)}`,
             fecha: new Date().toISOString().split('T')[0],
-            proveedorId: prov.id,
-            nombreProveedor: prov.nombre,
-            items: manualItems.map(item => ({
-                id: item.id,
-                productoId: item.productoId,
-                nombreProducto: item.nombreProducto,
-                numPart: item.numPart,
-                serial: item.serial,
-                cantidad: item.cantidad
-            })),
-            observaciones: obs,
+            proveedorId: selectedProvId,
+            nombreProveedor: prov?.nombre || 'PROV MANUAL',
+            items: manualItems,
             estado: 'Pendiente',
-            usuarioId: currentUser.id
+            observaciones: obs,
+            usuarioId: currentUser?.id || ''
         };
-
-        const success = await onAddDevolucion(newDevolucion);
-        if (success === false) return;
-
+        await onAddDevolucion(newDev);
         setIsAddManualOpen(false);
-        setSelectedProvId('');
-        setManualItems([]);
-        setObs('');
     };
 
-    const handleDevolutionStatusChange = (d: Devolucion, newStatus: Devolucion['estado']) => {
-        onUpdateDevolucion({ ...d, estado: newStatus });
-    };
-
-    const calculateSLA = (dateStr: string, estado: string) => {
-        if (!dateStr) return { color: 'gray', days: 0 };
-        // If already delivered/completed, we might want to stop counting or show final status
-        // For now, let's show elapsed time for pending, and maybe a checkmark for completed
-        if (estado === 'Entregado' || estado === 'En Bodega') {
-            return { color: 'completed', days: 0 };
-        }
-
+    const calculateSLA = (dateStr: string, status: string) => {
+        if (status === 'Entregado' || status === 'En Bodega' || status === 'Completado') return { color: 'completed', days: 0 };
         const requestDate = new Date(dateStr);
         const today = new Date();
         const diffTime = Math.abs(today.getTime() - requestDate.getTime());
@@ -281,82 +192,9 @@ const LogisticaModule: React.FC<IProps> = ({
         return { color: 'red', days: diffDays };
     };
 
-    return (
-        <div className="module-container">
-            <div className="module-header">
-                <h2>Gestión de Logística</h2>
-                <div className="header-actions" style={{ display: 'flex', gap: '1rem' }}>
-                    <div className="tab-buttons">
-                        <button
-                            className={`btn-tab ${activeTab === 'despachos' ? 'active' : ''}`}
-                            onClick={() => { setActiveTab('despachos'); setFilterEstado('Todos'); }}
-                        >
-                            📦 Despachos (Ventas)
-                        </button>
-                        <button
-                            className={`btn-tab ${activeTab === 'recogidas' ? 'active' : ''}`}
-                            onClick={() => { setActiveTab('recogidas'); setFilterEstado('Todos'); }}
-                        >
-                            🏭 Recogidas (Compras)
-                        </button>
-                        <button
-                            className={`btn-tab ${activeTab === 'devoluciones' ? 'active' : ''}`}
-                            onClick={() => { setActiveTab('devoluciones'); setFilterEstado('Todos'); }}
-                        >
-                            🔄 Devoluciones
-                        </button>
-                        <button
-                            className={`btn-tab ${activeTab === 'cotizaciones' ? 'active' : ''}`}
-                            onClick={() => { setActiveTab('cotizaciones'); setFilterEstado('Todos'); }}
-                        >
-                            📋 Cotizaciones Ganadas
-                        </button>
-                    </div>
-                    <select
-                        className="input-field"
-                        value={filterEstado}
-                        onChange={(e) => setFilterEstado(e.target.value)}
-                        style={{ width: '180px' }}
-                    >
-                        <option value="Todos">Todos los estados</option>
-                        {activeTab === 'despachos' ? (
-                            <>
-                                <option value="Pendiente">Pendiente</option>
-                                <option value="Preparando">Preparando</option>
-                                <option value="Despachado">Despachado</option>
-                                <option value="Entrega Parcial">Entrega Parcial</option>
-                                <option value="Entregado">Entregado</option>
-                            </>
-                        ) : activeTab === 'recogidas' ? (
-                            <>
-                                <option value="Pendiente">Pendiente</option>
-                                <option value="Recogido">Recogido</option>
-                                <option value="En Bodega">En Bodega</option>
-                            </>
-                        ) : (
-                            <>
-                                <option value="Pendiente">Pendiente</option>
-                                <option value="Enviado">Enviado</option>
-                                <option value="Completado">Completado</option>
-                                <option value="Anulado">Anulado</option>
-                            </>
-                        )}
-                    </select>
-                    {activeTab === 'recogidas' && (
-                        <button className="btn btn-primary" onClick={() => { setIsAddManualOpen(true); setManualItems([]); setSelectedProvId(''); setObs(''); }}>
-                            + Nueva Recogida Manual
-                        </button>
-                    )}
-                    {activeTab === 'devoluciones' && (
-                        <button className="btn btn-primary" onClick={() => { setIsAddManualOpen(true); setManualItems([]); setSelectedProvId(''); setObs(''); }}>
-                            + Nueva Devolución Manual
-                        </button>
-                    )}
-                </div>
-            </div>
-
-            {activeTab === 'despachos' ? (
-                /* DESPACHOS VIEW */
+    const renderTabContent = () => {
+        if (activeTab === 'despachos') {
+            return (
                 <div className="card table-card" style={{ marginTop: '1.5rem' }}>
                     <div style={{ overflowX: 'auto' }}>
                         <table className="data-table">
@@ -413,17 +251,7 @@ const LogisticaModule: React.FC<IProps> = ({
                                             </td>
                                             <td className="text-center">
                                                 <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
-                                                    {(() => {
-                                                        const cot = cotizaciones.find(c => c.id === d.cotizacionId);
-                                                        return cot?.ordenCompraCliente ? (
-                                                            <button
-                                                                className="btn-download"
-                                                                onClick={() => window.open(cot.ordenCompraCliente, '_blank')}
-                                                                title="Ver Orden de Compra (OC) Cliente"
-                                                            >📋</button>
-                                                        ) : <span style={{ opacity: 0.2 }} title="Sin Orden de Compra">📋</span>;
-                                                    })()}
-
+                                                    {/* Proof buttons: fotoEntrega and fotoRemision are enough for logistics */}
                                                     {d.fotoEntrega ? (
                                                         <button
                                                             className="btn-download"
@@ -485,8 +313,9 @@ const LogisticaModule: React.FC<IProps> = ({
                         </table>
                     </div>
                 </div>
-            ) : activeTab === 'recogidas' ? (
-                /* RECOGIDAS VIEW */
+            );
+        } else if (activeTab === 'recogidas') {
+            return (
                 <div className="card table-card" style={{ marginTop: '1.5rem' }}>
                     <div style={{ overflowX: 'auto' }}>
                         <table className="data-table">
@@ -609,8 +438,10 @@ const LogisticaModule: React.FC<IProps> = ({
                         </table>
                     </div>
                 </div>
-            ) : activeTab === 'devoluciones' ? (
-                /* DEVOLUCIONES VIEW */
+            );
+        } else {
+            // DEVOLUCIONES
+            return (
                 <div className="card table-card" style={{ marginTop: '1.5rem' }}>
                     <div style={{ overflowX: 'auto' }}>
                         <table className="data-table">
@@ -620,6 +451,7 @@ const LogisticaModule: React.FC<IProps> = ({
                                     <th style={{ minWidth: '120px' }}>Consecutivo</th>
                                     <th style={{ minWidth: '100px' }}>Fecha</th>
                                     <th style={{ minWidth: '180px' }}>Proveedor</th>
+                                    <th className="text-center" style={{ minWidth: '120px' }}>Conductor</th>
                                     <th className="text-center" style={{ minWidth: '120px' }}>Estado</th>
                                     <th className="text-center" style={{ minWidth: '160px' }}>Acciones</th>
                                 </tr>
@@ -636,7 +468,7 @@ const LogisticaModule: React.FC<IProps> = ({
                                             <td><strong>{d.consecutivo}</strong></td>
                                             <td>{d.fecha}</td>
                                             <td>{d.nombreProveedor}</td>
-                                            <td>
+                                            <td className="text-center">
                                                 <select
                                                     className="select-small"
                                                     value={d.conductorId || ''}
@@ -663,7 +495,7 @@ const LogisticaModule: React.FC<IProps> = ({
                                         </tr>
                                         {expandedId === d.id && (
                                             <tr className="detail-row">
-                                                <td colSpan={6}>
+                                                <td colSpan={7}>
                                                     <div className="product-details-box animate-fade-in">
                                                         <h4>🔍 Items a Devolver</h4>
                                                         <table className="inner-table">
@@ -696,115 +528,81 @@ const LogisticaModule: React.FC<IProps> = ({
                         </table>
                     </div>
                 </div>
-            ) : (
-                /* COTIZACIONES GANADAS VIEW */
-                <div className="card table-card" style={{ marginTop: '1.5rem' }}>
-                    <div style={{ overflowX: 'auto' }}>
-                        {cotizacionesGanadas.length > 0 ? (
-                            <table className="data-table">
-                                <thead>
-                                    <tr>
-                                        <th style={{ width: '40px' }}></th>
-                                        <th style={{ minWidth: '150px' }}>Consecutivo</th>
-                                        <th style={{ minWidth: '100px' }}>Fecha</th>
-                                        <th style={{ minWidth: '200px' }}>Cliente</th>
-                                        <th style={{ minWidth: '160px' }}>Ejecutivo</th>
-                                        <th className="text-right" style={{ minWidth: '130px' }}>Total</th>
-                                        <th className="text-center" style={{ minWidth: '80px' }}>OC Cliente</th>
-                                        <th className="text-center" style={{ minWidth: '130px' }}>Estado Despacho</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {cotizacionesGanadas.map(cot => {
-                                        const despachoAsociado = despachos.find(d => d.cotizacionId === cot.id);
-                                        return (
-                                            <React.Fragment key={cot.id}>
-                                                <tr className={expandedId === cot.id ? 'row-expanded' : ''}>
-                                                    <td>
-                                                        <button className="btn-expand" onClick={() => toggleExpand(cot.id)}>
-                                                            {expandedId === cot.id ? '▼' : '►'}
-                                                        </button>
-                                                    </td>
-                                                    <td><strong>{cot.consecutivo}</strong></td>
-                                                    <td>{cot.fecha}</td>
-                                                    <td>{cot.clienteNombre}</td>
-                                                    <td>{cot.ejecutivo}</td>
-                                                    <td className="text-right" style={{ fontWeight: 'bold' }}>
-                                                        ${Math.round(cot.total).toLocaleString()}
-                                                    </td>
-                                                    <td className="text-center">
-                                                        {cot.ordenCompraCliente ? (
-                                                            <button
-                                                                className="btn-download"
-                                                                onClick={() => window.open(cot.ordenCompraCliente, '_blank')}
-                                                                title="Ver Orden de Compra del Cliente"
-                                                            >📋</button>
-                                                        ) : (
-                                                            <span style={{ opacity: 0.2 }} title="Sin OC adjunta">📋</span>
-                                                        )}
-                                                    </td>
-                                                    <td className="text-center">
-                                                        {despachoAsociado ? (
-                                                            <span className={`status-badge status-${despachoAsociado.estado.toLowerCase().replace(' ', '-')}`}>
-                                                                {despachoAsociado.estado}
-                                                            </span>
-                                                        ) : (
-                                                            <span className="status-badge status-sin-despacho">Sin Despacho</span>
-                                                        )}
-                                                    </td>
-                                                </tr>
-                                                {expandedId === cot.id && (
-                                                    <tr className="detail-row">
-                                                        <td colSpan={8}>
-                                                            <div className="product-details-box animate-fade-in">
-                                                                <h4>🔍 Items de la Cotización</h4>
-                                                                <table className="inner-table">
-                                                                    <thead>
-                                                                        <tr>
-                                                                            <th>Producto</th>
-                                                                            <th>N° Parte</th>
-                                                                            <th className="text-right">Cantidad</th>
-                                                                            <th className="text-right">Precio Venta (Unit)</th>
-                                                                        </tr>
-                                                                    </thead>
-                                                                    <tbody>
-                                                                        {(cot.items || []).map((item, idx) => {
-                                                                            const prod = productos.find(p => p.id === item.productoId);
-                                                                            const margin = Math.min(item.utilidad, 99.99) / 100;
-                                                                            const ventaUnit = item.costoUnitario / (1 - margin);
-                                                                            return (
-                                                                                <tr key={idx}>
-                                                                                    <td>{prod?.nombre || 'Producto'}</td>
-                                                                                    <td><code>{prod?.numPart || 'N/A'}</code></td>
-                                                                                    <td className="text-right">{item.cantidad}</td>
-                                                                                    <td className="text-right">${Math.round(ventaUnit).toLocaleString()}</td>
-                                                                                </tr>
-                                                                            );
-                                                                        })}
-                                                                    </tbody>
-                                                                </table>
-                                                                <div style={{ marginTop: '1rem', display: 'flex', gap: '2rem', fontSize: '0.9rem' }}>
-                                                                    <span><strong>Subtotal:</strong> ${Math.round(cot.subtotal).toLocaleString()}</span>
-                                                                    <span><strong>IVA:</strong> ${Math.round(cot.iva).toLocaleString()}</span>
-                                                                    <span style={{ color: 'var(--primary-blue)', fontWeight: 'bold' }}><strong>Total:</strong> ${Math.round(cot.total).toLocaleString()}</span>
-                                                                </div>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                )}
-                                            </React.Fragment>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        ) : (
-                            <div style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>
-                                <p style={{ fontSize: '1.1rem' }}>No hay cotizaciones ganadas para mostrar.</p>
-                            </div>
-                        )}
+            );
+        }
+    };
+
+    return (
+        <div className="module-container">
+            <div className="module-header">
+                <h2>Gestión de Logística</h2>
+                <div className="header-actions" style={{ display: 'flex', gap: '1rem' }}>
+                    <div className="tab-buttons">
+                        <button
+                            className={`btn-tab ${activeTab === 'despachos' ? 'active' : ''}`}
+                            onClick={() => { setActiveTab('despachos'); setFilterEstado('Todos'); }}
+                        >
+                            📦 Despachos (Ventas)
+                        </button>
+                        <button
+                            className={`btn-tab ${activeTab === 'recogidas' ? 'active' : ''}`}
+                            onClick={() => { setActiveTab('recogidas'); setFilterEstado('Todos'); }}
+                        >
+                            🏭 Recogidas (Compras)
+                        </button>
+                        <button
+                            className={`btn-tab ${activeTab === 'devoluciones' ? 'active' : ''}`}
+                            onClick={() => { setActiveTab('devoluciones'); setFilterEstado('Todos'); }}
+                        >
+                            🔄 Devoluciones
+                        </button>
                     </div>
+                    <select
+                        className="input-field"
+                        value={filterEstado}
+                        onChange={(e) => setFilterEstado(e.target.value)}
+                        style={{ width: '180px' }}
+                    >
+                        <option value="Todos">Todos los Estados</option>
+                        {activeTab === 'despachos' && (
+                            <>
+                                <option value="Pendiente">Pendiente</option>
+                                <option value="Preparando">Preparando</option>
+                                <option value="Despachado">Despachado</option>
+                                <option value="Entrega Parcial">Entrega Parcial</option>
+                                <option value="Entregado">Entregado</option>
+                            </>
+                        )}
+                        {activeTab === 'recogidas' && (
+                            <>
+                                <option value="Pendiente">Pendiente</option>
+                                <option value="Recogido">Recogido</option>
+                                <option value="En Bodega">En Bodega</option>
+                            </>
+                        )}
+                        {activeTab === 'devoluciones' && (
+                            <>
+                                <option value="Pendiente">Pendiente</option>
+                                <option value="Enviado">Enviado</option>
+                                <option value="Completado">Completado</option>
+                            </>
+                        )}
+                    </select>
+
+                    {activeTab === 'recogidas' && (
+                        <button className="btn btn-primary" onClick={() => { setIsAddManualOpen(true); setManualItems([]); setSelectedProvId(''); setSelProdId(''); setSelCant(1); }}>
+                            + Recogida Manual
+                        </button>
+                    )}
+                    {activeTab === 'devoluciones' && (
+                        <button className="btn btn-primary" onClick={() => { setIsAddManualOpen(true); setManualItems([]); setSelectedProvId(''); setObs(''); }}>
+                            + Nueva Devolución Manual
+                        </button>
+                    )}
                 </div>
-            )}
+            </div>
+
+            {renderTabContent()}
 
             {/* MANUAL MODAL */}
             {isAddManualOpen && (

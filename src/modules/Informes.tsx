@@ -15,7 +15,6 @@ interface IProps {
     despachos: any[];
     ordenesCompra: any[];
     users: AppUser[];
-    alquileres: any[];
 }
 
 interface EditItem {
@@ -40,8 +39,7 @@ const InformesModule: React.FC<IProps> = ({
     proveedores,
     despachos,
     ordenesCompra,
-    users,
-    alquileres
+    users
 }) => {
     const today = new Date().toISOString().split('T')[0];
     const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
@@ -310,14 +308,6 @@ const InformesModule: React.FC<IProps> = ({
         return acc;
     }, {});
 
-    const rentalsByClient = alquileres.reduce((acc: Record<string, { nombre: string, count: number, value: number, items: any[] }>, a) => {
-        if (a.estado !== 'Alquilado') return acc;
-        if (!acc[a.clienteId]) acc[a.clienteId] = { nombre: a.clienteNombre || 'Sin Nombre', count: 0, value: 0, items: [] };
-        acc[a.clienteId].count += 1;
-        acc[a.clienteId].value += (a.valorMensual || 0);
-        acc[a.clienteId].items.push(a);
-        return acc;
-    }, {});
 
     return (
         <div className="reports-container">
