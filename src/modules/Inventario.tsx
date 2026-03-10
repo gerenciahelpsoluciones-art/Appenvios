@@ -122,7 +122,7 @@ const InventarioModule: React.FC = () => {
                         code: p.code || '—',
                         description: desc,
                         price: p.prices?.[0]?.price_list?.[0]?.value ?? 0,
-                        cost: Number(p.costs?.[0]?.cost_list?.[0]?.value ?? p.unit_cost ?? 0),
+                        cost: Number(p.costs?.[0]?.cost_list?.[0]?.value ?? p.unit_cost ?? p.average_cost ?? p.standard_cost ?? 0),
                         stock: Number(p.stock_control ? (p.available_quantity ?? 0) : 0),
                     };
                 }).filter((p: SiigoProduct) => p.stock > 0);
@@ -280,6 +280,7 @@ const InventarioModule: React.FC = () => {
                             <th>Código</th>
                             <th>Descripción</th>
                             <th className="text-right">Costo</th>
+                            <th className="text-right">Stock</th>
                             <th className="text-center">Estado</th>
                         </tr>
                     </thead>
@@ -291,6 +292,9 @@ const InventarioModule: React.FC = () => {
                                 <td className="text-right" style={{ color: '#64748b', fontWeight: 'bold' }}>
                                     {p.cost > 0 ? `$${p.cost.toLocaleString('es-CO')}` : '—'}
                                 </td>
+                                <td className="text-right" style={{ fontWeight: 'bold' }}>
+                                    {p.stock}
+                                </td>
                                 <td className="text-center">
                                     <span className={`status-badge status-${p.stock > 0 ? 'ganado' : 'perdido'}`}>
                                         {p.stock > 0 ? 'En Stock' : 'Agotado'}
@@ -299,7 +303,7 @@ const InventarioModule: React.FC = () => {
                             </tr>
                         )) : (
                             <tr>
-                                <td colSpan={4} className="text-center" style={{ padding: '3rem', color: 'var(--text-muted)' }}>
+                                <td colSpan={5} className="text-center" style={{ padding: '3rem', color: 'var(--text-muted)' }}>
                                     {loading ? '⏳ Consultando Siigo...' : 'No hay productos. Presione "Sincronizar" para cargar.'}
                                 </td>
                             </tr>
