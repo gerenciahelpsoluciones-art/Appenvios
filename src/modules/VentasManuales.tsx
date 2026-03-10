@@ -110,9 +110,9 @@ const VentasManualesModule: React.FC<IProps> = ({ ventas, clientes, productos, u
                                     onChange={e => setSelectedProductoId(e.target.value)}
                                 >
                                     <option value="">Ninguno / Otro</option>
-                                    {productos.filter(p => p.estado === 'Activo').map(p => (
+                                    {productos.map(p => (
                                         <option key={p.id} value={p.id}>
-                                            {p.referencia} - {p.nombre} (Stock: {p.items?.filter(i => i.estado === 'Disponible').length || 0})
+                                            {p.moneda === 'USD' ? '🇺🇸' : '🇨🇴'} {p.nombre} {p.numPart ? `(N/P: ${p.numPart})` : ''}
                                         </option>
                                     ))}
                                 </select>
