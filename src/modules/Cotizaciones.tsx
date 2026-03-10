@@ -224,15 +224,21 @@ BBVA - Cuenta Corriente No. 390021475`;
                     return { ...item, productoId: value, costoUnitario: costo, precioVenta: defaultVenta, utilidad: defaultUtil, unidad: prod?.unidad || 'Und', iva: prod?.exentoIva ? 0 : 19, moneda: monedaItem };
                 }
                 if (field === 'costoUnitario') {
+                    if (value === '') {
+                        return { ...item, costoUnitario: '' as any, precioVenta: 0 };
+                    }
                     const newCosto = Number(value);
-                    const margin = Math.min(item.utilidad, 99.99) / 100;
+                    const margin = Math.min(Number(item.utilidad) || 0, 99.99) / 100;
                     const newVenta = newCosto > 0 ? Math.round(newCosto / (1 - margin)) : 0;
                     return { ...item, costoUnitario: newCosto, precioVenta: newVenta };
                 }
                 if (field === 'utilidad') {
+                    if (value === '') {
+                        return { ...item, utilidad: '' as any };
+                    }
                     const newUtil = Number(value);
                     const margin = Math.min(newUtil, 99.99) / 100;
-                    const newVenta = item.costoUnitario > 0 ? Math.round(item.costoUnitario / (1 - margin)) : item.precioVenta;
+                    const newVenta = Number(item.costoUnitario) > 0 ? Math.round(Number(item.costoUnitario) / (1 - margin)) : item.precioVenta;
                     return { ...item, utilidad: newUtil, precioVenta: newVenta };
                 }
                 return { ...item, [field]: value };
@@ -466,7 +472,10 @@ BBVA - Cuenta Corriente No. 390021475`;
                                 <td><input className="table-input num" type="number" value={item.cantidad} onChange={e => updateItem(item.id, 'cantidad', Number(e.target.value))} /></td>
                                 <td>
                                     <div style={{ position: 'relative' }}>
-                                        <input className="table-input num" type="number" value={item.costoUnitario} onChange={e => updateItem(item.id, 'costoUnitario', e.target.value === '' ? '' : Number(e.target.value))} />
+                                        <input className="table-input num"
+                                            type="number"
+                                            value={item.costoUnitario === undefined ? '' : item.costoUnitario}
+                                            onChange={e => updateItem(item.id, 'costoUnitario', e.target.value)} />
                                         {item.moneda === 'USD' && (
                                             <span style={{ position: 'absolute', right: '5px', top: '-10px', fontSize: '0.65rem', color: '#0369a1', background: '#e0f2fe', padding: '1px 4px', borderRadius: '4px', border: '1px solid #bae6fd' }}>
                                                 USD conv.
@@ -478,8 +487,8 @@ BBVA - Cuenta Corriente No. 390021475`;
                                     <input
                                         className="table-input num"
                                         type="number"
-                                        value={item.utilidad}
-                                        onChange={e => updateItem(item.id, 'utilidad', e.target.value === '' ? '' : Number(e.target.value))}
+                                        value={item.utilidad === undefined ? '' : item.utilidad}
+                                        onChange={e => updateItem(item.id, 'utilidad', e.target.value)}
                                         step="0.01"
                                         title="Editar margen (calcula precio Venta)"
                                         style={{ background: 'white' }}
