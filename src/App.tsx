@@ -1349,7 +1349,7 @@ function App() {
     { id: 'ventas-manuales', label: 'Ventas Manuales', icon: '💰' },
   ].filter(item => {
     if (item.id === 'productos') return true; // Everyone can see/edit products
-    if (item.id === 'facturacion' && currentUser?.rol === 'Admin') return true;
+    if ((item.id === 'facturacion' || item.id === 'ventas-manuales') && currentUser?.rol === 'Admin') return true;
     return currentUser?.permisos.includes(item.id);
   });
 
