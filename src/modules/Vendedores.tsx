@@ -1,14 +1,15 @@
 import React from 'react';
-import type { AppUser, SalesBudget, Cotizacion } from '../App';
+import type { AppUser, SalesBudget, Cotizacion, VentaManual } from '../App';
 
 interface IProps {
     users: AppUser[];
     budgets: SalesBudget[];
     cotizaciones: Cotizacion[];
+    ventasManuales: VentaManual[];
     currentUser: AppUser;
 }
 
-const Vendedores: React.FC<IProps> = ({ users, budgets, cotizaciones, currentUser }) => {
+const Vendedores: React.FC<IProps> = ({ users, budgets, cotizaciones, ventasManuales, currentUser }) => {
     const vendedores = users.filter(u => u.rol === 'Comercial' || (u.cargo && u.cargo.toLowerCase().includes('comercial')));
 
 
@@ -18,13 +19,21 @@ const Vendedores: React.FC<IProps> = ({ users, budgets, cotizaciones, currentUse
     };
 
     const getSalesForUser = (userId: string, month: number, year: number) => {
-        return cotizaciones
+        const quoteSales = cotizaciones
             .filter(c => {
                 if (!c.fecha || c.estado !== 'Ganado' || c.usuarioId !== userId) return false;
                 const [y, m] = c.fecha.split('-').map(Number);
                 return y === year && (m - 1) === month;
             })
             .reduce((acc, c) => acc + c.total, 0);
+
+        const manualSales = (ventasManuales || []).filter(v => {
+            if (!v.fecha || v.usuarioId !== userId) return false;
+            const [y, m] = v.fecha.split('-').map(Number);
+            return y === year && (m - 1) === month;
+        }).reduce((acc, v) => acc + v.monto, 0);
+
+        return quoteSales + manualSales;
     };
 
     const now = new Date();

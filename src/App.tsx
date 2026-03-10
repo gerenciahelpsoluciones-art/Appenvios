@@ -14,6 +14,7 @@ import Login from './modules/Login'
 import VendedoresModule from './modules/Vendedores'
 import AlquileresModule from './modules/Alquileres'
 import FacturacionModule from './modules/Facturacion'
+import VentasManualesModule from './modules/VentasManuales'
 import { supabase } from './lib/supabaseClient'
 import { logoBase64 } from './assets/logoBase64'
 
@@ -273,6 +274,17 @@ export interface SalesBudget {
   monto: number;
 }
 
+export interface VentaManual {
+  id: string;
+  fecha: string;
+  clienteId: string;
+  clienteNombre: string;
+  usuarioId: string;
+  usuarioNombre: string;
+  monto: number;
+  descripcion: string;
+}
+
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard')
 
@@ -287,6 +299,7 @@ function App() {
   const [alquileres, setAlquileres] = useState<Alquiler[]>([]);
   const [reparaciones, setReparaciones] = useState<Reparacion[]>([]);
   const [devoluciones, setDevoluciones] = useState<Devolucion[]>([]);
+  const [ventasManuales, setVentasManuales] = useState<VentaManual[]>([]);
   const [budgets, setBudgets] = useState<SalesBudget[]>([]);
   const [users, setUsers] = useState<AppUser[]>([]);
   const [realtimeStatus, setRealtimeStatus] = useState<string>('Desconectado');
@@ -478,6 +491,17 @@ function App() {
         })));
       }
 
+      const { data: vManualData } = await supabase.from('ventas_manuales').select('*');
+      if (vManualData) {
+        setVentasManuales(vManualData.map((v: any) => ({
+          ...v,
+          clienteId: v.cliente_id,
+          clienteNombre: v.cliente_nombre,
+          usuarioId: v.usuario_id,
+          usuarioNombre: v.usuario_nombre
+        })));
+      }
+
       // Fetch TRM
       try {
         const res = await fetch('https://co.dolarapi.com/v1/trm');
@@ -520,6 +544,7 @@ function App() {
         .on('postgres_changes', { event: '*', schema: 'public', table: 'reparaciones' }, () => fetchInitialData())
         .on('postgres_changes', { event: '*', schema: 'public', table: 'devoluciones' }, () => fetchInitialData())
         .on('postgres_changes', { event: '*', schema: 'public', table: 'budgets' }, () => fetchInitialData())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'ventas_manuales' }, () => fetchInitialData())
         .subscribe((status) => {
           console.log('Estado de conexión Realtime:', status);
           setRealtimeStatus(status === 'SUBSCRIBED' ? 'En Línea' : status);
@@ -1272,6 +1297,40 @@ function App() {
     if (!error) setBudgets(budgets.filter(b => b.id !== id));
   };
 
+  const addVentaManual = async (v: VentaManual) => {
+    const payload = {
+      fecha: v.fecha,
+      cliente_id: v.clienteId,
+      cliente_nombre: v.clienteNombre,
+      usuario_id: v.usuarioId,
+      usuario_nombre: v.usuarioNombre,
+      monto: v.monto,
+      descripcion: v.descripcion
+    };
+    const { data, error } = await supabase.from('ventas_manuales').insert([payload]).select();
+    if (error) {
+      alert('Error al registrar venta manual: ' + error.message);
+    } else if (data && data[0]) {
+      const dbV = data[0];
+      setVentasManuales(prev => [...prev, {
+        ...dbV,
+        clienteId: dbV.cliente_id,
+        clienteNombre: dbV.cliente_nombre,
+        usuarioId: dbV.usuario_id,
+        usuarioNombre: dbV.usuario_nombre
+      } as VentaManual]);
+    }
+  };
+
+  const deleteVentaManual = async (id: string) => {
+    const { error } = await supabase.from('ventas_manuales').delete().eq('id', id);
+    if (error) {
+      alert('Error al eliminar venta manual: ' + error.message);
+    } else {
+      setVentasManuales(prev => prev.filter(v => v.id !== id));
+    }
+  };
+
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: '📊' },
     { id: 'cotizaciones', label: 'Cotizaciones', icon: '📄' },
@@ -1287,6 +1346,7 @@ function App() {
     { id: 'vendedores', label: 'Vendedores', icon: '👨‍💼' },
     { id: 'alquileres', label: 'Alquileres', icon: '💻' },
     { id: 'facturacion', label: 'Facturación', icon: '💲' },
+    { id: 'ventas-manuales', label: 'Ventas Manuales', icon: '💰' },
   ].filter(item => {
     if (item.id === 'productos') return true; // Everyone can see/edit products
     if (item.id === 'facturacion' && currentUser?.rol === 'Admin') return true;
@@ -1473,12 +1533,25 @@ function App() {
           onUpdateDespacho={updateDespacho}
           onUpdateQuote={updateCotizacion}
         />;
+      case 'ventas-manuales':
+        return <VentasManualesModule
+          ventas={ventasManuales}
+          clientes={clientes}
+          users={users}
+          currentUser={currentUser}
+          onAdd={addVentaManual}
+          onDelete={deleteVentaManual}
+        />;
       case 'informes':
         const restrictedQuotes = currentUser.rol === 'Admin'
           ? cotizaciones
           : cotizaciones.filter(c => c.usuarioId === currentUser.id);
+        const restrictedManualSales = currentUser.rol === 'Admin'
+          ? ventasManuales
+          : ventasManuales.filter(v => v.usuarioId === currentUser.id);
         return <InformesModule
           cotizaciones={restrictedQuotes}
+          ventasManuales={restrictedManualSales}
           budgets={budgets}
           currentUser={currentUser}
           onUpdateQuote={updateCotizacion}
@@ -1508,6 +1581,7 @@ function App() {
           users={users}
           budgets={budgets}
           cotizaciones={cotizaciones}
+          ventasManuales={ventasManuales}
           currentUser={currentUser}
         />;
       case 'dashboard':

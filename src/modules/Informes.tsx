@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import type { Cotizacion, SalesBudget, AppUser, Cliente, Producto, Proveedor } from '../App';
+import type { Cotizacion, SalesBudget, AppUser, Cliente, Producto, Proveedor, VentaManual } from '../App';
 import { generateQuotationPDF } from '../utils/pdfGenerator';
 import { supabase } from '../lib/supabaseClient';
 
 interface IProps {
     cotizaciones: Cotizacion[];
+    ventasManuales: VentaManual[];
     budgets: SalesBudget[];
     currentUser: AppUser;
     onUpdateQuote: (quote: Cotizacion) => void;
@@ -30,6 +31,7 @@ interface EditItem {
 
 const InformesModule: React.FC<IProps> = ({
     cotizaciones,
+    ventasManuales,
     budgets,
     currentUser,
     onUpdateQuote,
@@ -90,11 +92,20 @@ const InformesModule: React.FC<IProps> = ({
     const totalUtilidad = filteredQuotes.reduce((acc, q) => acc + (q.utilidadTotal || 0), 0);
 
     // Monthly performance for cards
-    const monthlySales = cotizaciones.filter(c => {
+    const monthlySalesFromQuotes = cotizaciones.filter(c => {
         if (!c.fecha) return false;
         const [y, m] = c.fecha.split('-').map(Number);
         return y === currentYear && (m - 1) === currentMonth && c.estado === 'Ganado';
     }).reduce((acc, c) => acc + c.total, 0);
+
+    // Add manual sales for the current month
+    const monthlySalesFromManual = (ventasManuales || []).filter(v => {
+        if (!v.fecha) return false;
+        const [y, m] = v.fecha.split('-').map(Number);
+        return y === currentYear && (m - 1) === currentMonth;
+    }).reduce((acc, v) => acc + v.monto, 0);
+
+    const monthlySales = monthlySalesFromQuotes + monthlySalesFromManual;
 
     const advisorFiltered = appliedFilters.asesorId;
 
