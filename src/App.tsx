@@ -610,7 +610,9 @@ function App() {
       contabilidad_telefono: c.contabilidadTelefono || '',
       contabilidad_email: c.contabilidadEmail || '',
       posee_credito: c.poseeCredito || false,
-      cupo_credito: c.cupoCredito || 0
+      cupo_credito: c.cupoCredito || 0,
+      compradores: c.compradores || [],
+      sedes: c.sedes || []
     };
 
     console.log('Insertando cliente en Supabase:', dbClient);
@@ -660,7 +662,9 @@ function App() {
       contabilidad_telefono: c.contabilidadTelefono || '',
       contabilidad_email: c.contabilidadEmail || '',
       posee_credito: c.poseeCredito || false,
-      cupo_credito: c.cupoCredito || 0
+      cupo_credito: c.cupoCredito || 0,
+      compradores: c.compradores || [],
+      sedes: c.sedes || []
     };
 
     console.log('Actualizando cliente en Supabase:', payload);
