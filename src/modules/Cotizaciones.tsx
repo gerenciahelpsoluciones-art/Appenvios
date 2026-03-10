@@ -448,10 +448,10 @@ BBVA - Cuenta Corriente No. 390021475`;
                 <table className="data-table">
                     <thead>
                         <tr>
-                            <th style={{ width: '25%' }}>Producto</th>
+                            <th style={{ width: '20%' }}>Producto</th>
                             <th style={{ width: '120px' }}>Cant</th>
                             <th style={{ width: '140px' }}>Costo</th>
-                            <th style={{ width: '70px' }}>Util%</th>
+                            <th style={{ width: '90px' }}>Util%</th>
                             <th style={{ width: '180px' }}>Venta (Unit)</th>
                             <th style={{ width: '60px' }}>IVA%</th>
                             <th>Valor IVA</th>
