@@ -253,12 +253,10 @@ const AdminModule: React.FC<IProps> = ({
                                         </td>
                                         <td className="text-center">
                                             <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
-                                                {(u.rol === 'Comercial' || (u.cargo && u.cargo.toLowerCase().includes('comercial'))) && (
-                                                    <button className="btn-switch" style={{ background: '#e0f2fe', color: '#0369a1', borderColor: '#bae6fd' }} onClick={() => {
-                                                        setActiveSubTab('budgets');
-                                                        setBudgetForm((prev: any) => ({ ...prev, usuarioId: u.id }));
-                                                    }} title="Asignar Presupuesto">💰</button>
-                                                )}
+                                                <button className="btn-switch" style={{ background: '#e0f2fe', color: '#0369a1', borderColor: '#bae6fd' }} onClick={() => {
+                                                    setActiveSubTab('budgets');
+                                                    setBudgetForm((prev: any) => ({ ...prev, usuarioId: u.id }));
+                                                }} title="Asignar Presupuesto">💰</button>
                                                 <button className="btn-switch" onClick={() => onSwitchUser(u)} title="Cambiar a este usuario">👤</button>
                                                 <button className="btn-edit" onClick={() => startEdit(u)} title="Editar">✏️</button>
                                                 <button className="btn-delete-icon" onClick={() => onDelete(u.id)} title="Eliminar">🗑️</button>
@@ -273,7 +271,7 @@ const AdminModule: React.FC<IProps> = ({
             ) : (
                 <div style={{ marginTop: '1rem' }}>
                     <div className="module-header">
-                        <h2>Metas de Ventas por Comercial</h2>
+                        <h2>Metas de Ventas por Usuario</h2>
                     </div>
 
                     <div className="card animate-fade-in" style={{ marginBottom: '2rem' }}>
@@ -284,8 +282,8 @@ const AdminModule: React.FC<IProps> = ({
                                 <select className="input-field" value={budgetForm.usuarioId} onChange={e => setBudgetForm({ ...budgetForm, usuarioId: e.target.value })}>
                                     <option value="">Seleccione...</option>
                                     <option value="company-total">🏢 Empresa (Global)</option>
-                                    {users.filter(u => u.rol === 'Comercial' || (u.cargo && u.cargo.toLowerCase().includes('comercial'))).map(u => (
-                                        <option key={u.id} value={u.id}>{u.nombre}</option>
+                                    {users.map(u => (
+                                        <option key={u.id} value={u.id}>{u.nombre} ({u.rol})</option>
                                     ))}
                                 </select>
                             </div>
