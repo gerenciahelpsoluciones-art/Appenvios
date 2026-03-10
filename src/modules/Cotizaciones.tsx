@@ -279,10 +279,11 @@ BBVA - Cuenta Corriente No. 390021475`;
     const ivaGeneral = items.reduce((acc, item) => acc + calculateIVAItem(item), 0);
     const grandTotal = subtotalGeneral + ivaGeneral;
 
-    // Average margin percent weighted by item count
+    // Actual margin percent based on total cost vs selling price
     const profitTotal = items.reduce((acc, item) => acc + calculateMarginTotal(item), 0);
-    const marginPercent = items.length > 0
-        ? items.reduce((acc, item) => acc + item.utilidad, 0) / items.length
+    const totalCost = items.reduce((acc, item) => acc + (item.costoUnitario * item.cantidad), 0);
+    const marginPercent = subtotalGeneral > 0
+        ? ((subtotalGeneral - totalCost) / subtotalGeneral) * 100
         : 0;
 
     const generatePDF = () => {

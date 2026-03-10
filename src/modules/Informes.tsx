@@ -139,9 +139,18 @@ const InformesModule: React.FC<IProps> = ({
     const executionPercent = activeBudget > 0 ? (monthlySales / activeBudget) * 100 : 0;
     const difference = monthlySales - activeBudget;
 
+    const isAuthRequired = (q: Cotizacion) => {
+        if (q.requiereAutorizacion) return true;
+        if (q.subtotal > 0 && q.utilidadTotal !== undefined) {
+            const margin = (q.utilidadTotal / q.subtotal) * 100;
+            return margin < 10 && q.utilidadTotal < q.subtotal;
+        }
+        return false;
+    };
+
     const updateStatus = (quote: Cotizacion, newStatus: 'Seguimiento' | 'Ganado' | 'Perdido') => {
         if (newStatus === 'Ganado') {
-            if (quote.requiereAutorizacion && !quote.autorizada) {
+            if (isAuthRequired(quote) && !quote.autorizada) {
                 alert('Esta cotización requiere autorización del Gerente Comercial debido a su bajo margen de utilidad (<10%).');
                 return;
             }
@@ -211,7 +220,7 @@ const InformesModule: React.FC<IProps> = ({
     };
 
     const handlePrintPDF = (q: Cotizacion) => {
-        if (q.requiereAutorizacion && !q.autorizada) {
+        if (isAuthRequired(q) && !q.autorizada) {
             alert('Esta cotización no puede imprimirse porque tiene un margen inferior al 10% y aún no ha sido autorizada por Gerencia.');
             return;
         }
@@ -624,7 +633,7 @@ const InformesModule: React.FC<IProps> = ({
                                             </span>
                                         </td>
                                         <td className="text-center">
-                                            {q.requiereAutorizacion ? (
+                                            {isAuthRequired(q) ? (
                                                 <span className={`auth-badge ${q.autorizada ? 'auth-ok' : 'auth-pending'}`}>
                                                     {q.autorizada ? '✅ OK' : '⚠️ Pendiente'}
                                                 </span>
@@ -670,11 +679,11 @@ const InformesModule: React.FC<IProps> = ({
                                                     className="btn-status btn-ganado"
                                                     onClick={() => updateStatus(q, 'Ganado')}
                                                     title="Ganado"
-                                                    style={{ opacity: (q.requiereAutorizacion && !q.autorizada) ? 0.3 : 1 }}
+                                                    style={{ opacity: (isAuthRequired(q) && !q.autorizada) ? 0.3 : 1 }}
                                                 >
                                                     ✅
                                                 </button>
-                                                {(currentUser.rol === 'Admin' || currentUser.cargo?.toLowerCase().includes('gerente') || currentUser.cargo?.toLowerCase().includes('administrador')) && q.requiereAutorizacion && !q.autorizada && (
+                                                {(currentUser.rol === 'Admin' || currentUser.cargo?.toLowerCase().includes('gerente') || currentUser.cargo?.toLowerCase().includes('administrador')) && isAuthRequired(q) && !q.autorizada && (
                                                     <button
                                                         className="btn-status btn-authorize"
                                                         onClick={() => authorizeQuote(q)}
