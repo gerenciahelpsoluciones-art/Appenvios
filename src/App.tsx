@@ -279,6 +279,8 @@ export interface VentaManual {
   fecha: string;
   clienteId: string;
   clienteNombre: string;
+  productoId?: string;
+  productoNombre?: string;
   usuarioId: string;
   usuarioNombre: string;
   monto: number;
@@ -1302,6 +1304,8 @@ function App() {
       fecha: v.fecha,
       cliente_id: v.clienteId,
       cliente_nombre: v.clienteNombre,
+      producto_id: v.productoId || null,
+      producto_nombre: v.productoNombre || null,
       usuario_id: v.usuarioId,
       usuario_nombre: v.usuarioNombre,
       monto: v.monto,
@@ -1537,6 +1541,7 @@ function App() {
         return <VentasManualesModule
           ventas={ventasManuales}
           clientes={clientes}
+          productos={productos}
           users={users}
           currentUser={currentUser}
           onAdd={addVentaManual}

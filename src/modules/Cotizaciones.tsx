@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import type { Cliente, Producto, Cotizacion, AppUser } from '../App';
 import { generateQuotationPDF } from '../utils/pdfGenerator';
 
@@ -24,6 +24,112 @@ interface IProps {
     currentUser: AppUser;
     currentTrm: number;
 }
+
+// Searchable Product Dropdown Component
+const ProductSearchSelect: React.FC<{
+    productos: Producto[];
+    value: string;
+    onChange: (productId: string) => void;
+}> = ({ productos, value, onChange }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [search, setSearch] = useState('');
+    const wrapperRef = useRef<HTMLDivElement>(null);
+
+    const selectedProduct = productos.find(p => p.id === value);
+
+    // Close on outside click
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const filteredProducts = productos.filter(p => {
+        const term = search.toLowerCase();
+        return p.nombre.toLowerCase().includes(term) || (p.numPart && p.numPart.toLowerCase().includes(term));
+    });
+
+    return (
+        <div ref={wrapperRef} style={{ position: 'relative', width: '100%' }}>
+            <div
+                className="table-input"
+                style={{
+                    cursor: 'text',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    background: 'white',
+                    minHeight: '34px'
+                }}
+                onClick={() => setIsOpen(true)}
+            >
+                {isOpen ? (
+                    <input
+                        type="text"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        placeholder="Buscar producto..."
+                        autoFocus
+                        style={{ border: 'none', outline: 'none', width: '100%', padding: '0' }}
+                    />
+                ) : (
+                    <span style={{ color: selectedProduct ? 'inherit' : '#9ca3af', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {selectedProduct ? `${selectedProduct.moneda === 'USD' ? '🇺🇸' : '🇨🇴'} ${selectedProduct.nombre} ${selectedProduct.numPart ? `(${selectedProduct.numPart})` : ''}` : '-- Seleccionar --'}
+                    </span>
+                )}
+                <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>▼</span>
+            </div>
+
+            {isOpen && (
+                <div style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    maxHeight: '250px',
+                    overflowY: 'auto',
+                    background: 'white',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '4px',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                    zIndex: 50,
+                    marginTop: '2px'
+                }}>
+                    {filteredProducts.length === 0 ? (
+                        <div style={{ padding: '0.5rem', color: '#6b7280', fontSize: '0.9rem' }}>No hay resultados</div>
+                    ) : (
+                        filteredProducts.map(p => (
+                            <div
+                                key={p.id}
+                                onClick={() => {
+                                    onChange(p.id);
+                                    setIsOpen(false);
+                                    setSearch('');
+                                }}
+                                style={{
+                                    padding: '0.5rem',
+                                    borderBottom: '1px solid #f3f4f6',
+                                    cursor: 'pointer',
+                                    fontSize: '0.9rem',
+                                    backgroundColor: value === p.id ? '#e0f2fe' : 'transparent',
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = value === p.id ? '#e0f2fe' : 'transparent'}
+                            >
+                                <div style={{ fontWeight: '500' }}>{p.moneda === 'USD' ? '🇺🇸' : '🇨🇴'} {p.nombre}</div>
+                                {p.numPart && <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>N/P: {p.numPart}</div>}
+                            </div>
+                        ))
+                    )}
+                </div>
+            )}
+        </div>
+    );
+};
 
 const CotizacionesModule: React.FC<IProps> = ({
     clientes,
@@ -351,18 +457,11 @@ BBVA - Cuenta Corriente No. 390021475`;
                         {items.map(item => (
                             <tr key={item.id}>
                                 <td>
-                                    <select
-                                        className="table-input"
+                                    <ProductSearchSelect
+                                        productos={productos}
                                         value={item.productoId}
-                                        onChange={e => updateItem(item.id, 'productoId', e.target.value)}
-                                    >
-                                        <option value="">-- Producto --</option>
-                                        {productos.map(p => (
-                                            <option key={p.id} value={p.id}>
-                                                {p.moneda === 'USD' ? '🇺🇸' : '🇨🇴'} {p.nombre} {p.numPart ? `(${p.numPart})` : ''}
-                                            </option>
-                                        ))}
-                                    </select>
+                                        onChange={(newId) => updateItem(item.id, 'productoId', newId)}
+                                    />
                                 </td>
                                 <td>
                                     <input
