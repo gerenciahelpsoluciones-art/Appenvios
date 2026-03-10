@@ -77,7 +77,12 @@ const ProductSearchSelect: React.FC<{
                         style={{ border: 'none', outline: 'none', width: '100%', padding: '0' }}
                     />
                 ) : (
-                    <span style={{ color: selectedProduct ? 'inherit' : '#9ca3af', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <span style={{
+                        color: selectedProduct ? 'inherit' : '#9ca3af',
+                        padding: '4px 0',
+                        lineHeight: '1.2',
+                        wordBreak: 'break-word'
+                    }}>
                         {selectedProduct ? `${selectedProduct.moneda === 'USD' ? '🇺🇸' : '🇨🇴'} ${selectedProduct.nombre} ${selectedProduct.numPart ? `(${selectedProduct.numPart})` : ''}` : '-- Seleccionar --'}
                     </span>
                 )}
