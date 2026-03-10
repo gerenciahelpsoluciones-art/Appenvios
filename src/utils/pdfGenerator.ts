@@ -18,6 +18,7 @@ export interface PDFData {
         telefono: string;
         correo: string;
     };
+    observaciones?: string;
 }
 
 export const generateQuotationPDF = (data: PDFData, action: 'save' | 'view' = 'save') => {
@@ -136,6 +137,24 @@ export const generateQuotationPDF = (data: PDFData, action: 'save' | 'view' = 's
             doc.setFont("helvetica", "normal");
             doc.text(splitConds, 14, currentY + 12);
             currentY += 15 + (splitConds.length * 5);
+        }
+
+        // Observations
+        if (data.observaciones) {
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(10);
+            const splitObs = doc.splitTextToSize(data.observaciones, 180);
+
+            if (currentY + 15 + (splitObs.length * 5) > 280) {
+                doc.addPage();
+                currentY = 20;
+            }
+
+            doc.setFont("helvetica", "bold");
+            doc.text("OBSERVACIONES:", 14, currentY + 5);
+            doc.setFont("helvetica", "normal");
+            doc.text(splitObs, 14, currentY + 12);
+            currentY += 15 + (splitObs.length * 5);
         }
 
         if (currentY > 240) {

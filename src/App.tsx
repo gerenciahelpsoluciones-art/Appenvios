@@ -178,6 +178,7 @@ export interface Cotizacion {
   autorizada?: boolean;
   autorizadoPor?: string;
   fechaAutorizacion?: string;
+  observaciones?: string;
   condiciones?: string;
   ordenCompraCliente?: string;
   ordenCompraUrl?: string;
@@ -393,7 +394,8 @@ function App() {
           cupoCredito: c.cupo_credito,
           utilidadTotal: Number(c.utilidad_total || 0),
           ordenCompraCliente: c.orden_compra_cliente,
-          ordenCompraUrl: c.orden_compra_url
+          ordenCompraUrl: c.orden_compra_url,
+          observaciones: c.observaciones || ''
         })));
       }
 
@@ -924,7 +926,8 @@ function App() {
       requiere_autorizacion: c.requiereAutorizacion || false,
       autorizada: c.autorizada || false,
       autorizado_por: c.autorizadoPor,
-      fecha_autorizacion: c.fechaAutorizacion
+      fecha_autorizacion: c.fechaAutorizacion,
+      observaciones: c.observaciones || ''
     }]).select();
     if (error) {
       alert('Error al añadir cotización: ' + error.message);
@@ -944,7 +947,8 @@ function App() {
         requiereAutorizacion: dbC.requiere_autorizacion,
         autorizada: dbC.autorizada,
         autorizadoPor: dbC.autorizado_por,
-        fechaAutorizacion: dbC.fecha_autorizacion
+        fechaAutorizacion: dbC.fecha_autorizacion,
+        observaciones: dbC.observaciones || ''
       } as Cotizacion, ...prev]);
     }
   };

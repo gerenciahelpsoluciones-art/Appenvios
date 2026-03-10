@@ -161,6 +161,7 @@ const CotizacionesModule: React.FC<IProps> = ({
     const [selectedClienteId, setSelectedClienteId] = useState('');
     const [selectedCompradorId, setSelectedCompradorId] = useState('');
     const [consecutivo, setConsecutivo] = useState(generateConsecutivo());
+    const [observaciones, setObservaciones] = useState('');
     const initialCondiciones = `1. La descripción del producto y/o servicio, especifica el producto y/o servicio que se va a entregar, el cual incluye características técnicas y especificaciones relevantes. 
 2. El valor unitario y el Valor total se expresa sin tener en cuenta impuestos, el valor del IVA se calcula y se indica en la casilla Valor IVA.
 3. Condiciones y forma de pago: Anticipo ( ) Contado ( ) Crédito 30 días ( ) Crédito 45 días ( )
@@ -349,6 +350,7 @@ BBVA - Cuenta Corriente No. 390021475`;
                 requiereAutorizacion: marginPercent < 10,
                 autorizada: false,
                 condiciones: condiciones,
+                observaciones: observaciones,
                 trm: currentTrm
             });
 
@@ -371,6 +373,7 @@ BBVA - Cuenta Corriente No. 390021475`;
                     iva: ivaGeneral,
                     total: grandTotal,
                     condiciones,
+                    observaciones,
                     ejecutivo
                 });
             }
@@ -476,6 +479,17 @@ BBVA - Cuenta Corriente No. 390021475`;
                             <input className="input-field" placeholder="Cargo" value={ejecutivo.cargo} onChange={e => setEjecutivo({ ...ejecutivo, cargo: e.target.value })} />
                             <input className="input-field" placeholder="Teléfono" value={ejecutivo.telefono} onChange={e => setEjecutivo({ ...ejecutivo, telefono: e.target.value })} />
                             <input className="input-field" placeholder="Correo" value={ejecutivo.correo} onChange={e => setEjecutivo({ ...ejecutivo, correo: e.target.value })} />
+                        </div>
+                        <div style={{ marginTop: '1rem' }}>
+                            <h3>Observaciones (Internas o para el PDF)</h3>
+                            <textarea
+                                className="input-field"
+                                rows={4}
+                                style={{ width: '100%', resize: 'vertical', marginTop: '0.5rem' }}
+                                placeholder="Notas u observaciones adicionales que saldrán en el PDF..."
+                                value={observaciones}
+                                onChange={e => setObservaciones(e.target.value)}
+                            />
                         </div>
                     </div>
                 </div>

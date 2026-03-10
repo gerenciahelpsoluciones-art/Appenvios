@@ -62,6 +62,7 @@ const InformesModule: React.FC<IProps> = ({
     const [editingQuote, setEditingQuote] = useState<Cotizacion | null>(null);
     const [editItems, setEditItems] = useState<EditItem[]>([]);
     const [editClienteId, setEditClienteId] = useState('');
+    const [editObservaciones, setEditObservaciones] = useState('');
 
     // Won Quote OC Modal State
     const [wonQuoteModal, setWonQuoteModal] = useState<Cotizacion | null>(null);
@@ -245,7 +246,8 @@ const InformesModule: React.FC<IProps> = ({
                 cargo: 'Ejecutivo Comercial',
                 telefono: q.ejecutivoTelefono || '',
                 correo: q.ejecutivoEmail
-            }
+            },
+            observaciones: q.observaciones
         });
     };
 
@@ -263,12 +265,14 @@ const InformesModule: React.FC<IProps> = ({
             utilidad: item.utilidad,
             iva: item.iva,
         })));
+        setEditObservaciones(q.observaciones || '');
     };
 
     const closeEditModal = () => {
         setEditingQuote(null);
         setEditItems([]);
         setEditClienteId('');
+        setEditObservaciones('');
     };
 
     const updateEditItem = (id: string, field: keyof EditItem, value: any) => {
@@ -333,6 +337,7 @@ const InformesModule: React.FC<IProps> = ({
             subtotal: editSubtotal,
             iva: editIVATotal,
             total: editGrandTotal,
+            observaciones: editObservaciones
         };
         onUpdateQuote(updated);
         closeEditModal();
@@ -846,6 +851,19 @@ const InformesModule: React.FC<IProps> = ({
                                         </tbody>
                                     </table>
                                 </div>
+                            </div>
+
+                            {/* Observations */}
+                            <div className="edit-section" style={{ marginTop: '1rem' }}>
+                                <label className="edit-label">Observaciones (Saldrán en el PDF)</label>
+                                <textarea
+                                    className="edit-input"
+                                    rows={3}
+                                    style={{ resize: 'vertical' }}
+                                    value={editObservaciones}
+                                    onChange={e => setEditObservaciones(e.target.value)}
+                                    placeholder="Notas adicionales para esta cotización..."
+                                />
                             </div>
 
                             {/* Totals */}
