@@ -154,6 +154,7 @@ const CotizacionesModule: React.FC<IProps> = ({
 
     const [items, setItems] = useState<QuoteItem[]>([]);
     const [selectedClienteId, setSelectedClienteId] = useState('');
+    const [selectedCompradorId, setSelectedCompradorId] = useState('');
     const [consecutivo, setConsecutivo] = useState(generateConsecutivo());
     const initialCondiciones = `1. La descripción del producto y/o servicio, especifica el producto y/o servicio que se va a entregar, el cual incluye características técnicas y especificaciones relevantes. 
 2. El valor unitario y el Valor total se expresa sin tener en cuenta impuestos, el valor del IVA se calcula y se indica en la casilla Valor IVA.
@@ -185,6 +186,7 @@ BBVA - Cuenta Corriente No. 390021475`;
     });
 
     const selectedCliente = clientes.find(c => c.id === selectedClienteId);
+    const selectedComprador = selectedCliente?.compradores?.find(comp => comp.id === selectedCompradorId);
 
     const addItem = () => {
         const newItem: QuoteItem = {
@@ -334,6 +336,9 @@ BBVA - Cuenta Corriente No. 390021475`;
                 ejecutivo: ejecutivo.nombre,
                 ejecutivoEmail: ejecutivo.correo,
                 ejecutivoTelefono: ejecutivo.telefono,
+                compradorNombre: selectedComprador?.nombre,
+                compradorTelefono: selectedComprador?.telefono,
+                compradorEmail: selectedComprador?.correo,
                 usuarioId: currentUser.id,
                 estado: 'Seguimiento',
                 requiereAutorizacion: marginPercent < 10,
@@ -344,9 +349,17 @@ BBVA - Cuenta Corriente No. 390021475`;
 
             // If margin >= 10, generate PDF
             if (marginPercent >= 10) {
+                // Prepare client data for PDF with selected buyer if applicable
+                const clientForPdf = { ...selectedCliente };
+                if (selectedComprador) {
+                    clientForPdf.contacto = selectedComprador.nombre;
+                    clientForPdf.telefono = selectedComprador.telefono;
+                    clientForPdf.correo = selectedComprador.correo;
+                }
+
                 generateQuotationPDF({
                     consecutivo,
-                    cliente: selectedCliente,
+                    cliente: clientForPdf as Cliente,
                     items,
                     productos,
                     subtotal: subtotalGeneral,
@@ -386,13 +399,31 @@ BBVA - Cuenta Corriente No. 390021475`;
                             <select
                                 className="input-field"
                                 value={selectedClienteId}
-                                onChange={e => setSelectedClienteId(e.target.value)}
+                                onChange={e => {
+                                    setSelectedClienteId(e.target.value);
+                                    setSelectedCompradorId('');
+                                }}
                             >
                                 <option value="">-- Seleccionar Cliente --</option>
                                 {clientes.map(c => (
                                     <option key={c.id} value={c.id}>{c.nombre} (NIT: {c.nit})</option>
                                 ))}
                             </select>
+                            {selectedCliente && selectedCliente.compradores && selectedCliente.compradores.length > 0 && (
+                                <select
+                                    className="input-field animate-fade-in"
+                                    value={selectedCompradorId}
+                                    onChange={e => setSelectedCompradorId(e.target.value)}
+                                    style={{ border: '2px solid var(--primary-blue)' }}
+                                >
+                                    <option value="">-- Contacto Principal ({selectedCliente.contacto}) --</option>
+                                    {selectedCliente.compradores.map(comp => (
+                                        <option key={comp.id} value={comp.id}>
+                                            👤 {comp.nombre} ({comp.cargo || 'Comprador'})
+                                        </option>
+                                    ))}
+                                </select>
+                            )}
                             <input className="input-field" type="date" value={new Date().toISOString().split('T')[0]} readOnly title="Fecha" />
                         </div>
                     </div>
@@ -410,7 +441,12 @@ BBVA - Cuenta Corriente No. 390021475`;
                 </div>
                 {selectedCliente && (
                     <div className="client-detail-box">
-                        <p><strong>Contacto:</strong> {selectedCliente.contacto} | <strong>Tel:</strong> {selectedCliente.telefono} | <strong>Dir:</strong> {selectedCliente.direccion}</p>
+                        <p>
+                            <strong>Contacto:</strong> {selectedComprador ? selectedComprador.nombre : selectedCliente.contacto} |
+                            <strong>Tel:</strong> {selectedComprador ? selectedComprador.telefono : selectedCliente.telefono} |
+                            <strong>Correo:</strong> {selectedComprador ? selectedComprador.correo : selectedCliente.correo} |
+                            <strong>Dir:</strong> {selectedCliente.direccion}
+                        </p>
                     </div>
                 )}
             </div>

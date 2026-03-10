@@ -161,6 +161,9 @@ export interface Cotizacion {
   clienteId: string;
   clienteNombre: string;
   consecutivo: string;
+  compradorNombre?: string;
+  compradorTelefono?: string;
+  compradorEmail?: string;
   items: CotizacionItem[];
   subtotal: number;
   iva: number;
@@ -377,6 +380,9 @@ function App() {
           clienteNombre: c.cliente_nombre,
           ejecutivoEmail: c.ejecutivo_email,
           ejecutivoTelefono: c.ejecutivo_telefono,
+          compradorNombre: c.comprador_nombre,
+          compradorTelefono: c.comprador_telefono,
+          compradorEmail: c.comprador_email,
           usuarioId: c.usuario_id,
           direccion: c.direccion,
           coordenadas: c.coordenadas,
@@ -906,6 +912,9 @@ function App() {
       cliente_nombre: c.clienteNombre,
       ejecutivo_email: c.ejecutivoEmail,
       ejecutivo_telefono: c.ejecutivoTelefono,
+      comprador_nombre: c.compradorNombre,
+      comprador_telefono: c.compradorTelefono,
+      comprador_email: c.compradorEmail,
       usuario_id: c.usuarioId,
       utilidad_total: c.utilidadTotal,
       requiere_autorizacion: c.requiereAutorizacion || false,
@@ -923,6 +932,9 @@ function App() {
         clienteNombre: dbC.cliente_nombre,
         ejecutivoEmail: dbC.ejecutivo_email,
         ejecutivoTelefono: dbC.ejecutivo_telefono,
+        compradorNombre: dbC.comprador_nombre,
+        compradorTelefono: dbC.comprador_telefono,
+        compradorEmail: dbC.comprador_email,
         usuarioId: dbC.usuario_id,
         utilidadTotal: Number(dbC.utilidad_total || 0),
         requiereAutorizacion: dbC.requiere_autorizacion,
@@ -947,6 +959,9 @@ function App() {
       ejecutivo: c.ejecutivo,
       ejecutivo_email: c.ejecutivoEmail,
       ejecutivo_telefono: c.ejecutivoTelefono,
+      comprador_nombre: c.compradorNombre,
+      comprador_telefono: c.compradorTelefono,
+      comprador_email: c.compradorEmail,
       usuario_id: c.usuarioId,
       estado: c.estado,
       utilidad_total: c.utilidadTotal,
