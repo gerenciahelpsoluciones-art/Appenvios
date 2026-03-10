@@ -1397,11 +1397,11 @@ function App() {
           proveedores={proveedores}
           productos={productos}
           ordenesCompra={filteredOCsToModule}
+          allOrdenesCompra={ordenesCompra}
           onAddOC={addOrdenCompra}
           onUpdateOC={updateOrdenCompra}
           onDeleteOC={deleteOrdenCompra}
           currentUser={currentUser}
-          totalOrdenes={ordenesCompra.length}
           currentTrm={currentTrm}
         />;
       case 'productos':

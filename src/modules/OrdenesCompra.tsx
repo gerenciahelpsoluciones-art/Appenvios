@@ -8,15 +8,15 @@ interface IProps {
     proveedores: Proveedor[];
     productos: Producto[];
     ordenesCompra: OrdenCompra[];
+    allOrdenesCompra: OrdenCompra[];
     onAddOC: (oc: OrdenCompra) => Promise<boolean | void>;
     onUpdateOC: (oc: OrdenCompra) => Promise<boolean | void>;
     onDeleteOC: (id: string) => void;
     currentUser: AppUser;
-    totalOrdenes?: number;
     currentTrm: number;
 }
 
-const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenesCompra, onAddOC, onUpdateOC, onDeleteOC, currentUser, totalOrdenes, currentTrm }) => {
+const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenesCompra, allOrdenesCompra, onAddOC, onUpdateOC, onDeleteOC, currentUser, currentTrm }) => {
     const [isAdding, setIsAdding] = useState(false);
     const [selectedProveedor, setSelectedProveedor] = useState<string>('');
     const [condiciones, setCondiciones] = useState('Contado');
@@ -66,8 +66,11 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenes
             return;
         }
 
-        const baseLength = totalOrdenes !== undefined ? totalOrdenes : ordenesCompra.length;
-        const nextConsecutivoValue = baseLength + 1;
+        const maxConsecutivoFromAll = allOrdenesCompra.reduce((max, oc) => {
+            const num = parseInt(oc.consecutivo.replace('OC-', ''), 10);
+            return !isNaN(num) && num > max ? num : max;
+        }, 0);
+        const nextConsecutivoValue = maxConsecutivoFromAll + 1;
         const nextConsecutivo = editingId
             ? ordenesCompra.find(oc => oc.id === editingId)?.consecutivo || ''
             : `OC-${nextConsecutivoValue.toString().padStart(4, '0')}`;
