@@ -10,7 +10,13 @@ interface IProps {
 }
 
 const Vendedores: React.FC<IProps> = ({ users, budgets, cotizaciones, ventasManuales, currentUser }) => {
-    const vendedores = users.filter(u => u.rol === 'Comercial' || (u.cargo && u.cargo.toLowerCase().includes('comercial')));
+    // Include all users who have a budget assigned (any month), plus Comercials
+    const userIdsWithBudget = new Set(budgets.map(b => b.usuarioId));
+    const vendedores = users.filter(u =>
+        u.rol === 'Comercial' ||
+        (u.cargo && u.cargo.toLowerCase().includes('comercial')) ||
+        userIdsWithBudget.has(u.id)
+    );
 
 
     const getBudgetForUser = (userId: string, month: number, year: number) => {
@@ -40,7 +46,7 @@ const Vendedores: React.FC<IProps> = ({ users, budgets, cotizaciones, ventasManu
     const curMonth = now.getMonth();
     const curYear = now.getFullYear();
 
-    // Filter salespeople based on role
+    // Filter: Admins see all, others see only themselves
     const displayedVendedores = currentUser.rol === 'Admin'
         ? vendedores
         : vendedores.filter(v => v.id === currentUser.id);
