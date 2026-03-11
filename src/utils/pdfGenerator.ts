@@ -72,20 +72,19 @@ export const generateQuotationPDF = (data: PDFData, action: 'save' | 'view' = 's
             const prod = data.productos.find(p => p.id === item.productoId);
             const ventaUnit = item.precioVenta !== undefined ? item.precioVenta : Math.round((item.costoUnitario || 0) / (1 - Math.min(item.utilidad || 0, 99.99) / 100));
             const subtotal = Math.round(ventaUnit * item.cantidad);
-            const valorIVA = Math.round(subtotal * ((item.iva || 0) / 100));
+
             return [
                 prod?.nombre || 'N/A',
                 item.unidad || 'Und',
                 item.cantidad,
                 `$${ventaUnit.toLocaleString()}`,
-                `$${subtotal.toLocaleString()}`,
-                `$${valorIVA.toLocaleString()}`
+                `$${subtotal.toLocaleString()}`
             ];
         });
 
         autoTable(doc, {
             startY: 85,
-            head: [['Descripción del Producto', 'Unidad', 'Cant.', 'Precio Unit.', 'Subtotal', 'IVA']],
+            head: [['Descripción del Producto', 'Unidad', 'Cant.', 'Precio Unit.', 'Subtotal']],
             body: tableBody,
             headStyles: { fillColor: [0, 74, 153], textColor: [255, 255, 255] },
             alternateRowStyles: { fillColor: [240, 245, 255] },
@@ -193,8 +192,9 @@ export const generateQuotationPDF = (data: PDFData, action: 'save' | 'view' = 's
         doc.setTextColor(80, 80, 80);
         doc.text("NIT 900686378-7 | Celular: 3043358650 - 3003453610 | gerencia@helpsoluciones.com.co", 105, fY + 10, { align: 'center' });
 
-        const safeClientName = (data.cliente?.nombre || 'CLIENTE').toUpperCase();
-        const fileName = `COTIZACION HELP SOLUCIONES - ${safeClientName} - ${data.consecutivo || 'S-N'}.pdf`;
+        const safeClientName = (data.cliente?.nombre || 'CLIENTE').toUpperCase().replace(/[^a-zA-Z0-9]/g, '_');
+        const safeConsecutivo = (data.consecutivo || 'SN').replace(/[^a-zA-Z0-9-]/g, '_');
+        const fileName = `COTIZACION_HSI_${safeClientName}_${safeConsecutivo}.pdf`;
 
         if (action === 'view') {
             const blobUrl = doc.output('bloburl');

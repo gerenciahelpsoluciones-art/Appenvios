@@ -79,6 +79,19 @@ const InformesModule: React.FC<IProps> = ({
         const clientMatch = appliedFilters.clienteId ? q.clienteId === appliedFilters.clienteId : true;
         const advisorMatch = appliedFilters.asesorId ? q.usuarioId === appliedFilters.asesorId : true;
         return dateMatch && clientMatch && advisorMatch;
+    }).sort((a, b) => {
+        const priority: Record<string, number> = { 'Seguimiento': 0, 'Perdido': 1, 'Ganado': 2 };
+        const aStatus = a.estado || 'Seguimiento';
+        const bStatus = b.estado || 'Seguimiento';
+        const aPrio = priority[aStatus] ?? 10;
+        const bPrio = priority[bStatus] ?? 10;
+        
+        if (aPrio !== bPrio) return aPrio - bPrio;
+        
+        // Safety check for dates
+        const aDate = a.fecha || '';
+        const bDate = b.fecha || '';
+        return bDate.localeCompare(aDate);
     });
 
     console.log('Informes Debug:', {

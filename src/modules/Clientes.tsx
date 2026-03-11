@@ -15,10 +15,10 @@ const ClientesModule: React.FC<IProps> = ({ clientes, onAdd, onUpdate, onDelete,
   const [formData, setFormData] = useState<Partial<Cliente>>({});
   const [searchTerm, setSearchTerm] = useState('');
 
-  const filteredClientes = clientes.filter(c =>
-    c.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.nit.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.contacto.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredClientes = (clientes || []).filter(c =>
+    (c.nombre || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (c.nit || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (c.contacto || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleSave = () => {

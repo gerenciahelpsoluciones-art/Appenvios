@@ -300,7 +300,7 @@ BBVA - Cuenta Corriente No. 390021475`;
         ? ((subtotalGeneral - totalCost) / subtotalGeneral) * 100
         : 0;
 
-    const generatePDF = () => {
+    const generatePDF = async () => {
         if (!selectedCliente) {
             alert('Seleccione un cliente.');
             return;
@@ -317,8 +317,8 @@ BBVA - Cuenta Corriente No. 390021475`;
         }
 
         try {
-            // Save to DB
-            onAddQuote({
+            // Save to DB (await completion)
+            await onAddQuote({
                 id: crypto.randomUUID(),
                 fecha: new Date().toISOString().split('T')[0],
                 clienteId: selectedClienteId,
@@ -377,9 +377,14 @@ BBVA - Cuenta Corriente No. 390021475`;
                     ejecutivo
                 });
             }
+
+            // Optional: Reset local state after success
+            setItems([]);
+            setSelectedClienteId('');
+            setConsecutivo(generateConsecutivo());
         } catch (error: any) {
             console.error("Error in generatePDF:", error);
-            alert(`Error inesperado: ${error.message || 'Error desconocido'}`);
+            // Error is already alerted in addCotizacion if it's a Supabase error
         }
     };
 

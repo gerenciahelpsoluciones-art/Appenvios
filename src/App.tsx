@@ -395,7 +395,9 @@ function App() {
           utilidadTotal: Number(c.utilidad_total || 0),
           ordenCompraCliente: c.orden_compra_cliente,
           ordenCompraUrl: c.orden_compra_url,
-          observaciones: c.observaciones || ''
+          observaciones: c.observaciones || '',
+          condiciones: c.condiciones || '',
+          trm: c.trm || 0
         })));
       }
 
@@ -924,10 +926,17 @@ function App() {
       autorizada: c.autorizada || false,
       autorizado_por: c.autorizadoPor,
       fecha_autorizacion: c.fechaAutorizacion,
-      observaciones: c.observaciones || ''
+      observaciones: c.observaciones || '',
+      condiciones: c.condiciones || '',
+      trm: c.trm || 0,
+      comprador_nombre: c.compradorNombre || '',
+      comprador_telefono: c.compradorTelefono || '',
+      comprador_email: c.compradorEmail || ''
     }]).select();
+
     if (error) {
       alert('Error al añadir cotización: ' + error.message);
+      throw error;
     } else if (data) {
       const dbC = data[0];
       setCotizaciones(prev => [{
@@ -945,8 +954,15 @@ function App() {
         autorizada: dbC.autorizada,
         autorizadoPor: dbC.autorizado_por,
         fechaAutorizacion: dbC.fecha_autorizacion,
-        observaciones: dbC.observaciones || ''
+        observaciones: dbC.observaciones || '',
+        condiciones: dbC.condiciones || '',
+        trm: dbC.trm || 0,
+        ordenCompraCliente: dbC.orden_compra_cliente,
+        ordenCompraUrl: dbC.orden_compra_url
       } as Cotizacion, ...prev]);
+      
+      // Auto-navigate to Informes
+      setActiveTab('informes');
     }
   };
 
@@ -972,7 +988,10 @@ function App() {
       autorizado_por: c.autorizadoPor,
       fecha_autorizacion: c.fechaAutorizacion,
       orden_compra_cliente: c.ordenCompraCliente,
-      orden_compra_url: c.ordenCompraUrl
+      orden_compra_url: c.ordenCompraUrl,
+      observaciones: c.observaciones,
+      condiciones: c.condiciones,
+      trm: c.trm
     };
 
     const { error: updateError } = await supabase.from('cotizaciones').update(quotePayload).eq('id', c.id);
