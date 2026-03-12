@@ -897,6 +897,10 @@ function App() {
       // If we have a CC, it's safer to send to an array in 'to' for corporate mail filters
       const recipients = cc ? [to, cc] : [to];
 
+      const { data, error } = await supabase.functions.invoke('send-email', {
+        body: { to: recipients, subject, html: htmlContent }
+      });
+
       if (error) throw error;
       
       // Check if the function returned a business error (like Resend rejection)

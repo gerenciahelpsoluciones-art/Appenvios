@@ -44,7 +44,7 @@ serve(async (req) => {
       status: res.status,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error crítico en función send-email:', error.message)
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
