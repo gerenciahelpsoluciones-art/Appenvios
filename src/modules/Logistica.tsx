@@ -351,6 +351,22 @@ const LogisticaModule: React.FC<IProps> = ({
                                     </tr>
                                 )}
                             </tbody>
+                            {userSummary.length > 0 && (
+                                <tfoot style={{ background: '#f8fafc', fontWeight: 700, borderTop: '2px solid #e2e8f0' }}>
+                                    <tr>
+                                        <td style={{ padding: '1rem' }}>TOTAL GENERAL</td>
+                                        <td className="text-center" style={{ color: 'var(--primary-blue)' }}>
+                                            {userSummary.reduce((acc, u) => acc + u.despachos, 0)}
+                                        </td>
+                                        <td className="text-center" style={{ color: '#f59e0b' }}>
+                                            {userSummary.reduce((acc, u) => acc + u.recogidas, 0)}
+                                        </td>
+                                        <td className="text-center" style={{ color: '#ef4444' }}>
+                                            {userSummary.reduce((acc, u) => acc + u.devoluciones, 0)}
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            )}
                         </table>
                     </div>
                 </div>
