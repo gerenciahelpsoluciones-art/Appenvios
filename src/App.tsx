@@ -903,36 +903,14 @@ function App() {
 
       if (error) throw error;
       
-      // Check if the function returned a business error (like Resend rejection)
       if (data && data.error) {
-        console.error('Resend rejection:', data.error);
-        alert(`La notificación no se pudo enviar: ${data.error.message || JSON.stringify(data.error)}`);
+        console.error('Error en servicio de correo:', data.error);
       } else {
-        console.log('Notificación enviada con éxito:', data);
+        console.log('Notificación enviada con éxito');
       }
     } catch (err: any) {
       console.error('Error enviando notificación automática:', err);
-      let errorMsg = err.message || 'Error desconocido';
-      
-      if (err.context) {
-        try {
-          // Attempt to get the error message from the response body
-          const body = await err.context.json();
-          console.error('Detalle error Supabase Function (JSON):', body);
-          if (body.error) errorMsg = body.error;
-          else if (body.message) errorMsg = body.message;
-        } catch (e) {
-          try {
-            const text = await err.context.text();
-            console.error('Detalle error Supabase Function (Text):', text);
-            if (text) errorMsg = text.substring(0, 100);
-          } catch (e2) {
-            console.error('No se pudo leer el cuerpo del error');
-          }
-        }
-      }
-      
-      alert(`⚠️ ERROR DE NOTIFICACIÓN:\n\n"${errorMsg}"\n\nPasos a seguir:\n1. Verifica que configuraste la RESEND_API_KEY en Supabase.\n2. Verifica que el dominio helpsoluciones.com.co esté verificado en Resend.com`);
+    }
     }
   };
 

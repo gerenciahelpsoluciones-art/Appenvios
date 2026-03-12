@@ -16,8 +16,6 @@ serve(async (req) => {
     const body = await req.json()
     const { to, subject, html, cc } = body
     
-    console.log(`Intentando enviar correo a: ${to}, CC: ${cc}, Asunto: ${subject}`)
-
     if (!RESEND_API_KEY) {
       throw new Error('RESEND_API_KEY is not set')
     }
@@ -38,7 +36,7 @@ serve(async (req) => {
     })
 
     const data = await res.json()
-    console.log('Respuesta de Resend:', JSON.stringify(data))
+    console.log(`Correo enviado. Resend ID: ${data.id || 'N/A'}`)
 
     return new Response(JSON.stringify(data), {
       status: res.status,
