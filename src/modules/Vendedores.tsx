@@ -109,7 +109,7 @@ const Vendedores: React.FC<IProps> = ({ users, budgets, cotizaciones, ventasManu
                                 </div>
 
                                 <div className="trend-indicator" style={{ color: performanceColor }}>
-                                    {percent >= 100 ? '🚀 Meta Superada' : percent >= 80 ? '📈 En excelente camino' : percent >= 60 ? '⚠️ Necesita impulso' : '📉 Nivel Crítico'}
+                                    {percent >= 100 ? '🚀 Meta Superada' : percent >= 80 ? '📈 En excelente camino' : percent >= 60 ? '⚠️ Necesita impulso' : '📉 Nivel Bajo'}
                                     <div className="trend-sub">
                                         Faltan {formatCurrency(Math.max(0, budget - sales))} para la meta
                                     </div>
