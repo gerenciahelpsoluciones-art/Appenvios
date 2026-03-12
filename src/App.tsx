@@ -911,7 +911,6 @@ function App() {
     } catch (err: any) {
       console.error('Error enviando notificación automática:', err);
     }
-    }
   };
 
   const sendWhatsAppNotification = (phone: string, message: string) => {
