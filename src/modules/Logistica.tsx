@@ -376,8 +376,14 @@ const LogisticaModule: React.FC<IProps> = ({
                 </div>
             );
         } else if (activeTab === 'recogidas') {
-            return (
-                <div className="card table-card" style={{ marginTop: '1.5rem' }}>
+            const pending = filteredRecogidas.filter(oc => !['Recogido', 'En Bodega'].includes(oc.estado || 'Pendiente'));
+            const completed = filteredRecogidas.filter(oc => ['Recogido', 'En Bodega'].includes(oc.estado || 'Pendiente'));
+
+            const renderRecogidaTable = (list: OrdenCompra[], title: string, isCompleted: boolean) => (
+                <div className="card table-card" style={{ marginTop: '1.5rem', opacity: isCompleted ? 0.9 : 1, border: isCompleted ? '1px dashed #cbd5e1' : 'none' }}>
+                    <h3 style={{ padding: '1rem', margin: 0, color: isCompleted ? '#059669' : '#1e293b', borderBottom: '1px solid #e2e8f0', background: isCompleted ? '#f1f5f9' : 'transparent' }}>
+                        {isCompleted ? '✅' : '🏢'} {title} ({list.length})
+                    </h3>
                     <div style={{ overflowX: 'auto' }}>
                         <table className="data-table">
                             <thead>
@@ -396,7 +402,7 @@ const LogisticaModule: React.FC<IProps> = ({
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredRecogidas.map((oc) => (
+                                {list.map((oc) => (
                                     <React.Fragment key={oc.id}>
                                         <tr className={expandedId === oc.id ? 'row-expanded' : ''}>
                                             <td>
@@ -500,6 +506,13 @@ const LogisticaModule: React.FC<IProps> = ({
                             </tbody>
                         </table>
                     </div>
+                </div>
+            );
+
+            return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                    {renderRecogidaTable(pending, 'Recogidas Pendientes', false)}
+                    {completed.length > 0 && renderRecogidaTable(completed, 'Recogidas Realizadas / En Bodega', true)}
                 </div>
             );
         } else if (activeTab === 'devoluciones') {
