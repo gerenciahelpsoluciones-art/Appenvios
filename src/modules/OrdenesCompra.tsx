@@ -3,6 +3,7 @@ import type { Proveedor, Producto, OrdenCompra, OrdenCompraItem, AppUser } from 
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { logoBase64 } from '../assets/logoBase64';
+import ProductSearchSelect from '../components/ProductSearchSelect';
 
 interface IProps {
     proveedores: Proveedor[];
@@ -301,12 +302,14 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenes
                             <div className="form-row" style={{ alignItems: 'flex-end' }}>
                                 <div className="form-group flex-2">
                                     <label>Producto</label>
-                                    <select
-                                        className="input-field"
+                                    <ProductSearchSelect
+                                        productos={productos}
                                         value={selectedProdId}
-                                        onChange={e => {
-                                            const p = productos.find(x => x.id === e.target.value);
-                                            setSelectedProdId(e.target.value);
+                                        placeholder="Seleccione producto o busque por nombre/N° Parte"
+                                        className="input-field"
+                                        onChange={(prodId) => {
+                                            const p = productos.find(x => x.id === prodId);
+                                            setSelectedProdId(prodId);
                                             if (p) {
                                                 let cost = p.precioCompra || 0;
                                                 if (p.moneda === 'USD' && currentTrm > 0) {
@@ -316,12 +319,7 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenes
                                                 setExentoIva(p.exentoIva || false);
                                             }
                                         }}
-                                    >
-                                        <option value="">Seleccione producto</option>
-                                        {productos.map(p => (
-                                            <option key={p.id} value={p.id}>{p.moneda === 'USD' ? '🇺🇸 ' : '🇨🇴 '}[{p.numPart}] {p.nombre}</option>
-                                        ))}
-                                    </select>
+                                    />
                                 </div>
                                 <div className="form-group flex-1">
                                     <label>Cantidad</label>
