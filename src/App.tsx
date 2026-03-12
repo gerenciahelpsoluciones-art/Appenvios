@@ -914,17 +914,25 @@ function App() {
       console.error('Error enviando notificación automática:', err);
       let errorMsg = err.message || 'Error desconocido';
       
-      if (err.context?.json) {
+      if (err.context) {
         try {
-          const detail = await err.context.json();
-          console.error('Detalle error Supabase Function:', detail);
-          errorMsg = detail.error || errorMsg;
+          // Attempt to get the error message from the response body
+          const body = await err.context.json();
+          console.error('Detalle error Supabase Function (JSON):', body);
+          if (body.error) errorMsg = body.error;
+          else if (body.message) errorMsg = body.message;
         } catch (e) {
-          console.error('No se pudo parsear el error JSON');
+          try {
+            const text = await err.context.text();
+            console.error('Detalle error Supabase Function (Text):', text);
+            if (text) errorMsg = text.substring(0, 100);
+          } catch (e2) {
+            console.error('No se pudo leer el cuerpo del error');
+          }
         }
       }
       
-      alert(`⚠️ ERROR DE NOTIFICACIÓN: ${errorMsg}\n\nPor favor verifica que la RESEND_API_KEY esté configurada en Supabase.`);
+      alert(`⚠️ ERROR DE NOTIFICACIÓN:\n\n"${errorMsg}"\n\nPasos a seguir:\n1. Verifica que configuraste la RESEND_API_KEY en Supabase.\n2. Verifica que el dominio helpsoluciones.com.co esté verificado en Resend.com`);
     }
   };
 
