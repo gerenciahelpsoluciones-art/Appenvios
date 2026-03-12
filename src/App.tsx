@@ -1086,13 +1086,25 @@ function App() {
   };
 
   const deleteCotizacion = async (id: string) => {
+    // 1. Delete associated despachos first due to foreign key constraint
+    const { error: despachoError } = await supabase.from('despachos').delete().eq('cotizacion_id', id);
+    if (despachoError) {
+      console.error('Error eliminando despachos asociados:', despachoError);
+      alert('Error al eliminar despachos relacionados: ' + despachoError.message);
+      return;
+    }
+
+    // 2. Delete the quotation
     const { error } = await supabase.from('cotizaciones').delete().eq('id', id);
     if (error) {
       console.error('Error eliminando cotización:', error);
       alert('Error al eliminar cotización: ' + error.message);
       return;
     }
+    
+    // 3. Update local state
     setCotizaciones(prev => prev.filter(c => c.id !== id));
+    setDespachos(prev => prev.filter(d => d.cotizacionId !== id));
   };
 
   const addOrdenCompra = async (oc: OrdenCompra): Promise<boolean> => {
