@@ -319,18 +319,16 @@ const LogisticaModule: React.FC<IProps> = ({
 
                 <div className="card table-card">
                     <h3 style={{ padding: '1.25rem', margin: 0, borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        👥 Resumen de Gestión y Costos por Usuario
+                        👥 Resumen de Gestión por Usuario
                     </h3>
                     <div style={{ overflowX: 'auto' }}>
-                        <table className="data-table" style={{ width: '100%', minWidth: '900px' }}>
+                        <table className="data-table" style={{ width: '100%', minWidth: '700px' }}>
                             <thead>
                                 <tr>
                                     <th style={{ minWidth: '200px' }}>Usuario</th>
-                                    <th className="text-center" style={{ width: '100px' }}>Despachos</th>
-                                    <th className="text-center" style={{ width: '100px' }}>Recogidas</th>
-                                    <th className="text-right" style={{ minWidth: '150px' }}>Facturación Gestionada</th>
-                                    <th className="text-right" style={{ minWidth: '160px' }}>Costo Unit. Envío</th>
-                                    <th className="text-right" style={{ minWidth: '180px' }}>Costo Operativo Total</th>
+                                    <th className="text-center" style={{ width: '120px' }}>Despachos</th>
+                                    <th className="text-center" style={{ width: '120px' }}>Recogidas</th>
+                                    <th className="text-center" style={{ width: '120px' }}>Devoluciones</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -342,20 +340,12 @@ const LogisticaModule: React.FC<IProps> = ({
                                         </td>
                                         <td className="text-center">{u.despachos}</td>
                                         <td className="text-center">{u.recogidas}</td>
-                                        <td className="text-right" style={{ fontWeight: 600 }}>
-                                            ${u.totalMonto.toLocaleString()}
-                                        </td>
-                                        <td className="text-right" style={{ color: u.isErick ? '#059669' : '#94a3b8' }}>
-                                            {u.isErick ? `$${u.unitCost.toLocaleString()}` : 'N/A'}
-                                        </td>
-                                        <td className="text-right" style={{ fontWeight: 700, color: u.isErick ? 'var(--primary-blue)' : '#94a3b8' }}>
-                                            {u.isErick ? `$${u.totalOperatingCost.toLocaleString()}` : 'N/A'}
-                                        </td>
+                                        <td className="text-center">{u.devoluciones}</td>
                                     </tr>
                                 ))}
                                 {userSummary.length === 0 && (
                                     <tr>
-                                        <td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
+                                        <td colSpan={4} style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
                                             No se encontraron datos para el periodo o usuario seleccionado.
                                         </td>
                                     </tr>
