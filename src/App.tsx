@@ -892,17 +892,23 @@ function App() {
     const htmlContent = header + body.replace(/\n/g, '<br>') + signature;
 
     try {
-      console.log('Enviando notificación automática...', { to, subject });
+      console.log('Enviando notificación automática...', { to, cc, subject });
+      
+      // If we have a CC, it's safer to send to an array in 'to' for corporate mail filters
+      const recipients = cc ? [to, cc] : [to];
+
       const { data, error } = await supabase.functions.invoke('send-email', {
-        body: { to, subject, html: htmlContent, cc }
+        body: { to: recipients, subject, html: htmlContent }
       });
 
       if (error) throw error;
       console.log('Notificación enviada con éxito:', data);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error enviando notificación automática:', err);
-      // Fallback to mailto if background send fails? No, the user wants background.
-      // But we should at least inform if it fails critically.
+      // Detailed error for developers in console
+      if (err.context?.json) {
+        console.error('Detalle error Supabase Function:', await err.context.json());
+      }
     }
   };
 

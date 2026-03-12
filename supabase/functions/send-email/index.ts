@@ -13,7 +13,10 @@ serve(async (req) => {
   }
 
   try {
-    const { to, subject, html, cc } = await req.json()
+    const body = await req.json()
+    const { to, subject, html, cc } = body
+    
+    console.log(`Intentando enviar correo a: ${to}, CC: ${cc}, Asunto: ${subject}`)
 
     if (!RESEND_API_KEY) {
       throw new Error('RESEND_API_KEY is not set')
@@ -35,12 +38,14 @@ serve(async (req) => {
     })
 
     const data = await res.json()
+    console.log('Respuesta de Resend:', JSON.stringify(data))
 
     return new Response(JSON.stringify(data), {
       status: res.status,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (error) {
+    console.error('Error crítico en función send-email:', error.message)
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
