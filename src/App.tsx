@@ -897,18 +897,30 @@ function App() {
       // If we have a CC, it's safer to send to an array in 'to' for corporate mail filters
       const recipients = cc ? [to, cc] : [to];
 
-      const { data, error } = await supabase.functions.invoke('send-email', {
-        body: { to: recipients, subject, html: htmlContent }
-      });
-
       if (error) throw error;
-      console.log('Notificación enviada con éxito:', data);
+      
+      // Check if the function returned a business error (like Resend rejection)
+      if (data && data.error) {
+        console.error('Resend rejection:', data.error);
+        alert(`La notificación no se pudo enviar: ${data.error.message || JSON.stringify(data.error)}`);
+      } else {
+        console.log('Notificación enviada con éxito:', data);
+      }
     } catch (err: any) {
       console.error('Error enviando notificación automática:', err);
-      // Detailed error for developers in console
+      let errorMsg = err.message || 'Error desconocido';
+      
       if (err.context?.json) {
-        console.error('Detalle error Supabase Function:', await err.context.json());
+        try {
+          const detail = await err.context.json();
+          console.error('Detalle error Supabase Function:', detail);
+          errorMsg = detail.error || errorMsg;
+        } catch (e) {
+          console.error('No se pudo parsear el error JSON');
+        }
       }
+      
+      alert(`⚠️ ERROR DE NOTIFICACIÓN: ${errorMsg}\n\nPor favor verifica que la RESEND_API_KEY esté configurada en Supabase.`);
     }
   };
 
