@@ -1588,6 +1588,7 @@ function App() {
           onDeleteDevolucion={deleteDevolucion}
           reparaciones={reparaciones}
           onUpdateReparacion={updateReparacion}
+          users={users}
         />;
       case 'reparaciones':
         return <ReparacionesModule

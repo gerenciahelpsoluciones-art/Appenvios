@@ -21,6 +21,7 @@ interface IProps {
     clientes: Cliente[];
     productos: Producto[];
     currentUser: AppUser | null;
+    users: AppUser[];
     onUpdateDespacho: (d: Despacho) => void;
     onDeleteDespacho: (id: string) => void;
     onUpdateOC: (oc: OrdenCompra) => void;
@@ -41,6 +42,7 @@ const LogisticaModule: React.FC<IProps> = ({
     clientes,
     productos,
     currentUser,
+    users,
     onUpdateDespacho,
     onDeleteDespacho,
     onUpdateOC,
@@ -51,9 +53,18 @@ const LogisticaModule: React.FC<IProps> = ({
     reparaciones,
     onUpdateReparacion
 }) => {
-    const [activeTab, setActiveTab] = useState<'despachos' | 'recogidas' | 'devoluciones' | 'reparaciones'>('despachos');
+    const [activeTab, setActiveTab] = useState<'despachos' | 'recogidas' | 'devoluciones' | 'reparaciones' | 'informes'>('despachos');
     const [filterEstado, setFilterEstado] = useState<string>('Todos');
     const [expandedId, setExpandedId] = useState<string | null>(null);
+
+    // Dashboard Filters
+    const [dateStart, setDateStart] = useState<string>(() => {
+        const d = new Date();
+        d.setDate(1); // Default to start of month
+        return d.toISOString().split('T')[0];
+    });
+    const [dateEnd, setDateEnd] = useState<string>(new Date().toISOString().split('T')[0]);
+    const [selectedUser, setSelectedUser] = useState<string>('Todos');
 
     // Manual Modal State
     const [isAddManualOpen, setIsAddManualOpen] = useState(false);
@@ -238,7 +249,112 @@ const LogisticaModule: React.FC<IProps> = ({
         return { color: 'red', days: diffDays };
     };
 
+    const renderInformes = () => {
+        const start = new Date(dateStart);
+        const end = new Date(dateEnd);
+        end.setHours(23, 59, 59, 999);
+
+        const filterDate = (dateStr: string) => {
+            const d = new Date(dateStr);
+            return d >= start && d <= end;
+        };
+
+        const filterUser = (uid: string) => selectedUser === 'Todos' || uid === selectedUser;
+
+        const dCounts = despachos.filter(d => filterDate(d.fechaSolicitud) && filterUser(d.usuarioId));
+        const ocCounts = ordenesCompra.filter(oc => filterDate(oc.fecha) && filterUser(oc.usuarioId));
+        const devCounts = devoluciones.filter(d => filterDate(d.fecha) && filterUser(d.usuarioId));
+        const repCounts = reparaciones.filter(r => filterDate(r.fechaIngreso)); // Repairs don't have user but we filter by date
+
+        const totalCosteo = dCounts.reduce((acc, d) => acc + d.total, 0) + ocCounts.reduce((acc, oc) => acc + oc.total, 0);
+
+        // Group by user for the summary table
+        const userSummary = users.map(u => {
+            const uDespachos = despachos.filter(d => filterDate(d.fechaSolicitud) && d.usuarioId === u.id);
+            const uRecogidas = ordenesCompra.filter(oc => filterDate(oc.fecha) && oc.usuarioId === u.id);
+            const uDevoluciones = devoluciones.filter(d => filterDate(d.fecha) && d.usuarioId === u.id);
+            
+            return {
+                ...u,
+                despachos: uDespachos.length,
+                recogidas: uRecogidas.length,
+                devoluciones: uDevoluciones.length,
+                totalMonto: uDespachos.reduce((acc, d) => acc + d.total, 0) + uRecogidas.reduce((acc, oc) => acc + oc.total, 0)
+            };
+        }).filter(u => (u.despachos + u.recogidas + u.devoluciones) > 0 || (selectedUser !== 'Todos' && u.id === selectedUser));
+
+        return (
+            <div className="dashboard-container animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
+                    <div className="stat-card" style={{ background: 'white', padding: '1.5rem', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', borderLeft: '6px solid var(--primary-blue)' }}>
+                        <span style={{ fontSize: '0.875rem', color: '#64748b', fontWeight: 600 }}>DESPACHOS</span>
+                        <div style={{ fontSize: '2rem', fontWeight: 700, color: '#1e293b', marginTop: '0.5rem' }}>{dCounts.length}</div>
+                    </div>
+                    <div className="stat-card" style={{ background: 'white', padding: '1.5rem', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', borderLeft: '6px solid #f59e0b' }}>
+                        <span style={{ fontSize: '0.875rem', color: '#64748b', fontWeight: 600 }}>RECOGIDAS</span>
+                        <div style={{ fontSize: '2rem', fontWeight: 700, color: '#1e293b', marginTop: '0.5rem' }}>{ocCounts.length}</div>
+                    </div>
+                    <div className="stat-card" style={{ background: 'white', padding: '1.5rem', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', borderLeft: '6px solid #ef4444' }}>
+                        <span style={{ fontSize: '0.875rem', color: '#64748b', fontWeight: 600 }}>DEVOLUCIONES</span>
+                        <div style={{ fontSize: '2rem', fontWeight: 700, color: '#1e293b', marginTop: '0.5rem' }}>{devCounts.length}</div>
+                    </div>
+                    <div className="stat-card" style={{ background: 'white', padding: '1.5rem', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', borderLeft: '6px solid #8b5cf6' }}>
+                        <span style={{ fontSize: '0.875rem', color: '#64748b', fontWeight: 600 }}>REPARACIONES EXT.</span>
+                        <div style={{ fontSize: '2rem', fontWeight: 700, color: '#1e293b', marginTop: '0.5rem' }}>{repCounts.length}</div>
+                    </div>
+                    <div className="stat-card" style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', borderLeft: '6px solid #10b981' }}>
+                        <span style={{ fontSize: '0.875rem', color: '#64748b', fontWeight: 600 }}>COSTEO TOTAL MUESTRA</span>
+                        <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#059669', marginTop: '0.5rem' }}>${totalCosteo.toLocaleString()}</div>
+                    </div>
+                </div>
+
+                <div className="card table-card">
+                    <h3 style={{ padding: '1.25rem', margin: 0, borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        👥 Resumen por Usuario / Costeo
+                    </h3>
+                    <div style={{ overflowX: 'auto' }}>
+                        <table className="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Usuario</th>
+                                    <th className="text-center">Despachos</th>
+                                    <th className="text-center">Recogidas</th>
+                                    <th className="text-center">Devoluciones</th>
+                                    <th className="text-right">Monto Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {userSummary.map(u => (
+                                    <tr key={u.id}>
+                                        <td>
+                                            <div style={{ fontWeight: 600 }}>{u.nombre}</div>
+                                            <small style={{ color: '#64748b' }}>{u.cargo}</small>
+                                        </td>
+                                        <td className="text-center">{u.despachos}</td>
+                                        <td className="text-center">{u.recogidas}</td>
+                                        <td className="text-center">{u.devoluciones}</td>
+                                        <td className="text-right" style={{ fontWeight: 700, color: 'var(--primary-blue)' }}>
+                                            ${u.totalMonto.toLocaleString()}
+                                        </td>
+                                    </tr>
+                                ))}
+                                {userSummary.length === 0 && (
+                                    <tr>
+                                        <td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
+                                            No se encontraron datos para el periodo o usuario seleccionado.
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
     const renderTabContent = () => {
+        if (activeTab === 'informes') return renderInformes();
         if (activeTab === 'despachos') {
             const pending = filteredDespachos.filter(d => !['Despachado', 'Entregado', 'Entrega Parcial'].includes(d.estado));
             const completed = filteredDespachos.filter(d => ['Despachado', 'Entregado', 'Entrega Parcial'].includes(d.estado));
@@ -708,49 +824,78 @@ const LogisticaModule: React.FC<IProps> = ({
                         >
                             🛠️ Reparaciones Ext.
                         </button>
+                        <button
+                            className={`btn-tab ${activeTab === 'informes' ? 'active' : ''}`}
+                            onClick={() => { setActiveTab('informes'); }}
+                        >
+                            📊 Dashboard / Informes
+                        </button>
                     </div>
-                    <select
-                        className="input-field"
-                        value={filterEstado}
-                        onChange={(e) => setFilterEstado(e.target.value)}
-                        style={{ width: '180px' }}
-                    >
-                        <option value="Todos">Todos los Estados</option>
-                        {activeTab === 'despachos' && (
-                            <>
-                                <option value="Pendiente">Pendiente</option>
-                                <option value="Preparando">Preparando</option>
-                                <option value="Despachado">Despachado</option>
-                                <option value="Entrega Parcial">Entrega Parcial</option>
-                                <option value="Entregado">Entregado</option>
-                            </>
-                        )}
-                        {activeTab === 'recogidas' && (
-                            <>
-                                <option value="Pendiente">Pendiente</option>
-                                <option value="Recogido">Recogido</option>
-                                <option value="En Bodega">En Bodega</option>
-                            </>
-                        )}
-                        {activeTab === 'devoluciones' && (
-                            <>
-                                <option value="Pendiente">Pendiente</option>
-                                <option value="Enviado">Enviado</option>
-                                <option value="Completado">Completado</option>
-                            </>
-                        )}
-                        {activeTab === 'reparaciones' && (
-                            <>
-                                <option value="Recibido">Recibido</option>
-                                <option value="En Diagnóstico">En Diagnóstico</option>
-                                <option value="En Reparación">En Reparación</option>
-                                <option value="Esperando Repuestos">Esperando Repuestos</option>
-                                <option value="Reparado">Reparado</option>
-                                <option value="Entregado">Entregado</option>
-                                <option value="Cerrado">Cerrado</option>
-                            </>
-                        )}
-                    </select>
+
+                    {activeTab === 'informes' ? (
+                        <div className="dashboard-filters" style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                            <div className="filter-group" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Desde:</label>
+                                <input type="date" className="input-field" value={dateStart} onChange={(e) => setDateStart(e.target.value)} style={{ width: '135px', padding: '0.4rem' }} />
+                            </div>
+                            <div className="filter-group" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Hasta:</label>
+                                <input type="date" className="input-field" value={dateEnd} onChange={(e) => setDateEnd(e.target.value)} style={{ width: '135px', padding: '0.4rem' }} />
+                            </div>
+                            <select
+                                className="input-field"
+                                value={selectedUser}
+                                onChange={(e) => setSelectedUser(e.target.value)}
+                                style={{ width: '180px', padding: '0.4rem' }}
+                            >
+                                <option value="Todos">Todos los Usuarios</option>
+                                {users.map(u => <option key={u.id} value={u.id}>{u.nombre}</option>)}
+                            </select>
+                        </div>
+                    ) : (
+                        <select
+                            className="input-field"
+                            value={filterEstado}
+                            onChange={(e) => setFilterEstado(e.target.value)}
+                            style={{ width: '180px' }}
+                        >
+                            <option value="Todos">Todos los Estados</option>
+                            {activeTab === 'despachos' && (
+                                <>
+                                    <option value="Pendiente">Pendiente</option>
+                                    <option value="Preparando">Preparando</option>
+                                    <option value="Despachado">Despachado</option>
+                                    <option value="Entrega Parcial">Entrega Parcial</option>
+                                    <option value="Entregado">Entregado</option>
+                                </>
+                            )}
+                            {activeTab === 'recogidas' && (
+                                <>
+                                    <option value="Pendiente">Pendiente</option>
+                                    <option value="Recogido">Recogido</option>
+                                    <option value="En Bodega">En Bodega</option>
+                                </>
+                            )}
+                            {activeTab === 'devoluciones' && (
+                                <>
+                                    <option value="Pendiente">Pendiente</option>
+                                    <option value="Enviado">Enviado</option>
+                                    <option value="Completado">Completado</option>
+                                </>
+                            )}
+                            {activeTab === 'reparaciones' && (
+                                <>
+                                    <option value="Recibido">Recibido</option>
+                                    <option value="En Diagnóstico">En Diagnóstico</option>
+                                    <option value="En Reparación">En Reparación</option>
+                                    <option value="Esperando Repuestos">Esperando Repuestos</option>
+                                    <option value="Reparado">Reparado</option>
+                                    <option value="Entregado">Entregado</option>
+                                    <option value="Cerrado">Cerrado</option>
+                                </>
+                            )}
+                        </select>
+                    )}
 
                     {activeTab === 'recogidas' && (
                         <button className="btn btn-primary" onClick={() => {
