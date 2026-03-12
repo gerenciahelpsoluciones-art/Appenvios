@@ -378,11 +378,18 @@ const InformesModule: React.FC<IProps> = ({
             <div className="card filters-card">
                 <h3>Rendimiento del Mes Actual</h3>
                 <div className="stats-grid">
-                    <div className="stat-card budget-card">
-                        <div className="stat-label">Presupuesto {appliedFilters.asesorId ? 'Personal' : 'Empresa (Total)'}</div>
-                        <div className="stat-value">${activeBudget.toLocaleString()}</div>
-                        <div className="stat-trend">Meta asignada</div>
-                    </div>
+                    {(!appliedFilters.asesorId ? (
+                        currentUser.rol === 'Admin' || 
+                        currentUser.cargo?.toLowerCase().includes('administrador') || 
+                        currentUser.cargo?.toLowerCase().includes('logistica') || 
+                        currentUser.cargo?.toLowerCase().includes('gerente comercial')
+                    ) : true) && (
+                        <div className="stat-card budget-card">
+                            <div className="stat-label">Presupuesto {appliedFilters.asesorId ? 'Personal' : 'Empresa (Total)'}</div>
+                            <div className="stat-value">${activeBudget.toLocaleString()}</div>
+                            <div className="stat-trend">Meta asignada</div>
+                        </div>
+                    )}
                     <div className="stat-card sales-card">
                         <div className="stat-label">Ventas Logradas (Ganadas)</div>
                         <div className="stat-value">${monthlySales.toLocaleString()}</div>
