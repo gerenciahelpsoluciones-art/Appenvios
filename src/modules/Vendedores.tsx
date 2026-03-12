@@ -67,7 +67,8 @@ const Vendedores: React.FC<IProps> = ({ users, budgets, cotizaciones, ventasManu
                     const budget = getBudgetForUser(v.id, curMonth, curYear);
                     const sales = getSalesForUser(v.id, curMonth, curYear);
                     const percent = budget > 0 ? (sales / budget) * 100 : 0;
-                    const performanceColor = percent >= 100 ? '#059669' : percent >= 70 ? '#2563eb' : '#dc2626';
+                    // Colors: <60% Red, 60-80% Orange, >=80% Green
+                    const performanceColor = percent >= 80 ? '#10b981' : percent >= 60 ? '#f59e0b' : '#dc2626';
 
                     return (
                         <div key={v.id} className="card vendedor-card animate-fade-in">
@@ -108,7 +109,7 @@ const Vendedores: React.FC<IProps> = ({ users, budgets, cotizaciones, ventasManu
                                 </div>
 
                                 <div className="trend-indicator" style={{ color: performanceColor }}>
-                                    {percent >= 100 ? '🚀 Meta Superada' : percent >= 70 ? '📈 En buen camino' : '📉 Necesita impulso'}
+                                    {percent >= 100 ? '🚀 Meta Superada' : percent >= 80 ? '📈 En excelente camino' : percent >= 60 ? '⚠️ Necesita impulso' : '📉 Nivel Crítico'}
                                     <div className="trend-sub">
                                         Faltan {formatCurrency(Math.max(0, budget - sales))} para la meta
                                     </div>
