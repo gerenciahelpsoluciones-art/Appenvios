@@ -266,7 +266,8 @@ const LogisticaModule: React.FC<IProps> = ({
         const devCounts = devoluciones.filter(d => filterDate(d.fecha) && filterUser(d.usuarioId));
         const repCounts = reparaciones.filter(r => filterDate(r.fechaIngreso)); // Repairs don't have user but we filter by date
 
-        const totalCosteo = dCounts.reduce((acc, d) => acc + d.total, 0) + ocCounts.reduce((acc, oc) => acc + oc.total, 0);
+        // Erick's Monthly Cost Calculation: SMMLV + Transp. + Prestaciones + Rodamiento
+        const ERICK_MONTHLY_COST = 2826213;
 
         // Group by user for the summary table
         const userSummary = users.map(u => {
@@ -274,12 +275,24 @@ const LogisticaModule: React.FC<IProps> = ({
             const uRecogidas = ordenesCompra.filter(oc => filterDate(oc.fecha) && oc.usuarioId === u.id);
             const uDevoluciones = devoluciones.filter(d => filterDate(d.fecha) && d.usuarioId === u.id);
             
+            const totalShipments = uDespachos.length + uRecogidas.length;
+            const isErick = u.nombre.toLowerCase().includes('erick');
+            
+            // Calculate Unit Cost: ONLY FOR ERICK
+            // We use the full monthly cost divided by total operations in the period for simplicity, 
+            // or we could show N/A if 0.
+            const unitCost = (isErick && totalShipments > 0) ? Math.round(ERICK_MONTHLY_COST / totalShipments) : 0;
+            const totalOperatingCost = isErick ? ERICK_MONTHLY_COST : 0;
+
             return {
                 ...u,
                 despachos: uDespachos.length,
                 recogidas: uRecogidas.length,
                 devoluciones: uDevoluciones.length,
-                totalMonto: uDespachos.reduce((acc, d) => acc + d.total, 0) + uRecogidas.reduce((acc, oc) => acc + oc.total, 0)
+                totalMonto: uDespachos.reduce((acc, d) => acc + d.total, 0) + uRecogidas.reduce((acc, oc) => acc + oc.total, 0),
+                unitCost,
+                totalOperatingCost,
+                isErick
             };
         }).filter(u => (u.despachos + u.recogidas + u.devoluciones) > 0 || (selectedUser !== 'Todos' && u.id === selectedUser));
 
@@ -302,25 +315,22 @@ const LogisticaModule: React.FC<IProps> = ({
                         <span style={{ fontSize: '0.875rem', color: '#64748b', fontWeight: 600 }}>REPARACIONES EXT.</span>
                         <div style={{ fontSize: '2rem', fontWeight: 700, color: '#1e293b', marginTop: '0.5rem' }}>{repCounts.length}</div>
                     </div>
-                    <div className="stat-card" style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', borderLeft: '6px solid #10b981' }}>
-                        <span style={{ fontSize: '0.875rem', color: '#64748b', fontWeight: 600 }}>COSTEO TOTAL MUESTRA</span>
-                        <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#059669', marginTop: '0.5rem' }}>${totalCosteo.toLocaleString()}</div>
-                    </div>
                 </div>
 
                 <div className="card table-card">
                     <h3 style={{ padding: '1.25rem', margin: 0, borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        👥 Resumen por Usuario / Costeo
+                        👥 Resumen de Gestión y Costos por Usuario
                     </h3>
                     <div style={{ overflowX: 'auto' }}>
-                        <table className="data-table">
+                        <table className="data-table" style={{ width: '100%', minWidth: '900px' }}>
                             <thead>
                                 <tr>
-                                    <th>Usuario</th>
-                                    <th className="text-center">Despachos</th>
-                                    <th className="text-center">Recogidas</th>
-                                    <th className="text-center">Devoluciones</th>
-                                    <th className="text-right">Monto Total</th>
+                                    <th style={{ minWidth: '200px' }}>Usuario</th>
+                                    <th className="text-center" style={{ width: '100px' }}>Despachos</th>
+                                    <th className="text-center" style={{ width: '100px' }}>Recogidas</th>
+                                    <th className="text-right" style={{ minWidth: '150px' }}>Facturación Gestionada</th>
+                                    <th className="text-right" style={{ minWidth: '160px' }}>Costo Unit. Envío</th>
+                                    <th className="text-right" style={{ minWidth: '180px' }}>Costo Operativo Total</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -332,15 +342,20 @@ const LogisticaModule: React.FC<IProps> = ({
                                         </td>
                                         <td className="text-center">{u.despachos}</td>
                                         <td className="text-center">{u.recogidas}</td>
-                                        <td className="text-center">{u.devoluciones}</td>
-                                        <td className="text-right" style={{ fontWeight: 700, color: 'var(--primary-blue)' }}>
+                                        <td className="text-right" style={{ fontWeight: 600 }}>
                                             ${u.totalMonto.toLocaleString()}
+                                        </td>
+                                        <td className="text-right" style={{ color: u.isErick ? '#059669' : '#94a3b8' }}>
+                                            {u.isErick ? `$${u.unitCost.toLocaleString()}` : 'N/A'}
+                                        </td>
+                                        <td className="text-right" style={{ fontWeight: 700, color: u.isErick ? 'var(--primary-blue)' : '#94a3b8' }}>
+                                            {u.isErick ? `$${u.totalOperatingCost.toLocaleString()}` : 'N/A'}
                                         </td>
                                     </tr>
                                 ))}
                                 {userSummary.length === 0 && (
                                     <tr>
-                                        <td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
+                                        <td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
                                             No se encontraron datos para el periodo o usuario seleccionado.
                                         </td>
                                     </tr>
