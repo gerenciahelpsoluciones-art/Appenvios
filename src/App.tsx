@@ -880,22 +880,30 @@ function App() {
     if (!error) setReparaciones(prev => prev.filter(r => r.id !== id));
   };
 
-  const sendEmailNotification = (to: string, subject: string, body: string, cc?: string, senderName?: string, senderEmail?: string) => {
+  const sendEmailNotification = async (to: string, subject: string, body: string, cc?: string, senderName?: string, senderEmail?: string) => {
     const fromName = senderName || currentUser?.nombre || 'Equipo Help Soluciones';
     const fromCargo = senderName ? '' : (currentUser?.cargo || 'Sistema de Gestión');
     const fromEmail = senderEmail || currentUser?.email || '';
 
-    const header = `*** CRM HELP SOLUCIONES - NOTIFICACIÓN AUTOMÁTICA ***\n\n`;
-    const signature = `\n\nCordialmente,\n\n${fromName}${fromCargo ? '\n' + fromCargo : ''}${fromEmail ? '\n' + fromEmail : ''}\nHelp Soluciones Informáticas\n\n---\nEste mensaje fue generado automáticamente por el sistema de Appenvios.`;
+    const header = `*** CRM HELP SOLUCIONES - NOTIFICACIÓN AUTOMÁTICA ***<br><br>`;
+    const signature = `<br><br>Cordialmente,<br><br><strong>${fromName}</strong>${fromCargo ? '<br>' + fromCargo : ''}${fromEmail ? '<br>' + fromEmail : ''}<br>Help Soluciones Informáticas<br><br>---<br><small>Este mensaje fue generado automáticamente por el sistema de Appenvios.</small>`;
 
-    const fullBody = header + body + signature;
+    // Format body as HTML (replacing newlines with <br>)
+    const htmlContent = header + body.replace(/\n/g, '<br>') + signature;
 
-    // If senderEmail is provided, add it as a hint for Outlook to select the sending account
-    let mailtoUrl = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(fullBody)}`;
-    if (cc) mailtoUrl += `&cc=${encodeURIComponent(cc)}`;
-    if (senderEmail) mailtoUrl += `&from=${encodeURIComponent(senderEmail)}`;
+    try {
+      console.log('Enviando notificación automática...', { to, subject });
+      const { data, error } = await supabase.functions.invoke('send-email', {
+        body: { to, subject, html: htmlContent, cc }
+      });
 
-    window.open(mailtoUrl, '_blank');
+      if (error) throw error;
+      console.log('Notificación enviada con éxito:', data);
+    } catch (err) {
+      console.error('Error enviando notificación automática:', err);
+      // Fallback to mailto if background send fails? No, the user wants background.
+      // But we should at least inform if it fails critically.
+    }
   };
 
   const sendWhatsAppNotification = (phone: string, message: string) => {
@@ -1130,6 +1138,13 @@ function App() {
         tipo: dbO.tipo,
         verificada: dbO.verificada
       } as OrdenCompra, ...prev]);
+
+      // Trigger Email Notification for new Purchase Order
+      const emailSubject = `NUEVA ORDEN DE COMPRA - ${dbO.consecutivo}`;
+      const emailBody = `Hola equipo de Facturación,\n\nSe ha generado una nueva Orden de Compra:\n\n- Consecutivo: ${dbO.consecutivo}\n- Proveedor: ${dbO.nombre_proveedor}\n- Tipo: ${dbO.tipo}\n- Valor Total: $${Math.round(dbO.total).toLocaleString()}\n\nPor favor, realizar el seguimiento correspondiente.`;
+
+      sendEmailNotification('facturacion@helpsoluciones.com.co', emailSubject, emailBody);
+
       return true;
     }
     return false;
