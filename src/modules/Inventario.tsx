@@ -122,7 +122,13 @@ const InventarioModule: React.FC = () => {
                         code: p.code || '—',
                         description: desc,
                         price: p.prices?.[0]?.price_list?.[0]?.value ?? 0,
-                        cost: Number(p.costs?.[0]?.cost_list?.[0]?.value ?? p.unit_cost ?? p.average_cost ?? p.standard_cost ?? 0),
+                        cost: Number(
+                            p.unit_cost ?? 
+                            p.average_cost ?? 
+                            (Array.isArray(p.costs) ? p.costs[0]?.cost_list?.[0]?.value : p.costs?.value) ?? 
+                            p.standard_cost ?? 
+                            0
+                        ),
                         stock: Number(p.stock_control ? (p.available_quantity ?? 0) : 0),
                     };
                 }).filter((p: SiigoProduct) => p.stock > 0);

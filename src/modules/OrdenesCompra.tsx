@@ -25,6 +25,9 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenes
     const [items, setItems] = useState<OrdenCompraItem[]>([]);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [tipo, setTipo] = useState<'Recogida' | 'Inventario' | 'Oficina' | 'Licenciamiento (virtual)'>('Recogida');
+    const [moneda, setMoneda] = useState<'COP' | 'USD'>('COP');
+    const [trm, setTrm] = useState<number>(currentTrm || 0);
+    const [autoConvertir, setAutoConvertir] = useState(true);
 
     // Form for new item
     const [selectedProdId, setSelectedProdId] = useState('');
@@ -93,6 +96,8 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenes
             usuarioId: currentUser.id,
             tipo: tipo,
             verificada: editingId ? (ordenesCompra.find(oc => oc.id === editingId)?.verificada || false) : false,
+            moneda: moneda,
+            trm: trm,
             estado: editingId ? (ordenesCompra.find(oc => oc.id === editingId)?.estado || 'Pendiente') : 'Pendiente'
         };
 
@@ -124,6 +129,8 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenes
         setObservaciones(oc.observaciones);
         setItems(oc.items);
         setTipo(oc.tipo || 'Recogida');
+        setMoneda(oc.moneda || 'COP');
+        setTrm(oc.trm || currentTrm);
         setIsAdding(true);
     };
 
@@ -181,13 +188,13 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenes
             item.numPart,
             item.nombreProducto + (item.exentoIva ? ' (*)' : ''),
             item.cantidad,
-            `$${item.precioUnitario.toLocaleString()}`,
-            `$${(item.cantidad * item.precioUnitario).toLocaleString()}`
+            `${oc.moneda === 'USD' ? 'US$' : '$'}${item.precioUnitario.toLocaleString()}`,
+            `${oc.moneda === 'USD' ? 'US$' : '$'}${(item.cantidad * item.precioUnitario).toLocaleString()}`
         ]);
 
         autoTable(doc, {
             startY: 90,
-            head: [['N° Parte', 'Producto', 'Cant', 'Vr. Unitario', 'Subtotal']],
+            head: [['N° Parte', 'Producto', 'Cant', `Vr. Unitario (${oc.moneda || 'COP'})`, `Subtotal (${oc.moneda || 'COP'})`]],
             body: tableData,
             headStyles: { fillColor: [0, 74, 153] },
             theme: 'striped'
@@ -213,18 +220,18 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenes
         doc.setFont('helvetica', 'bold');
         doc.text('Subtotal:', 135, finalY + 2);
         doc.setFont('helvetica', 'normal');
-        doc.text(`$${oc.subtotal.toLocaleString()}`, 195, finalY + 2, { align: 'right' });
+        doc.text(`${oc.moneda === 'USD' ? 'US$' : '$'}${oc.subtotal.toLocaleString()}`, 195, finalY + 2, { align: 'right' });
 
         doc.setFont('helvetica', 'bold');
         doc.text('IVA (19%):', 135, finalY + 9);
         doc.setFont('helvetica', 'normal');
-        doc.text(`$${oc.iva.toLocaleString()}`, 195, finalY + 9, { align: 'right' });
+        doc.text(`${oc.moneda === 'USD' ? 'US$' : '$'}${oc.iva.toLocaleString()}`, 195, finalY + 9, { align: 'right' });
 
         doc.setFontSize(11);
         doc.setTextColor(0, 74, 153);
         doc.setFont('helvetica', 'bold');
         doc.text('VALOR TOTAL:', 135, finalY + 18);
-        doc.text(`$${oc.total.toLocaleString()}`, 195, finalY + 18, { align: 'right' });
+        doc.text(`${oc.moneda === 'USD' ? 'US$' : '$'}${oc.total.toLocaleString()}`, 195, finalY + 18, { align: 'right' });
 
         // Footer / Conditions
         doc.setTextColor(0, 0, 0);
@@ -232,7 +239,13 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenes
         doc.setFont('helvetica', 'bold');
         doc.text('Condiciones Comerciales:', 15, finalY + 30);
         doc.setFont('helvetica', 'normal');
-        doc.text(oc.condicionesComerciales, 15, finalY + 36);
+        if (oc.moneda === 'USD') {
+            doc.setFontSize(9);
+            doc.text(`NOTA: Esta orden de compra está expresada en Dólares (USD). TRM de referencia: $${oc.trm?.toLocaleString()}`, 15, finalY + 35);
+            doc.text(oc.condicionesComerciales, 15, finalY + 41);
+        } else {
+            doc.text(oc.condicionesComerciales, 15, finalY + 36);
+        }
 
         if (oc.observaciones) {
             doc.setFont('helvetica', 'bold');
@@ -295,6 +308,44 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenes
                                     <option value="Licenciamiento (virtual)">Licenciamiento (Virtual)</option>
                                 </select>
                             </div>
+                            <div className="form-group flex-1">
+                                <label>Moneda</label>
+                                <select
+                                    className="input-field"
+                                    value={moneda}
+                                    onChange={e => {
+                                        const newMoneda = e.target.value as 'COP' | 'USD';
+                                        setMoneda(newMoneda);
+                                        if (newMoneda === 'USD' && trm === 0) setTrm(currentTrm);
+                                    }}
+                                >
+                                    <option value="COP">Pesos (COP)</option>
+                                    <option value="USD">Dólares (USD)</option>
+                                </select>
+                            </div>
+                            <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingTop: '28px' }}>
+                                <input
+                                    type="checkbox"
+                                    id="autoConvertir"
+                                    checked={autoConvertir}
+                                    onChange={e => setAutoConvertir(e.target.checked)}
+                                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                                />
+                                <label htmlFor="autoConvertir" style={{ cursor: 'pointer', fontSize: '0.9rem', color: '#475569', fontWeight: '600' }}>
+                                    Auto-convertir precios
+                                </label>
+                            </div>
+                            {moneda === 'USD' && (
+                                <div className="form-group flex-1">
+                                    <label>TRM Referencia</label>
+                                    <input
+                                        type="number"
+                                        className="input-field"
+                                        value={trm}
+                                        onChange={e => setTrm(Number(e.target.value))}
+                                    />
+                                </div>
+                            )}
                         </div>
 
                         <div className="item-selection card" style={{ background: 'var(--background-light)', marginTop: '1rem' }}>
@@ -312,8 +363,16 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenes
                                             setSelectedProdId(prodId);
                                             if (p) {
                                                 let cost = p.precioCompra || 0;
-                                                if (p.moneda === 'USD' && currentTrm > 0) {
-                                                    cost = Math.round(cost * currentTrm);
+                                                // If autoConvertir is enabled, apply conversion logic
+                                                if (autoConvertir) {
+                                                    // If PO is USD and product is COP -> convert to USD
+                                                    if (moneda === 'USD' && p.moneda === 'COP' && trm > 0) {
+                                                        cost = Number((cost / trm).toFixed(2));
+                                                    }
+                                                    // If PO is COP and product is USD -> convert to COP
+                                                    else if (moneda === 'COP' && p.moneda === 'USD' && currentTrm > 0) {
+                                                        cost = Math.round(cost * currentTrm);
+                                                    }
                                                 }
                                                 setPrecioUnitario(cost);
                                                 setExentoIva(p.exentoIva || false);
@@ -331,19 +390,26 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenes
                                     />
                                 </div>
                                 <div className="form-group flex-1">
-                                    <label>Precio Unitario (COP)</label>
+                                    <label>Precio Unitario ({moneda})</label>
                                     <div style={{ position: 'relative' }}>
-                                        <input
-                                            className="input-field"
-                                            type="number"
-                                            value={precioUnitario}
-                                            onChange={e => setPrecioUnitario(Number(e.target.value))}
-                                        />
-                                        {productos.find(p => p.id === selectedProdId)?.moneda === 'USD' && (
-                                            <span style={{ position: 'absolute', right: '10px', top: '-12px', fontSize: '0.65rem', color: '#0369a1', background: '#e0f2fe', padding: '2px 6px', borderRadius: '4px', border: '1px solid #bae6fd' }}>
-                                                Conv. USD a COP (TRM: ${currentTrm.toLocaleString()})
-                                            </span>
-                                        )}
+                                        {(() => {
+                                            const prodSelected = productos.find(p => p.id === selectedProdId);
+                                            return (
+                                                <>
+                                                    <input
+                                                        className="input-field"
+                                                        type="number"
+                                                        value={precioUnitario}
+                                                        onChange={e => setPrecioUnitario(Number(e.target.value))}
+                                                    />
+                                                    {autoConvertir && prodSelected && prodSelected.moneda !== moneda && (
+                                                        <span style={{ position: 'absolute', right: '10px', top: '-12px', fontSize: '0.65rem', color: '#0369a1', background: '#e0f2fe', padding: '2px 6px', borderRadius: '4px', border: '1px solid #bae6fd' }}>
+                                                            Conv. {prodSelected.moneda} a {moneda} {moneda === 'USD' ? `(TRM: ${trm.toLocaleString()})` : `(TRM: ${currentTrm.toLocaleString()})`}
+                                                        </span>
+                                                    )}
+                                                </>
+                                            );
+                                        })()}
                                     </div>
                                 </div>
                                 <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingBottom: '12px' }}>
@@ -380,8 +446,8 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenes
                                             <td>{item.nombreProducto} {item.exentoIva ? <span style={{ color: '#059669', fontSize: '0.8rem', fontWeight: 'bold' }}>(Exento)</span> : ''}</td>
                                             <td className="text-right">{item.cantidad}</td>
                                             <td className="text-center">{item.exentoIva ? '0%' : '19%'}</td>
-                                            <td className="text-right">${item.precioUnitario.toLocaleString()}</td>
-                                            <td className="text-right">${(item.cantidad * item.precioUnitario).toLocaleString()}</td>
+                                            <td className="text-right">{moneda === 'USD' ? 'US$' : '$'}{item.precioUnitario.toLocaleString()}</td>
+                                            <td className="text-right">{moneda === 'USD' ? 'US$' : '$'}{(item.cantidad * item.precioUnitario).toLocaleString()}</td>
                                             <td className="text-center">
                                                 <button className="btn-delete" onClick={() => removeItem(item.id)}>🗑️</button>
                                             </td>
@@ -405,10 +471,10 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenes
                         </div>
 
                         <div style={{ marginTop: '1.5rem', textAlign: 'right' }}>
-                            <div className="text-muted" style={{ marginBottom: '0.25rem' }}>Subtotal: ${subtotal.toLocaleString()}</div>
-                            <div className="text-muted" style={{ marginBottom: '0.25rem' }}>IVA (19%): ${iva.toLocaleString()}</div>
+                            <div className="text-muted" style={{ marginBottom: '0.25rem' }}>Subtotal: {moneda === 'USD' ? 'US$' : '$'}{subtotal.toLocaleString()}</div>
+                            <div className="text-muted" style={{ marginBottom: '0.25rem' }}>IVA (19%): {moneda === 'USD' ? 'US$' : '$'}{iva.toLocaleString()}</div>
                             <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--primary-blue)' }}>
-                                TOTAL: ${total.toLocaleString()}
+                                TOTAL: {moneda === 'USD' ? 'US$' : '$'}{total.toLocaleString()}
                             </div>
                         </div>
                     </div>
@@ -432,6 +498,7 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenes
                                 <th style={{ minWidth: '110px' }}>Fecha</th>
                                 <th style={{ minWidth: '150px' }}>Proveedor</th>
                                 <th className="text-center" style={{ minWidth: '100px' }}>Tipo</th>
+                                <th className="text-center" style={{ minWidth: '80px' }}>Moneda</th>
                                 <th className="text-right" style={{ minWidth: '120px' }}>Total</th>
                                 <th className="text-center" style={{ minWidth: '100px' }}>Verificada</th>
                                 <th className="text-center" style={{ minWidth: '150px' }}>Acciones</th>
@@ -452,8 +519,11 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenes
                                             {oc.tipo === 'Oficina' ? 'Oficina' : (oc.tipo === 'Licenciamiento (virtual)' ? 'Licencia M.' : (oc.tipo || 'Recogida'))}
                                         </span>
                                     </td>
+                                    <td className="text-center">
+                                        <span className={`badge ${oc.moneda === 'USD' ? 'badge-usd' : 'badge-cop'}`}>{oc.moneda || 'COP'}</span>
+                                    </td>
                                     <td className="text-right" style={{ color: 'var(--primary-blue)', fontWeight: 'bold', fontFamily: 'Courier New, monospace' }}>
-                                        ${oc.total.toLocaleString()}
+                                        {oc.moneda === 'USD' ? 'US$' : '$'}{oc.total.toLocaleString()}
                                     </td>
                                     <td className="text-center">
                                         {oc.verificada ? (
@@ -541,6 +611,22 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenes
                 }
                 .btn-primary:hover {
                     opacity: 0.9;
+                }
+                .badge-usd {
+                    background: #e0f2fe;
+                    color: #0369a1;
+                    padding: 2px 8px;
+                    border-radius: 4px;
+                    font-size: 0.75rem;
+                    font-weight: bold;
+                }
+                .badge-cop {
+                    background: #f1f5f9;
+                    color: #475569;
+                    padding: 2px 8px;
+                    border-radius: 4px;
+                    font-size: 0.75rem;
+                    font-weight: bold;
                 }
             `}</style>
         </div>

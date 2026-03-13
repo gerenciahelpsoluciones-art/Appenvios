@@ -113,6 +113,8 @@ export interface OrdenCompra {
   subtotal: number;
   iva: number;
   total: number;
+  moneda: 'COP' | 'USD';
+  trm?: number;
   condicionesComerciales: string;
   observaciones: string;
   estado: 'Pendiente' | 'Recogido' | 'En Bodega';
@@ -414,7 +416,9 @@ function App() {
           fotoRemision: o.foto_remision,
           usuarioId: o.usuario_id,
           tipo: o.tipo || 'Recogida', // Default to Recogida for existing ones
-          verificada: !!o.verificada
+          verificada: !!o.verificada,
+          moneda: o.moneda || 'COP',
+          trm: o.trm || 0
         })));
       }
 
@@ -1124,6 +1128,8 @@ function App() {
       subtotal: oc.subtotal,
       iva: oc.iva,
       total: oc.total,
+      moneda: oc.moneda || 'COP',
+      trm: oc.trm || 0,
       condiciones_comerciales: oc.condicionesComerciales,
       observaciones: oc.observaciones,
       estado: oc.estado,
@@ -1155,7 +1161,9 @@ function App() {
         fotoRemision: dbO.foto_remision,
         usuarioId: dbO.usuario_id,
         tipo: dbO.tipo,
-        verificada: dbO.verificada
+        verificada: dbO.verificada,
+        moneda: dbO.moneda || 'COP',
+        trm: dbO.trm || 0
       } as OrdenCompra, ...prev]);
 
       // Trigger Email Notification for new Purchase Order
@@ -1181,6 +1189,8 @@ function App() {
       subtotal: oc.subtotal,
       iva: oc.iva,
       total: oc.total,
+      moneda: oc.moneda || 'COP',
+      trm: oc.trm || 0,
       condiciones_comerciales: oc.condicionesComerciales,
       observaciones: oc.observaciones,
       estado: oc.estado,
