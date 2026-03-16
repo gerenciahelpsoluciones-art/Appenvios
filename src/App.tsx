@@ -1022,6 +1022,7 @@ function App() {
     }
 
     // 2. Update local state
+    const oldQuote = cotizaciones.find(q => q.id === c.id);
     setCotizaciones(prev => prev.map(item => item.id === c.id ? c : item));
 
     // 3. Trigger Outlook Email & Logistics Automation if Won
@@ -1092,6 +1093,15 @@ function App() {
             usuarioId: dbD.usuario_id
           } as Despacho]);
         }
+      }
+    } else if (oldQuote && oldQuote.estado === 'Ganado') {
+      // If it was won and now it's not (since we're in the else block of c.estado === 'Ganado'), remove from logistics
+      const { error: despachoDelError } = await supabase.from('despachos').delete().eq('cotizacion_id', c.id);
+      if (!despachoDelError) {
+        setDespachos(prev => prev.filter(d => d.cotizacionId !== c.id));
+        console.log(`Despacho asociado a ${c.consecutivo} eliminado por cambio de estado.`);
+      } else {
+        console.error('Error eliminando despacho asociado:', despachoDelError);
       }
     }
   };
