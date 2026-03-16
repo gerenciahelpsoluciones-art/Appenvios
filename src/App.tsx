@@ -1118,9 +1118,30 @@ function App() {
     setDespachos(prev => prev.filter(d => d.cotizacionId !== id));
   };
 
-  const addOrdenCompra = async (oc: OrdenCompra): Promise<boolean> => {
+  const addOrdenCompra = async (oc: OrdenCompra): Promise<OrdenCompra | null> => {
+    // 1. Re-calculate the absolute maximum consecutive from the database to avoid collisions
+    const { data: latestOCs, error: fetchError } = await supabase
+      .from('ordenes_compra')
+      .select('consecutivo')
+      .ilike('consecutivo', 'OC-%')
+      .order('consecutivo', { ascending: false })
+      .limit(1);
+
+    let finalConsecutivo = oc.consecutivo;
+
+    if (!fetchError && latestOCs && latestOCs.length > 0) {
+      const dbMax = parseInt(latestOCs[0].consecutivo.replace('OC-', ''), 10);
+      const proposed = parseInt(oc.consecutivo.replace('OC-', ''), 10);
+      
+      // If the database has a higher or equal number, increment it
+      if (!isNaN(dbMax) && dbMax >= proposed) {
+        finalConsecutivo = `OC-${(dbMax + 1).toString().padStart(4, '0')}`;
+        console.log(`Colisión detectada. Cambiando ${oc.consecutivo} a ${finalConsecutivo}`);
+      }
+    }
+
     const payload = {
-      consecutivo: oc.consecutivo,
+      consecutivo: finalConsecutivo,
       fecha: oc.fecha,
       proveedor_id: oc.proveedorId,
       nombre_proveedor: oc.nombreProveedor,
@@ -1146,8 +1167,8 @@ function App() {
     const { data, error } = await supabase.from('ordenes_compra').insert([payload]).select();
     if (error) {
       console.error('Error insertando Orden de Compra:', error);
-      alert('Error al añadir O.C.: ' + error.message);
-      return false;
+      alert('Error en base de datos al añadir O.C.: ' + error.message);
+      return null;
     } else if (data && data[0]) {
       const dbO = data[0];
       setOrdenesCompra(prev => [{
@@ -1172,9 +1193,23 @@ function App() {
 
       sendEmailNotification('facturacion@helpsoluciones.com.co', emailSubject, emailBody);
 
-      return true;
+      return {
+        ...dbO,
+        proveedorId: dbO.proveedor_id,
+        nombreProveedor: dbO.nombre_proveedor,
+        condicionesComerciales: dbO.condiciones_comerciales,
+        conductorId: dbO.conductor_id,
+        conductorNombre: dbO.conductor_nombre,
+        fotoEntrega: dbO.foto_entrega,
+        fotoRemision: dbO.foto_remision,
+        usuarioId: dbO.usuario_id,
+        tipo: dbO.tipo,
+        verificada: dbO.verificada,
+        moneda: dbO.moneda || 'COP',
+        trm: dbO.trm || 0
+      } as OrdenCompra;
     }
-    return false;
+    return null;
   };
   const updateOrdenCompra = async (oc: OrdenCompra): Promise<boolean> => {
     console.log('Intentando actualizar OC (mapa explícito):', oc);

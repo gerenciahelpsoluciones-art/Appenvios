@@ -25,7 +25,7 @@ interface IProps {
     onUpdateDespacho: (d: Despacho) => void;
     onDeleteDespacho: (id: string) => void;
     onUpdateOC: (oc: OrdenCompra) => void;
-    onAddOC: (oc: OrdenCompra) => void;
+    onAddOC: (oc: OrdenCompra) => Promise<OrdenCompra | null>;
     onAddDevolucion: (dev: Devolucion) => any;
     onUpdateDevolucion: (dev: Devolucion) => any;
     onDeleteDevolucion: (id: string) => any;
@@ -210,7 +210,9 @@ const LogisticaModule: React.FC<IProps> = ({
             estado: 'Pendiente',
             verificada: false,
             usuarioId: currentUser?.id || '',
-            tipo: 'Recogida'
+            tipo: 'Recogida',
+            moneda: 'COP',
+            trm: 0
         };
         onAddOC(newOC);
         setIsAddManualOpen(false);

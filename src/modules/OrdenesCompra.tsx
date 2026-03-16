@@ -11,7 +11,7 @@ interface IProps {
     alquileres: Alquiler[];
     ordenesCompra: OrdenCompra[];
     allOrdenesCompra: OrdenCompra[];
-    onAddOC: (oc: OrdenCompra) => Promise<boolean | void>;
+    onAddOC: (oc: OrdenCompra) => Promise<OrdenCompra | null>;
     onUpdateOC: (oc: OrdenCompra) => Promise<boolean | void>;
     onDeleteOC: (id: string) => void;
     currentUser: AppUser;
@@ -121,12 +121,13 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, alquile
         if (editingId) {
             const success = await onUpdateOC(ocData);
             if (success === false) return; // DB Error
+            generatePDF(ocData, prov);
         } else {
-            const success = await onAddOC(ocData);
-            if (success === false) return; // DB Error
+            const savedOC = await onAddOC(ocData);
+            if (!savedOC) return; // DB Error or collision fix failed
+            generatePDF(savedOC, prov);
         }
 
-        generatePDF(ocData, prov);
         resetForm();
     };
 
