@@ -92,7 +92,10 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
         };
 
         const success = editingId ? await onUpdateAlquiler(data) : await onAddAlquiler(data);
-        if (success) resetForm();
+        if (success) {
+            if (data.estado === 'Alquilado') generateActaEntrega(data);
+            resetForm();
+        }
     };
 
     const handleEdit = (a: Alquiler) => {
@@ -400,6 +403,7 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
         };
         const success = await onUpdateAlquiler(updated);
         if (success) {
+            generateActaEntrega(updated);
             setAssignTarget(null);
             setAssignClienteId('');
             setAssignFechaInicio('');
