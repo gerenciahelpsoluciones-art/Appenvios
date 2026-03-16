@@ -214,65 +214,87 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, alquile
             head: [['N° Parte', 'Producto', 'Cant', `Vr. Unitario (${oc.moneda || 'COP'})`, `Subtotal (${oc.moneda || 'COP'})`]],
             body: tableData,
             headStyles: { fillColor: [0, 74, 153] },
-            theme: 'striped'
+            theme: 'striped',
+            margin: { bottom: 20 }
         });
 
-        const finalY = (doc as any).lastAutoTable.finalY + 10;
+        let currentY = (doc as any).lastAutoTable.finalY + 10;
 
         const hasExemptItems = oc.items.some(i => i.exentoIva);
         if (hasExemptItems) {
             doc.setFontSize(8);
             doc.setTextColor(100, 100, 100);
-            doc.text('(*) Producto exento de IVA', 15, finalY - 2);
+            doc.text('(*) Producto exento de IVA', 15, currentY - 2);
+        }
+
+        // Check if totals box fits
+        if (currentY + 35 > 280) {
+            doc.addPage();
+            currentY = 20;
         }
 
         // Totals Box (Styled)
         doc.setFillColor(245, 247, 250);
-        doc.rect(130, finalY - 5, 70, 28, 'F');
+        doc.rect(130, currentY - 5, 70, 28, 'F');
         doc.setDrawColor(200, 203, 207);
-        doc.rect(130, finalY - 5, 70, 28, 'S');
+        doc.rect(130, currentY - 5, 70, 28, 'S');
 
         doc.setFontSize(10);
         doc.setTextColor(50, 50, 50);
         doc.setFont('helvetica', 'bold');
-        doc.text('Subtotal:', 135, finalY + 2);
+        doc.text('Subtotal:', 135, currentY + 2);
         doc.setFont('helvetica', 'normal');
-        doc.text(`${oc.moneda === 'USD' ? 'US$' : '$'}${oc.subtotal.toLocaleString()}`, 195, finalY + 2, { align: 'right' });
+        doc.text(`${oc.moneda === 'USD' ? 'US$' : '$'}${oc.subtotal.toLocaleString()}`, 195, currentY + 2, { align: 'right' });
 
         doc.setFont('helvetica', 'bold');
-        doc.text('IVA (19%):', 135, finalY + 9);
+        doc.text('IVA (19%):', 135, currentY + 9);
         doc.setFont('helvetica', 'normal');
-        doc.text(`${oc.moneda === 'USD' ? 'US$' : '$'}${oc.iva.toLocaleString()}`, 195, finalY + 9, { align: 'right' });
+        doc.text(`${oc.moneda === 'USD' ? 'US$' : '$'}${oc.iva.toLocaleString()}`, 195, currentY + 9, { align: 'right' });
 
         doc.setFontSize(11);
         doc.setTextColor(0, 74, 153);
         doc.setFont('helvetica', 'bold');
-        doc.text('VALOR TOTAL:', 135, finalY + 18);
-        doc.text(`${oc.moneda === 'USD' ? 'US$' : '$'}${oc.total.toLocaleString()}`, 195, finalY + 18, { align: 'right' });
+        doc.text('VALOR TOTAL:', 135, currentY + 18);
+        doc.text(`${oc.moneda === 'USD' ? 'US$' : '$'}${oc.total.toLocaleString()}`, 195, currentY + 18, { align: 'right' });
+
+        currentY += 30;
 
         // Footer / Conditions
         doc.setTextColor(0, 0, 0);
         doc.setFontSize(10);
         doc.setFont('helvetica', 'bold');
-        doc.text('Condiciones Comerciales:', 15, finalY + 30);
-        doc.setFont('helvetica', 'normal');
+
+        let trmText = "";
         if (oc.moneda === 'USD') {
-            doc.setFontSize(9);
-            doc.text(`NOTA: Esta orden de compra está expresada en Dólares (USD). TRM de referencia: $${oc.trm?.toLocaleString()}`, 15, finalY + 35);
-            doc.text(oc.condicionesComerciales, 15, finalY + 41);
-        } else {
-            doc.text(oc.condicionesComerciales, 15, finalY + 36);
+            trmText = `\nNOTA: Esta orden de compra está expresada en Dólares (USD). TRM de referencia: $${oc.trm?.toLocaleString()}`;
+        }
+        
+        const fullConditions = `Condiciones Comerciales:${trmText}\n${oc.condicionesComerciales}`;
+        const splitConds = doc.splitTextToSize(fullConditions, 180);
+
+        if (currentY + (splitConds.length * 5) > 280) {
+            doc.addPage();
+            currentY = 20;
         }
 
+        doc.text(splitConds, 15, currentY);
+        currentY += (splitConds.length * 5) + 5;
+
         if (oc.observaciones) {
+            const splitObs = doc.splitTextToSize(`Observaciones:\n${oc.observaciones}`, 180);
+            if (currentY + (splitObs.length * 5) > 280) {
+                doc.addPage();
+                currentY = 20;
+            }
             doc.setFont('helvetica', 'bold');
-            doc.text('Observaciones:', 15, finalY + 46);
+            doc.text("Observaciones:", 15, currentY);
             doc.setFont('helvetica', 'normal');
-            doc.text(oc.observaciones, 15, finalY + 52, { maxWidth: 180 });
+            doc.text(doc.splitTextToSize(oc.observaciones, 180), 15, currentY + 6);
         }
 
         doc.save(`OC_${oc.consecutivo}_${prov.nombre.replace(/\s+/g, '_')}.pdf`);
     };
+
 
     return (
         <div className="module-container">

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import { logoBase64 } from '../assets/logoBase64';
 import type { Alquiler, Cliente, AppUser } from '../App';
 
@@ -126,7 +126,12 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
         doc.rect(0, 0, pageWidth, 45, 'F');
 
         if (logoBase64) {
-            doc.addImage(logoBase64, 'PNG', marginX, 5, 35, 35, '', 'FAST');
+            try {
+                // Ensure it's JPEG since that's what logoBase64.ts contains
+                doc.addImage(logoBase64, 'JPEG', marginX, 5, 35, 35, undefined, 'FAST');
+            } catch (e) {
+                console.error("Error adding logo to PDF:", e);
+            }
         }
 
         doc.setTextColor(255, 255, 255);
@@ -212,14 +217,13 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
             ...(a.discoDuro ? [['Disco Duro', a.discoDuro]] : []),
         ];
 
-        // @ts-ignore
-        doc.autoTable({
+        autoTable(doc, {
             startY: y,
             body: equipmentData,
             theme: 'plain',
             styles: { fontSize: 9, cellPadding: { top: 3, bottom: 3, left: 5, right: 5 } },
             columnStyles: {
-                0: { fontStyle: 'bold', cellWidth: 45, textColor: [50, 50, 50] },
+                0: { fontStyle: 'bold', cellWidth: 45, textColor: [50, 50, 50] as any },
                 1: { cellWidth: 'auto' }
             },
             alternateRowStyles: { fillColor: [248, 250, 252] },
@@ -227,8 +231,7 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
             tableLineWidth: 0.3,
         });
 
-        // @ts-ignore
-        y = doc.lastAutoTable.finalY + 8;
+        y = (doc as any).lastAutoTable.finalY + 8;
 
         // ─── COMMERCIAL TERMS BOX ───
         doc.setFillColor(255, 251, 235);
@@ -354,8 +357,7 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
             `$${a.valorMensual.toLocaleString()}`
         ]);
 
-        // @ts-ignore
-        doc.autoTable({
+        autoTable(doc, {
             startY: startY,
             head: [['Cliente', 'Equipo', 'Fecha Inicio', 'V. Mensual']],
             body: tableBody,
@@ -371,8 +373,7 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
             }
         });
 
-        // @ts-ignore
-        const finalY = doc.lastAutoTable.finalY + 15;
+        const finalY = (doc as any).lastAutoTable.finalY + 15;
 
         doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
