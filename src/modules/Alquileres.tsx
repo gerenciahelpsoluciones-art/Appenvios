@@ -311,10 +311,6 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
         doc.text('C.C.: ________________________', rightX + 10, y + 48);
 
         // ─── FOOTER ───
-        doc.setFontSize(7);
-        doc.setTextColor(150, 150, 150);
-        doc.text('Documento generado por HelpiCRM — Help Soluciones Informáticas S.A.S.', pageWidth / 2, 285, { align: 'center' });
-
         doc.save(`Acta_Entrega_${a.serial}_${new Date().toISOString().split('T')[0]}.pdf`);
     };
 
