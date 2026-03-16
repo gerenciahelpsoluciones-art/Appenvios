@@ -63,6 +63,10 @@ const InformesModule: React.FC<IProps> = ({
     const [editItems, setEditItems] = useState<EditItem[]>([]);
     const [editClienteId, setEditClienteId] = useState('');
     const [editObservaciones, setEditObservaciones] = useState('');
+    const [editEjecutivo, setEditEjecutivo] = useState('');
+    const [editEjecutivoEmail, setEditEjecutivoEmail] = useState('');
+    const [editEjecutivoTelefono, setEditEjecutivoTelefono] = useState('');
+    const [editCondiciones, setEditCondiciones] = useState('');
 
     // Won Quote OC Modal State
     const [wonQuoteModal, setWonQuoteModal] = useState<Cotizacion | null>(null);
@@ -279,6 +283,10 @@ const InformesModule: React.FC<IProps> = ({
             iva: item.iva,
         })));
         setEditObservaciones(q.observaciones || '');
+        setEditEjecutivo(q.ejecutivo || '');
+        setEditEjecutivoEmail(q.ejecutivoEmail || '');
+        setEditEjecutivoTelefono(q.ejecutivoTelefono || '');
+        setEditCondiciones(q.condiciones || '');
     };
 
     const closeEditModal = () => {
@@ -286,6 +294,10 @@ const InformesModule: React.FC<IProps> = ({
         setEditItems([]);
         setEditClienteId('');
         setEditObservaciones('');
+        setEditEjecutivo('');
+        setEditEjecutivoEmail('');
+        setEditEjecutivoTelefono('');
+        setEditCondiciones('');
     };
 
     const updateEditItem = (id: string, field: keyof EditItem, value: any) => {
@@ -350,7 +362,11 @@ const InformesModule: React.FC<IProps> = ({
             subtotal: editSubtotal,
             iva: editIVATotal,
             total: editGrandTotal,
-            observaciones: editObservaciones
+            observaciones: editObservaciones,
+            ejecutivo: editEjecutivo,
+            ejecutivoEmail: editEjecutivoEmail,
+            ejecutivoTelefono: editEjecutivoTelefono,
+            condiciones: editCondiciones
         };
         onUpdateQuote(updated);
         closeEditModal();
@@ -819,6 +835,22 @@ const InformesModule: React.FC<IProps> = ({
                                 </select>
                             </div>
 
+                            {/* Executive Info */}
+                            <div className="edit-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
+                                <div className="edit-section" style={{ marginBottom: 0 }}>
+                                    <label className="edit-label">Ejecutivo Comercial</label>
+                                    <input className="edit-input" type="text" value={editEjecutivo} onChange={e => setEditEjecutivo(e.target.value)} placeholder="Nombre del ejecutivo" />
+                                </div>
+                                <div className="edit-section" style={{ marginBottom: 0 }}>
+                                    <label className="edit-label">Email Ejecutivo</label>
+                                    <input className="edit-input" type="email" value={editEjecutivoEmail} onChange={e => setEditEjecutivoEmail(e.target.value)} placeholder="Email de contacto" />
+                                </div>
+                                <div className="edit-section" style={{ marginBottom: 0 }}>
+                                    <label className="edit-label">Teléfono Ejecutivo</label>
+                                    <input className="edit-input" type="text" value={editEjecutivoTelefono} onChange={e => setEditEjecutivoTelefono(e.target.value)} placeholder="WhatsApp / Cel" />
+                                </div>
+                            </div>
+
                             {/* Items table */}
                             <div className="edit-section">
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
@@ -878,11 +910,24 @@ const InformesModule: React.FC<IProps> = ({
                                 <label className="edit-label">Observaciones (Saldrán en el PDF)</label>
                                 <textarea
                                     className="edit-input"
-                                    rows={3}
+                                    rows={2}
                                     style={{ resize: 'vertical' }}
                                     value={editObservaciones}
                                     onChange={e => setEditObservaciones(e.target.value)}
                                     placeholder="Notas adicionales para esta cotización..."
+                                />
+                            </div>
+
+                            {/* Commercial Conditions */}
+                            <div className="edit-section" style={{ marginTop: '1rem' }}>
+                                <label className="edit-label">Condiciones Comerciales</label>
+                                <textarea
+                                    className="edit-input"
+                                    rows={4}
+                                    style={{ resize: 'vertical' }}
+                                    value={editCondiciones}
+                                    onChange={e => setEditCondiciones(e.target.value)}
+                                    placeholder="1. Forma de pago...\n2. Tiempo de entrega..."
                                 />
                             </div>
 
