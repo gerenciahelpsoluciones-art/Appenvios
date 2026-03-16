@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { Proveedor, Producto, OrdenCompra, OrdenCompraItem, AppUser } from '../App';
+import type { Proveedor, Producto, OrdenCompra, OrdenCompraItem, AppUser, Alquiler } from '../App';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { logoBase64 } from '../assets/logoBase64';
@@ -8,6 +8,7 @@ import ProductSearchSelect from '../components/ProductSearchSelect';
 interface IProps {
     proveedores: Proveedor[];
     productos: Producto[];
+    alquileres: Alquiler[];
     ordenesCompra: OrdenCompra[];
     allOrdenesCompra: OrdenCompra[];
     onAddOC: (oc: OrdenCompra) => Promise<boolean | void>;
@@ -17,7 +18,7 @@ interface IProps {
     currentTrm: number;
 }
 
-const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenesCompra, allOrdenesCompra, onAddOC, onUpdateOC, onDeleteOC, currentUser, currentTrm }) => {
+const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, alquileres, ordenesCompra, allOrdenesCompra, onAddOC, onUpdateOC, onDeleteOC, currentUser, currentTrm }) => {
     const [isAdding, setIsAdding] = useState(false);
     const [selectedProveedor, setSelectedProveedor] = useState<string>('');
     const [condiciones, setCondiciones] = useState('Contado');
@@ -28,12 +29,28 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenes
     const [moneda, setMoneda] = useState<'COP' | 'USD'>('COP');
     const [trm, setTrm] = useState<number>(currentTrm || 0);
     const [autoConvertir, setAutoConvertir] = useState(true);
+    const [isRentalPickerOpen, setIsRentalPickerOpen] = useState(false);
+    const [rentalSearchTerm, setRentalSearchTerm] = useState('');
 
     // Form for new item
     const [selectedProdId, setSelectedProdId] = useState('');
     const [cantidad, setCantidad] = useState(1);
     const [precioUnitario, setPrecioUnitario] = useState(0);
     const [exentoIva, setExentoIva] = useState(false);
+
+    const handleSelectRental = (rental: Alquiler) => {
+        const newItem: OrdenCompraItem = {
+            id: crypto.randomUUID(),
+            productoId: rental.id,
+            nombreProducto: `[ALQUILER] ${rental.descripcion}`,
+            numPart: rental.serial,
+            cantidad: 1,
+            precioUnitario: rental.valorMensual || 0,
+            exentoIva: false
+        };
+        setItems([...items, newItem]);
+        setIsRentalPickerOpen(false);
+    };
 
     const handleAddItem = () => {
         const prod = productos.find(p => p.id === selectedProdId);
@@ -423,8 +440,70 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, ordenes
                                     <label htmlFor="exentoIvaCheckbox" style={{ margin: 0, cursor: 'pointer', fontSize: '0.9rem' }}>Exento IVA</label>
                                 </div>
                                 <button className="btn-success" onClick={handleAddItem} style={{ height: '42px', marginLeft: '1rem' }}>Añadir</button>
+                                <button
+                                    className="btn-secondary"
+                                    onClick={() => setIsRentalPickerOpen(true)}
+                                    style={{ height: '42px', marginLeft: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#f0f9ff', color: '#0369a1', border: '1px solid #bae6fd' }}
+                                >
+                                    💻 Alquileres
+                                </button>
                             </div>
                         </div>
+
+                        {isRentalPickerOpen && (
+                            <div className="modal-overlay" style={{ zIndex: 1100 }}>
+                                <div className="modal-content card" style={{ maxWidth: '800px', width: '95%' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                                        <h3 style={{ margin: 0 }}>💻 Seleccionar de Alquileres</h3>
+                                        <button className="btn-secondary" onClick={() => setIsRentalPickerOpen(false)}>Cerrar</button>
+                                    </div>
+                                    <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                                        <input
+                                            type="text"
+                                            className="input-field"
+                                            placeholder="Buscar por descripción o serial..."
+                                            value={rentalSearchTerm}
+                                            onChange={e => setRentalSearchTerm(e.target.value)}
+                                        />
+                                    </div>
+                                    <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                                        <table className="data-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Descripción</th>
+                                                    <th>Serial</th>
+                                                    <th>V. Mensual</th>
+                                                    <th className="text-center">Acción</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {alquileres
+                                                    .filter(a =>
+                                                        a.descripcion.toLowerCase().includes(rentalSearchTerm.toLowerCase()) ||
+                                                        a.serial.toLowerCase().includes(rentalSearchTerm.toLowerCase())
+                                                    )
+                                                    .map(a => (
+                                                        <tr key={a.id}>
+                                                            <td>{a.descripcion}</td>
+                                                            <td><code>{a.serial}</code></td>
+                                                            <td>${a.valorMensual.toLocaleString()}</td>
+                                                            <td className="text-center">
+                                                                <button
+                                                                    className="btn-success"
+                                                                    style={{ padding: '4px 12px', fontSize: '0.85rem' }}
+                                                                    onClick={() => handleSelectRental(a)}
+                                                                >
+                                                                    Seleccionar
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         <div style={{ overflowX: 'auto' }}>
                             <table className="data-table" style={{ marginTop: '1rem' }}>

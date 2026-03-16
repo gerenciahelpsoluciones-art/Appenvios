@@ -1540,6 +1540,7 @@ function App() {
         return <OrdenesCompraModule
           proveedores={proveedores}
           productos={productos}
+          alquileres={alquileres}
           ordenesCompra={filteredOCsToModule}
           allOrdenesCompra={ordenesCompra}
           onAddOC={addOrdenCompra}
