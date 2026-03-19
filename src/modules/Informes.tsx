@@ -106,8 +106,9 @@ const InformesModule: React.FC<IProps> = ({
         allConsecutivos: cotizaciones.map(c => c.consecutivo)
     });
 
-    const totalVendido = filteredQuotes.reduce((acc, q) => acc + q.total, 0);
-    const totalUtilidad = filteredQuotes.reduce((acc, q) => acc + (q.utilidadTotal || 0), 0);
+    const wonQuotesInRange = filteredQuotes.filter(q => q.estado === 'Ganado');
+    const totalVendido = wonQuotesInRange.reduce((acc, q) => acc + q.total, 0);
+    const totalUtilidad = wonQuotesInRange.reduce((acc, q) => acc + (q.utilidadTotal || 0), 0);
 
     // Monthly performance for cards
     const monthlySalesFromQuotes = cotizaciones.filter(c => {
@@ -373,14 +374,14 @@ const InformesModule: React.FC<IProps> = ({
     };
 
     // --- Profit Analysis Grouping ---
-    const profitByClient = filteredQuotes.reduce((acc: Record<string, { nombre: string, total: number, profit: number }>, q) => {
+    const profitByClient = wonQuotesInRange.reduce((acc: Record<string, { nombre: string, total: number, profit: number }>, q) => {
         if (!acc[q.clienteId]) acc[q.clienteId] = { nombre: q.clienteNombre, total: 0, profit: 0 };
         acc[q.clienteId].total += q.total;
         acc[q.clienteId].profit += (q.utilidadTotal || 0);
         return acc;
     }, {});
 
-    const profitByMonth = filteredQuotes.reduce((acc: Record<string, { total: number, profit: number }>, q) => {
+    const profitByMonth = wonQuotesInRange.reduce((acc: Record<string, { total: number, profit: number }>, q) => {
         const month = q.fecha.substring(0, 7); // YYYY-MM
         if (!acc[month]) acc[month] = { total: 0, profit: 0 };
         acc[month].total += q.total;

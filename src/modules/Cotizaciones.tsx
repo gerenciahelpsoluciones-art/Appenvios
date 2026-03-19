@@ -3,6 +3,29 @@ import type { Cliente, Producto, Cotizacion, AppUser } from '../App';
 import { generateQuotationPDF } from '../utils/pdfGenerator';
 import ProductSearchSelect from '../components/ProductSearchSelect';
 
+interface QuoteItem {
+    id: string;
+    productoId: string;
+    proveedorId: string;
+    unidad: string;
+    cantidad: number;
+    costoUnitario: number;
+    precioVenta: number;
+    utilidad: number;
+    iva: number;
+    moneda?: 'COP' | 'USD';
+}
+
+interface IProps {
+    clientes: Cliente[];
+    productos: Producto[];
+    cotizaciones: Cotizacion[];
+    onAddQuote: (q: any) => Promise<void>;
+    onSendWhatsApp: (phone: string, msg: string) => void;
+    currentUser: AppUser;
+    currentTrm: number;
+}
+
 const CotizacionesModule: React.FC<IProps> = ({
     clientes,
     productos,
@@ -29,14 +52,15 @@ const CotizacionesModule: React.FC<IProps> = ({
     const [selectedCompradorId, setSelectedCompradorId] = useState('');
     const [consecutivo, setConsecutivo] = useState(generateConsecutivo());
     const [observaciones, setObservaciones] = useState('');
-    const initialCondiciones = `1. La descripción del producto y/o servicio, especifica el producto y/o servicio que se va a entregar, el cual incluye características técnicas y especificaciones relevantes. 
+    const [validezOferta, setValidezOferta] = useState(3);
+
+    const getInitialCondiciones = (days: number) => `1. La descripción del producto y/o servicio, especifica el producto y/o servicio que se va a entregar, el cual incluye características técnicas y especificaciones relevantes. 
 2. El valor unitario y el Valor total se expresa sin tener en cuenta impuestos, el valor del IVA se calcula y se indica en la casilla Valor IVA.
 3. Condiciones y forma de pago: Anticipo ( ) Contado ( ) Crédito 30 días ( ) Crédito 45 días ( )
 4. Los plazos de entrega de mercancía serán contemplados una vez se tenga confirmación de la propuesta o cotización por medio de correo electrónico y/o Orden de Compra: 1 día ( ) 2 días ( ) De 3 a 5 días ( ) de 6 a 10 días ( ) de 11 a 15 días ( ) 15 días o más ( ) Nota: Si son varias referencias se toma el más demorado.
 5. Garantía, nuestros productos están sujetos a la política de garantía descritos en nuestra página WEB: POLITICAS DE GARANTIA
 6. Condiciones de devolución y reembolso, se aceptan devoluciones en un plazo no mayor a 3 días y se debe retornar el producto a las instalaciones de la compañía, con la factura. Ver.
-7. Validez de la cotización: Tiene valides por 1 día ( ) 2 días ( ) 3 días ( ) 5 días ( ) 15 días ( ) 1 mes ( )
-Después de la fecha de creación de este documento, esto significa que las cantidades, descripciones y precios, dependerán de la validez de este documento.
+7. Validez de la cotización: Esta oferta tiene una validez de ${days} día(s) calendario a partir de la fecha de creación de este documento. Esto significa que las cantidades, descripciones y precios, dependerán de la validez de este documento.
 
 Condiciones comerciales especiales:
 
@@ -50,7 +74,7 @@ Bancolombia - Cuenta de Ahorros N.º 00900002540
 Davivienda – Cuenta Corriente No. 455469999011
 BBVA - Cuenta Corriente No. 390021475`;
 
-    const [condiciones, setCondiciones] = useState(initialCondiciones);
+    const [condiciones, setCondiciones] = useState(getInitialCondiciones(3));
     const [ejecutivo, setEjecutivo] = useState({
         nombre: currentUser.nombre || '',
         cargo: currentUser.cargo || 'Ejecutivo Comercial',
@@ -308,14 +332,32 @@ BBVA - Cuenta Corriente No. 390021475`;
                         </div>
                     </div>
                     <div>
-                        <h3>Referencia de Cotización</h3>
-                        <div className="form-grid">
+                        <h3>Referencia y Validez</h3>
+                        <div className="form-grid" style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                             <input
                                 className="input-field"
                                 placeholder="N° Consecutivo"
                                 value={consecutivo}
                                 onChange={e => setConsecutivo(e.target.value)}
+                                style={{ flex: 1 }}
                             />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 0.5 }}>
+                                <label style={{ fontSize: '0.85rem', whiteSpace: 'nowrap', fontWeight: 'bold', color: 'var(--primary-blue)' }}>Validez:</label>
+                                <select
+                                    className="input-field"
+                                    value={validezOferta}
+                                    onChange={e => {
+                                        const days = Number(e.target.value);
+                                        setValidezOferta(days);
+                                        setCondiciones(getInitialCondiciones(days));
+                                    }}
+                                    style={{ padding: '0.4rem' }}
+                                >
+                                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(d => (
+                                        <option key={d} value={d}>{d} {d === 1 ? 'día' : 'días'}</option>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
                     </div>
                 </div>
