@@ -15,8 +15,10 @@ import VendedoresModule from './modules/Vendedores'
 import AlquileresModule from './modules/Alquileres'
 import FacturacionModule from './modules/Facturacion'
 import VentasManualesModule from './modules/VentasManuales'
+import LeadsWebModule, { type ClienteWeb } from './modules/LeadsWeb'
 import { supabase } from './lib/supabaseClient'
 import { logoBase64 } from './assets/logoBase64'
+import AIAssistant from './components/AIAssistant'
 
 // Types for shared data
 export interface AppUser {
@@ -310,6 +312,7 @@ function App() {
   const [ventasManuales, setVentasManuales] = useState<VentaManual[]>([]);
   const [budgets, setBudgets] = useState<SalesBudget[]>([]);
   const [users, setUsers] = useState<AppUser[]>([]);
+  const [clientesWeb, setClientesWeb] = useState<ClienteWeb[]>([]);
   const [realtimeStatus, setRealtimeStatus] = useState<string>('Desconectado');
   const [currentTrm, setCurrentTrm] = useState<number>(0);
 
@@ -518,6 +521,11 @@ function App() {
         })));
       }
 
+      const { data: leadsWebData } = await supabase.from('clientes_web').select('*').order('created_at', { ascending: false });
+      if (leadsWebData) {
+        setClientesWeb(leadsWebData as ClienteWeb[]);
+      }
+
       // Fetch TRM
       try {
         const res = await fetch('https://co.dolarapi.com/v1/trm');
@@ -561,6 +569,7 @@ function App() {
         .on('postgres_changes', { event: '*', schema: 'public', table: 'devoluciones' }, () => fetchInitialData())
         .on('postgres_changes', { event: '*', schema: 'public', table: 'budgets' }, () => fetchInitialData())
         .on('postgres_changes', { event: '*', schema: 'public', table: 'ventas_manuales' }, () => fetchInitialData())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'clientes_web' }, () => fetchInitialData())
         .subscribe((status) => {
           console.log('Estado de conexión Realtime:', status);
           setRealtimeStatus(status === 'SUBSCRIBED' ? 'En Línea' : status);
@@ -1460,8 +1469,18 @@ function App() {
     }
   };
 
+  const updateLeadWeb = async (lead: ClienteWeb) => {
+    const { error } = await supabase.from('clientes_web').update({ estado: lead.estado }).eq('id', lead.id);
+    if (error) {
+      alert('Error actualizando estado del Lead: ' + error.message);
+    } else {
+      setClientesWeb(prev => prev.map(l => l.id === lead.id ? lead : l));
+    }
+  };
+
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: '📊' },
+    { id: 'leads-web', label: 'Leads Web', icon: '✨' },
     { id: 'cotizaciones', label: 'Cotizaciones', icon: '📄' },
     { id: 'ordenes-compra', label: 'Ordenes de Compra', icon: '🛒' },
     { id: 'clientes', label: 'Clientes', icon: '👥' },
@@ -1478,7 +1497,8 @@ function App() {
     { id: 'ventas-manuales', label: 'Ventas Manuales', icon: '💰' },
   ].filter(item => {
     if (item.id === 'productos') return true; // Everyone can see/edit products
-    if ((item.id === 'facturacion' || item.id === 'ventas-manuales') && currentUser?.rol === 'Admin') return true;
+    if ((item.id === 'facturacion' || item.id === 'ventas-manuales' || item.id === 'leads-web') && currentUser?.rol === 'Admin') return true;
+    if (item.id === 'leads-web' && currentUser?.rol === 'Comercial') return true;
     return currentUser?.permisos.includes(item.id);
   });
 
@@ -1565,6 +1585,8 @@ function App() {
       : clientes.filter(c => c.usuarioId === currentUser.id);
 
     switch (activeTab) {
+      case 'leads-web':
+        return <LeadsWebModule leads={clientesWeb} onUpdateLead={updateLeadWeb} currentUser={currentUser} />;
       case 'clientes':
         return <ClientesModule clientes={filteredClientes} onAdd={addCliente} onUpdate={updateCliente} onDelete={deleteCliente} userRole={currentUser?.rol || ''} />;
       case 'cotizaciones':
@@ -2052,9 +2074,10 @@ function App() {
             </button>
           </div>
         </header>
-        <div className="content-area">
+      <div className="content-area">
           {renderContent()}
         </div>
+        <AIAssistant />
       </main>
 
       <style>{`
