@@ -12,6 +12,7 @@ export interface PDFData {
     iva: number;
     total: number;
     condiciones: string;
+    validez: string;
     ejecutivo: {
         nombre: string;
         cargo: string;
@@ -65,7 +66,7 @@ export const generateQuotationPDF = (data: PDFData, action: 'save' | 'view' = 's
         doc.text(`Dirección: ${data.cliente.direccion}`, 14, 75);
 
         doc.text(`Fecha: ${new Date().toISOString().split('T')[0]}`, 150, 60);
-        doc.text(`Validez: 15 días calendario`, 150, 65);
+        doc.text(`Validez: ${data.validez || 3} día(s) calendario`, 150, 65);
 
         // Table Data
         const tableBody = data.items.map(item => {

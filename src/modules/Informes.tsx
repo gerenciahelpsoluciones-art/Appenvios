@@ -265,6 +265,7 @@ const InformesModule: React.FC<IProps> = ({
                 telefono: q.ejecutivoTelefono || '',
                 correo: q.ejecutivoEmail
             },
+            validez: q.validez_oferta || '15 días',
             observaciones: q.observaciones
         });
     };
@@ -607,6 +608,77 @@ const InformesModule: React.FC<IProps> = ({
                                     </tbody>
                                 </table>
                             </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* ========== LOGISTICS TIMELINE SECTION ========== */}
+                {(currentUser.rol === 'Admin' || currentUser.rol === 'Logistica' || currentUser.cargo?.toLowerCase().includes('administrador')) && (
+                    <div className="card" style={{ marginTop: '1.5rem' }}>
+                        <h3 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            ⏱️ Línea de Tiempo de Despachos (Tiempos de Gestión)
+                        </h3>
+                        <div style={{ overflowX: 'auto' }}>
+                            <table className="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Cotización</th>
+                                        <th>Asesor</th>
+                                        <th className="text-center">Fecha Pedido</th>
+                                        <th className="text-center">Solicitud Despacho</th>
+                                        <th className="text-center">Días de Gestión</th>
+                                        <th>Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {despachos
+                                        .filter(d => 
+                                            d.fechaSolicitud >= appliedFilters.inicio &&
+                                            d.fechaSolicitud <= appliedFilters.fin &&
+                                            (appliedFilters.asesorId ? d.usuarioId === appliedFilters.asesorId : true) &&
+                                            (appliedFilters.clienteId ? d.clienteId === appliedFilters.clienteId : true)
+                                        )
+                                        .map(d => {
+                                            const quote = cotizaciones.find(q => q.id === d.cotizacionId);
+                                            const orderDate = quote?.fecha || 'N/A';
+                                            let diffDays = 0;
+                                            if (quote?.fecha && d.fechaSolicitud) {
+                                                const start = new Date(quote.fecha);
+                                                const end = new Date(d.fechaSolicitud);
+                                                diffDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+                                            }
+                                            return (
+                                                <tr key={d.id}>
+                                                    <td><strong>{d.consecutivoCotizacion}</strong></td>
+                                                    <td>{users.find(u => u.id === d.usuarioId)?.nombre || 'N/A'}</td>
+                                                    <td className="text-center">{orderDate}</td>
+                                                    <td className="text-center">{d.fechaSolicitud}</td>
+                                                    <td className="text-center">
+                                                        <span className={`badge ${diffDays > 5 ? 'badge-danger' : diffDays > 2 ? 'badge-warning' : 'badge-success'}`} 
+                                                              style={{ padding: '0.3rem 0.6rem', borderRadius: '10px' }}>
+                                                            {diffDays} {diffDays === 1 ? 'día' : 'días'}
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <span className={`status-pill ${d.estado.toLowerCase().replace(' ', '-')}`} style={{ fontSize: '0.8rem' }}>
+                                                            {d.estado}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    {despachos.filter(d => 
+                                        d.fechaSolicitud >= appliedFilters.inicio &&
+                                        d.fechaSolicitud <= appliedFilters.fin
+                                    ).length === 0 && (
+                                        <tr>
+                                            <td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
+                                                No hay despachos registrados en el periodo seleccionado.
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 )}

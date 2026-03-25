@@ -9,7 +9,8 @@ import {
     type Devolucion,
     type DevolucionItem,
     type Reparacion,
-    type Cliente
+    type Cliente,
+    type Cotizacion
 } from '../App';
 
 interface IProps {
@@ -31,6 +32,7 @@ interface IProps {
     onDeleteDevolucion: (id: string) => any;
     reparaciones: Reparacion[];
     onUpdateReparacion: (r: Reparacion) => any;
+    cotizaciones: Cotizacion[];
 }
 
 const LogisticaModule: React.FC<IProps> = ({
@@ -51,11 +53,13 @@ const LogisticaModule: React.FC<IProps> = ({
     onUpdateDevolucion,
     onDeleteDevolucion,
     reparaciones,
-    onUpdateReparacion
+    onUpdateReparacion,
+    cotizaciones
 }) => {
     const [activeTab, setActiveTab] = useState<'despachos' | 'recogidas' | 'devoluciones' | 'reparaciones' | 'informes'>('despachos');
     const [filterEstado, setFilterEstado] = useState<string>('Todos');
     const [expandedId, setExpandedId] = useState<string | null>(null);
+    const [viewMode, setViewMode] = useState<'resumen' | 'tiempos'>('resumen');
 
     // Dashboard Filters
     const [dateStart, setDateStart] = useState<string>(() => {
@@ -266,9 +270,8 @@ const LogisticaModule: React.FC<IProps> = ({
         const dCounts = despachos.filter(d => filterDate(d.fechaSolicitud) && filterUser(d.usuarioId));
         const ocCounts = ordenesCompra.filter(oc => filterDate(oc.fecha) && filterUser(oc.usuarioId));
         const devCounts = devoluciones.filter(d => filterDate(d.fecha) && filterUser(d.usuarioId));
-        const repCounts = reparaciones.filter(r => filterDate(r.fechaIngreso)); // Repairs don't have user but we filter by date
+        const repCounts = reparaciones.filter(r => filterDate(r.fechaIngreso));
 
-        // Erick's Monthly Cost Calculation: SMMLV + Transp. + Prestaciones + Rodamiento
         const ERICK_MONTHLY_COST = 2826213;
 
         // Group by user for the summary table
@@ -280,9 +283,6 @@ const LogisticaModule: React.FC<IProps> = ({
             const totalShipments = uDespachos.length + uRecogidas.length;
             const isErick = u.nombre.toLowerCase().includes('erick');
             
-            // Calculate Unit Cost: ONLY FOR ERICK
-            // We use the full monthly cost divided by total operations in the period for simplicity, 
-            // or we could show N/A if 0.
             const unitCost = (isErick && totalShipments > 0) ? Math.round(ERICK_MONTHLY_COST / totalShipments) : 0;
             const totalOperatingCost = isErick ? ERICK_MONTHLY_COST : 0;
 
@@ -298,83 +298,166 @@ const LogisticaModule: React.FC<IProps> = ({
             };
         }).filter(u => (u.despachos + u.recogidas + u.devoluciones) > 0 || (selectedUser !== 'Todos' && u.id === selectedUser));
 
+        // TIMELINE REPORT DATA
+        const timelineData = despachos
+            .filter(d => filterDate(d.fechaSolicitud) && filterUser(d.usuarioId))
+            .map(d => {
+                const quote = cotizaciones.find(q => q.id === d.cotizacionId);
+                const orderDate = quote?.fecha || 'N/A';
+                const dispatchRequestDate = d.fechaSolicitud;
+                
+                let diffDays = 0;
+                if (quote?.fecha && d.fechaSolicitud) {
+                    const start = new Date(quote.fecha);
+                    const end = new Date(d.fechaSolicitud);
+                    diffDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+                }
+
+                return {
+                    ...d,
+                    orderDate,
+                    diffDays,
+                    userName: users.find(u => u.id === d.usuarioId)?.nombre || 'N/A'
+                };
+            }).sort((a, b) => b.diffDays - a.diffDays);
+
         return (
             <div className="dashboard-container animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
-                    <div className="stat-card" style={{ background: 'white', padding: '1.5rem', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', borderLeft: '6px solid var(--primary-blue)' }}>
-                        <span style={{ fontSize: '0.875rem', color: '#64748b', fontWeight: 600 }}>DESPACHOS</span>
-                        <div style={{ fontSize: '2rem', fontWeight: 700, color: '#1e293b', marginTop: '0.5rem' }}>{dCounts.length}</div>
-                    </div>
-                    <div className="stat-card" style={{ background: 'white', padding: '1.5rem', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', borderLeft: '6px solid #f59e0b' }}>
-                        <span style={{ fontSize: '0.875rem', color: '#64748b', fontWeight: 600 }}>RECOGIDAS</span>
-                        <div style={{ fontSize: '2rem', fontWeight: 700, color: '#1e293b', marginTop: '0.5rem' }}>{ocCounts.length}</div>
-                    </div>
-                    <div className="stat-card" style={{ background: 'white', padding: '1.5rem', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', borderLeft: '6px solid #ef4444' }}>
-                        <span style={{ fontSize: '0.875rem', color: '#64748b', fontWeight: 600 }}>DEVOLUCIONES</span>
-                        <div style={{ fontSize: '2rem', fontWeight: 700, color: '#1e293b', marginTop: '0.5rem' }}>{devCounts.length}</div>
-                    </div>
-                    <div className="stat-card" style={{ background: 'white', padding: '1.5rem', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', borderLeft: '6px solid #8b5cf6' }}>
-                        <span style={{ fontSize: '0.875rem', color: '#64748b', fontWeight: 600 }}>REPARACIONES EXT.</span>
-                        <div style={{ fontSize: '2rem', fontWeight: 700, color: '#1e293b', marginTop: '0.5rem' }}>{repCounts.length}</div>
-                    </div>
+                <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '1rem' }}>
+                    <button 
+                        className={`btn ${viewMode === 'resumen' ? 'btn-primary' : 'btn-outline'}`}
+                        onClick={() => setViewMode('resumen')}
+                        style={{ padding: '0.5rem 1.5rem', borderRadius: '20px' }}
+                    >
+                        📊 Resumen General
+                    </button>
+                    <button 
+                        className={`btn ${viewMode === 'tiempos' ? 'btn-primary' : 'btn-outline'}`}
+                        onClick={() => setViewMode('tiempos')}
+                        style={{ padding: '0.5rem 1.5rem', borderRadius: '20px' }}
+                    >
+                        ⏱️ Tiempos de Entrega
+                    </button>
                 </div>
 
-                <div className="card table-card">
-                    <h3 style={{ padding: '1.25rem', margin: 0, borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        👥 Resumen de Gestión por Usuario
-                    </h3>
-                    <div style={{ overflowX: 'auto' }}>
-                        <table className="data-table" style={{ width: '100%', minWidth: '700px' }}>
-                            <thead>
-                                <tr>
-                                    <th style={{ minWidth: '200px' }}>Usuario</th>
-                                    <th className="text-center" style={{ width: '120px' }}>Despachos</th>
-                                    <th className="text-center" style={{ width: '120px' }}>Recogidas</th>
-                                    <th className="text-center" style={{ width: '120px' }}>Devoluciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {userSummary.map(u => (
-                                    <tr key={u.id}>
-                                        <td>
-                                            <div style={{ fontWeight: 600 }}>{u.nombre}</div>
-                                            <small style={{ color: '#64748b' }}>{u.cargo}</small>
-                                        </td>
-                                        <td className="text-center">{u.despachos}</td>
-                                        <td className="text-center">{u.recogidas}</td>
-                                        <td className="text-center">{u.devoluciones}</td>
-                                    </tr>
-                                ))}
-                                {userSummary.length === 0 && (
+                {viewMode === 'resumen' ? (
+                    <>
+                        <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
+                            <div className="stat-card" style={{ background: 'white', padding: '1.5rem', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', borderLeft: '6px solid var(--primary-blue)' }}>
+                                <span style={{ fontSize: '0.875rem', color: '#64748b', fontWeight: 600 }}>DESPACHOS</span>
+                                <div style={{ fontSize: '2rem', fontWeight: 700, color: '#1e293b', marginTop: '0.5rem' }}>{dCounts.length}</div>
+                            </div>
+                            <div className="stat-card" style={{ background: 'white', padding: '1.5rem', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', borderLeft: '6px solid #f59e0b' }}>
+                                <span style={{ fontSize: '0.875rem', color: '#64748b', fontWeight: 600 }}>RECOGIDAS</span>
+                                <div style={{ fontSize: '2rem', fontWeight: 700, color: '#1e293b', marginTop: '0.5rem' }}>{ocCounts.length}</div>
+                            </div>
+                            <div className="stat-card" style={{ background: 'white', padding: '1.5rem', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', borderLeft: '6px solid #ef4444' }}>
+                                <span style={{ fontSize: '0.875rem', color: '#64748b', fontWeight: 600 }}>DEVOLUCIONES</span>
+                                <div style={{ fontSize: '2rem', fontWeight: 700, color: '#1e293b', marginTop: '0.5rem' }}>{devCounts.length}</div>
+                            </div>
+                            <div className="stat-card" style={{ background: 'white', padding: '1.5rem', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', borderLeft: '6px solid #8b5cf6' }}>
+                                <span style={{ fontSize: '0.875rem', color: '#64748b', fontWeight: 600 }}>REPARACIONES EXT.</span>
+                                <div style={{ fontSize: '2rem', fontWeight: 700, color: '#1e293b', marginTop: '0.5rem' }}>{repCounts.length}</div>
+                            </div>
+                        </div>
+
+                        <div className="card table-card">
+                            <h3 style={{ padding: '1.25rem', margin: 0, borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                👥 Resumen de Gestión por Usuario
+                            </h3>
+                            <div style={{ overflowX: 'auto' }}>
+                                <table className="data-table" style={{ width: '100%', minWidth: '700px' }}>
+                                    <thead>
+                                        <tr>
+                                            <th style={{ minWidth: '200px' }}>Usuario</th>
+                                            <th className="text-center" style={{ width: '120px' }}>Despachos</th>
+                                            <th className="text-center" style={{ width: '120px' }}>Recogidas</th>
+                                            <th className="text-center" style={{ width: '120px' }}>Devoluciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {userSummary.map(u => (
+                                            <tr key={u.id}>
+                                                <td>
+                                                    <div style={{ fontWeight: 600 }}>{u.nombre}</div>
+                                                    <small style={{ color: '#64748b' }}>{u.cargo}</small>
+                                                </td>
+                                                <td className="text-center">{u.despachos}</td>
+                                                <td className="text-center">{u.recogidas}</td>
+                                                <td className="text-center">{u.devoluciones}</td>
+                                            </tr>
+                                        ))}
+                                        {userSummary.length === 0 && (
+                                            <tr>
+                                                <td colSpan={4} style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
+                                                    No hay actividad registrada en este periodo.
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </>
+                ) : (
+                    <div className="card table-card animate-fade-in">
+                        <h3 style={{ padding: '1.25rem', margin: 0, borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            ⏱️ Reporte de Tiempos de Entrega (Línea de Tiempo)
+                        </h3>
+                        <div style={{ overflowX: 'auto' }}>
+                            <table className="data-table" style={{ width: '100%', minWidth: '800px' }}>
+                                <thead>
                                     <tr>
-                                        <td colSpan={4} style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
-                                            No se encontraron datos para el periodo o usuario seleccionado.
-                                        </td>
+                                        <th>Cotización</th>
+                                        <th>Asesor</th>
+                                        <th className="text-center">Fecha Pedido</th>
+                                        <th className="text-center">Solicitud Despacho</th>
+                                        <th className="text-center">Días Transcurridos</th>
+                                        <th>Estado</th>
                                     </tr>
-                                )}
-                            </tbody>
-                            {userSummary.length > 0 && (
-                                <tfoot style={{ background: '#f8fafc', fontWeight: 700, borderTop: '2px solid #e2e8f0' }}>
-                                    <tr>
-                                        <td style={{ padding: '1rem' }}>TOTAL GENERAL</td>
-                                        <td className="text-center" style={{ color: 'var(--primary-blue)' }}>
-                                            {userSummary.reduce((acc, u) => acc + u.despachos, 0)}
-                                        </td>
-                                        <td className="text-center" style={{ color: '#f59e0b' }}>
-                                            {userSummary.reduce((acc, u) => acc + u.recogidas, 0)}
-                                        </td>
-                                        <td className="text-center" style={{ color: '#ef4444' }}>
-                                            {userSummary.reduce((acc, u) => acc + u.devoluciones, 0)}
-                                        </td>
-                                    </tr>
-                                </tfoot>
-                            )}
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {timelineData.map(d => (
+                                        <tr key={d.id}>
+                                            <td>
+                                                <div style={{ fontWeight: 600 }}>{d.consecutivoCotizacion}</div>
+                                                <small style={{ color: '#64748b' }}>Referencia: {d.id.substring(0, 8)}</small>
+                                            </td>
+                                            <td>{d.userName}</td>
+                                            <td className="text-center">{d.orderDate}</td>
+                                            <td className="text-center">{d.fechaSolicitud}</td>
+                                            <td className="text-center">
+                                                <span className={`badge ${d.diffDays > 5 ? 'badge-danger' : d.diffDays > 2 ? 'badge-warning' : 'badge-success'}`} 
+                                                      style={{ padding: '0.4rem 0.8rem', borderRadius: '12px', fontWeight: 'bold' }}>
+                                                    {d.diffDays} {d.diffDays === 1 ? 'día' : 'días'}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span className={`status-pill ${d.estado.toLowerCase()}`} style={{ fontSize: '0.85rem' }}>
+                                                    {d.estado}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {timelineData.length === 0 && (
+                                        <tr>
+                                            <td colSpan={6} style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>
+                                                No se encontraron despachos en el periodo seleccionado.
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div style={{ padding: '1rem', background: '#f8fafc', fontSize: '0.85rem', color: '#64748b', borderRadius: '0 0 12px 12px', borderTop: '1px solid #e2e8f0' }}>
+                            💡 <strong>Tip:</strong> Los días transcurridos se calculan desde la fecha de creación de la cotización hasta la fecha en que se solicitó el despacho.
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
         );
     };
+
 
     const renderTabContent = () => {
         if (activeTab === 'informes') return renderInformes();

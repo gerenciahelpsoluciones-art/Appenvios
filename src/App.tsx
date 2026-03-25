@@ -187,6 +187,7 @@ export interface Cotizacion {
   ordenCompraCliente?: string;
   ordenCompraUrl?: string;
   trm?: number;
+  validez_oferta?: string;
 }
 
 export interface Conductor {
@@ -957,6 +958,7 @@ function App() {
       observaciones: c.observaciones || '',
       condiciones: c.condiciones || '',
       trm: c.trm || 0,
+      validez_oferta: c.validez_oferta || 3,
       comprador_nombre: c.compradorNombre || '',
       comprador_telefono: c.compradorTelefono || '',
       comprador_email: c.compradorEmail || ''
@@ -985,6 +987,7 @@ function App() {
         observaciones: dbC.observaciones || '',
         condiciones: dbC.condiciones || '',
         trm: dbC.trm || 0,
+        validez_oferta: dbC.validez_oferta || 3,
         ordenCompraCliente: dbC.orden_compra_cliente,
         ordenCompraUrl: dbC.orden_compra_url
       } as Cotizacion, ...prev]);
@@ -1019,7 +1022,8 @@ function App() {
       orden_compra_url: c.ordenCompraUrl,
       observaciones: c.observaciones,
       condiciones: c.condiciones,
-      trm: c.trm
+      trm: c.trm,
+      validez_oferta: c.validez_oferta
     };
 
     const { error: updateError } = await supabase.from('cotizaciones').update(quotePayload).eq('id', c.id);
@@ -1667,6 +1671,7 @@ function App() {
           reparaciones={reparaciones}
           onUpdateReparacion={updateReparacion}
           users={users}
+          cotizaciones={cotizaciones}
         />;
       case 'reparaciones':
         return <ReparacionesModule
