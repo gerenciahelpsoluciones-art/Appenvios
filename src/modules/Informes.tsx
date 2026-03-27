@@ -632,15 +632,19 @@ const InformesModule: React.FC<IProps> = ({
                                 </thead>
                                 <tbody>
                                     {despachos
-                                        .filter(d => 
-                                            d.fechaSolicitud >= appliedFilters.inicio &&
-                                            d.fechaSolicitud <= appliedFilters.fin &&
-                                            (appliedFilters.asesorId ? d.usuarioId === appliedFilters.asesorId : true) &&
-                                            (appliedFilters.clienteId ? d.clienteId === appliedFilters.clienteId : true)
-                                        )
+                                        .filter(d => {
+                                            const inRange = d.fechaSolicitud >= appliedFilters.inicio && d.fechaSolicitud <= appliedFilters.fin;
+                                            const isPending = !['Entregado', 'Rechazado'].includes(d.estado);
+                                            const matchesAsesor = appliedFilters.asesorId ? d.usuarioId === appliedFilters.asesorId : true;
+                                            const matchesCliente = appliedFilters.clienteId ? d.clienteId === appliedFilters.clienteId : true;
+                                            
+                                            // Always show pending items OR items in range
+                                            return (inRange || isPending) && matchesAsesor && matchesCliente;
+                                        })
                                         .map(d => {
                                             const quote = cotizaciones.find(q => q.id === d.cotizacionId);
                                             const orderDate = quote?.fecha || 'N/A';
+                
                                             let diffDays = 0;
                                             if (quote?.fecha && d.fechaSolicitud) {
                                                 const start = new Date(quote.fecha);

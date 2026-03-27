@@ -16,7 +16,9 @@ import AlquileresModule from './modules/Alquileres'
 import FacturacionModule from './modules/Facturacion'
 import VentasManualesModule from './modules/VentasManuales'
 import LeadsWebModule, { type ClienteWeb } from './modules/LeadsWeb'
+import AgenteInformesModule from './modules/AgenteInformes'
 import { supabase } from './lib/supabaseClient'
+import RegistrationForm from './modules/RegistrationForm';
 import { logoBase64 } from './assets/logoBase64'
 import AIAssistant from './components/AIAssistant'
 
@@ -1499,6 +1501,7 @@ function App() {
     { id: 'alquileres', label: 'Alquileres', icon: '💻' },
     { id: 'facturacion', label: 'Facturación', icon: '💲' },
     { id: 'ventas-manuales', label: 'Ventas Manuales', icon: '💰' },
+    { id: 'agente-informes', label: 'Agente de Informes', icon: '🤖' },
   ].filter(item => {
     if (item.id === 'productos') return true; // Everyone can see/edit products
     if ((item.id === 'facturacion' || item.id === 'ventas-manuales' || item.id === 'leads-web') && currentUser?.rol === 'Admin') return true;
@@ -1589,6 +1592,8 @@ function App() {
       : clientes.filter(c => c.usuarioId === currentUser.id);
 
     switch (activeTab) {
+      case 'agente-informes':
+        return <AgenteInformesModule clientes={clientes} currentUser={currentUser} />;
       case 'leads-web':
         return <LeadsWebModule leads={clientesWeb} onUpdateLead={updateLeadWeb} currentUser={currentUser} />;
       case 'clientes':
@@ -1987,6 +1992,18 @@ function App() {
             <button className="btn-success" onClick={() => setShowHelpModal(false)}>Entendido</button>
           </div>
         </div>
+      </div>
+    );
+  }
+
+  // Detect Public Form Mode
+  const urlParams = new URLSearchParams(window.location.search);
+  const isPublicForm = urlParams.get('form') === 'registro';
+
+  if (isPublicForm) {
+    return (
+      <div className="public-form-container" style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)' }}>
+        <RegistrationForm />
       </div>
     );
   }

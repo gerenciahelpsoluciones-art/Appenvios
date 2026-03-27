@@ -88,21 +88,40 @@ const LogisticaModule: React.FC<IProps> = ({
         .sort((a, b) => new Date(b.fechaIngreso).getTime() - new Date(a.fechaIngreso).getTime());
 
     // Filter Logic
-    const filteredDespachos = filterEstado === 'Todos'
-        ? sortedDespachos
-        : sortedDespachos.filter(d => d.estado === filterEstado);
+    const isFinished = (status: string) => ['Entregado', 'Recibido', 'Completado', 'Rechazado'].includes(status);
+    
+    function filterByDateAndStatus<T>(items: T[], dateField: keyof T): T[] {
+        const start = new Date(dateStart);
+        const end = new Date(dateEnd);
+        end.setHours(23, 59, 59, 999);
 
-    const filteredRecogidas = filterEstado === 'Todos'
-        ? sortedOC
-        : sortedOC.filter(oc => oc.estado === filterEstado);
+        return items.filter(item => {
+            const itemDate = new Date(item[dateField] as unknown as string);
+            const inRange = itemDate >= start && itemDate <= end;
+            const pending = !isFinished((item as any).estado);
+            return inRange || pending;
+        });
+    }
 
-    const filteredDevoluciones = filterEstado === 'Todos'
-        ? sortedDevoluciones
-        : sortedDevoluciones.filter(d => d.estado === filterEstado);
+    const filteredDespachos = filterByDateAndStatus(
+        filterEstado === 'Todos' ? sortedDespachos : sortedDespachos.filter(d => d.estado === filterEstado),
+        'fechaSolicitud'
+    );
 
-    const filteredReparaciones = filterEstado === 'Todos'
-        ? sortedReparaciones
-        : sortedReparaciones.filter(r => r.estado === filterEstado);
+    const filteredRecogidas = filterByDateAndStatus(
+        filterEstado === 'Todos' ? sortedOC : sortedOC.filter(oc => oc.estado === filterEstado),
+        'fecha'
+    );
+
+    const filteredDevoluciones = filterByDateAndStatus(
+        filterEstado === 'Todos' ? sortedDevoluciones : sortedDevoluciones.filter(d => d.estado === filterEstado),
+        'fecha'
+    );
+
+    const filteredReparaciones = filterByDateAndStatus(
+        filterEstado === 'Todos' ? sortedReparaciones : sortedReparaciones.filter(r => r.estado === filterEstado),
+        'fechaIngreso'
+    );
 
     const toggleExpand = (id: string) => setExpandedId(expandedId === id ? null : id);
 
@@ -304,7 +323,6 @@ const LogisticaModule: React.FC<IProps> = ({
             .map(d => {
                 const quote = cotizaciones.find(q => q.id === d.cotizacionId);
                 const orderDate = quote?.fecha || 'N/A';
-                const dispatchRequestDate = d.fechaSolicitud;
                 
                 let diffDays = 0;
                 if (quote?.fecha && d.fechaSolicitud) {
