@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { type AppUser } from '../App';
-import { Phone, Mail, Building, Clock, CircleCheck, CircleX, MessageSquare, Sparkles } from 'lucide-react';
+import { Phone, Mail, Building, Clock, CircleCheck, CircleX, MessageSquare, Sparkles, Share2, Copy, Send } from 'lucide-react';
 
 export interface ClienteWeb {
   id: string;
@@ -31,6 +31,8 @@ const COLUMNS: { id: ClienteWeb['estado'], label: string, color: string }[] = [
 
 const LeadsWebModule: React.FC<LeadsWebProps> = ({ leads, onUpdateLead, currentUser }) => {
   const [selectedLead, setSelectedLead] = useState<ClienteWeb | null>(null);
+  const [showSharePanel, setShowSharePanel] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const handleStatusChange = async (lead: ClienteWeb, newStatus: ClienteWeb['estado']) => {
     if (lead.estado === newStatus) return;
@@ -141,7 +143,10 @@ const LeadsWebModule: React.FC<LeadsWebProps> = ({ leads, onUpdateLead, currentU
                 </div>
               </div>
               <button 
-                onClick={() => setSelectedLead(null)}
+                onClick={() => {
+                  setSelectedLead(null);
+                  setShowSharePanel(false);
+                }}
                 className="p-2 bg-zinc-50 rounded-full hover:bg-zinc-100 text-zinc-400 border border-zinc-200 transition-colors"
               >
                 <CircleX size={20} />
@@ -149,6 +154,66 @@ const LeadsWebModule: React.FC<LeadsWebProps> = ({ leads, onUpdateLead, currentU
             </div>
 
             <div className="p-6 overflow-y-auto flex-1 bg-zinc-50/50">
+              
+              {/* Request Update Section */}
+              <div className="mb-6 p-1 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 rounded-2xl border border-emerald-100 shadow-sm">
+                <div className="bg-white p-4 rounded-xl flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center">
+                      <Share2 size={24} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-800 text-sm">Actualización de Datos</h3>
+                      <p className="text-[11px] text-slate-500">Solicita al cliente que actualice su información corporativa (RUT, Cámara, etc.)</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => setShowSharePanel(!showSharePanel)}
+                    className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold transition-all shadow-md shadow-emerald-100 flex items-center gap-2"
+                  >
+                    {showSharePanel ? 'Ocultar' : 'Solicitar'}
+                  </button>
+                </div>
+
+                {showSharePanel && (
+                  <div className="p-4 bg-emerald-50/30 border-t border-emerald-100 mt-1 rounded-b-xl animate-fade-in">
+                    <div className="flex flex-col gap-4">
+                      <div className="flex items-center gap-2 bg-white p-3 rounded-xl border border-emerald-100 shadow-inner overflow-hidden">
+                        <span className="text-[10px] text-slate-400 truncate flex-1 font-mono">
+                          {window.location.origin}/?form=registro
+                        </span>
+                        <button 
+                          onClick={() => {
+                            navigator.clipboard.writeText(`${window.location.origin}/?form=registro`);
+                            setCopied(true);
+                            setTimeout(() => setCopied(false), 2000);
+                          }}
+                          className={`p-2 rounded-lg transition-all ${copied ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}
+                        >
+                          {copied ? <CircleCheck size={16} /> : <Copy size={16} />}
+                        </button>
+                      </div>
+                      
+                      <div className="flex gap-2">
+                        <a 
+                          href={`mailto:${selectedLead.email || ''}?subject=Actualización de Datos Corporativos - Appenvios&body=Hola ${selectedLead.nombre},%0D%0A%0D%0APor favor, ayúdanos a mantener nuestra información actualizada completando el siguiente formulario de registro corporativo:%0D%0A%0D%0A${window.location.origin}/?form=registro%0D%0A%0D%0A¡Muchas gracias!`}
+                          className="flex-1 py-2.5 bg-slate-900 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 hover:bg-slate-800 transition-all shadow-lg shadow-slate-200"
+                        >
+                          <Send size={14} /> Enviar por Correo
+                        </a>
+                        <a 
+                          href={`https://wa.me/${selectedLead.telefono.replace(/\D/g, '')}?text=Hola+${encodeURIComponent(selectedLead.nombre)},+por+favor+podrías+actualizar+tus+datos+corporativos+aquí:+${encodeURIComponent(window.location.origin + '/?form=registro')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 py-2.5 bg-[#25D366] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 hover:bg-[#22c35e] transition-all shadow-lg shadow-green-100"
+                        >
+                          <MessageSquare size={14} /> WhatsApp
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
               <h3 className="font-bold text-zinc-900 mb-3 text-sm flex items-center gap-2">
                 <MessageSquare size={16} /> Requerimiento Solicitado
               </h3>
