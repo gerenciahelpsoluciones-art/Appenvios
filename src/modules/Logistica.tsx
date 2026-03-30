@@ -263,7 +263,7 @@ const LogisticaModule: React.FC<IProps> = ({
     };
 
     const calculateSLA = (dateStr: string, status: string) => {
-        if (status === 'Entregado' || status === 'En Bodega' || status === 'Completado') return { color: 'completed', days: 0 };
+        if (status === 'Entregado' || status === 'En Bodega' || status === 'Completado' || status === 'Recogido') return { color: 'completed', days: 0 };
         const requestDate = new Date(dateStr);
         const today = new Date();
         const diffTime = Math.abs(today.getTime() - requestDate.getTime());
