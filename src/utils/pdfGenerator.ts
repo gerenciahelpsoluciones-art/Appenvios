@@ -208,3 +208,117 @@ export const generateQuotationPDF = (data: PDFData, action: 'save' | 'view' = 's
         alert(`Error detallado al generar el PDF: ${error.message || 'Error desconocido'}. Por favor reporte este mensaje.`);
     }
 };
+
+export interface CommercialReportData {
+    periodo: { inicio: string; fin: string };
+    data: {
+        vendedor: string;
+        cargo: string;
+        meta: number;
+        logrado: number;
+        cumplimiento: number;
+        envios: number;
+        recogidas: number;
+        historial: any[];
+    }[];
+}
+
+export const generateCommercialReportPDF = (report: CommercialReportData) => {
+    try {
+        const doc = new jsPDF();
+        
+        // Header
+        doc.setFillColor(0, 74, 153);
+        doc.rect(0, 0, 210, 35, 'F');
+        
+        try {
+            doc.setFillColor(255, 255, 255);
+            doc.rect(10, 5, 25, 25, 'F');
+            doc.addImage(logoBase64, 'JPEG', 10, 5, 25, 25);
+        } catch (e) {}
+
+        doc.setFontSize(18);
+        doc.setTextColor(255, 255, 255);
+        doc.setFont("helvetica", "bold");
+        doc.text("INFORME DE GESTIÓN COMERCIAL", 40, 18);
+        
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        doc.text(`Periodo: ${report.periodo.inicio} al ${report.periodo.fin}`, 40, 25);
+        doc.text(`Generado: ${new Date().toLocaleString()}`, 200, 25, { align: 'right' });
+
+        let currentY = 45;
+
+        report.data.forEach((item) => {
+            // Check for new page
+            if (currentY > 240) {
+                doc.addPage();
+                currentY = 20;
+            }
+
+            // Vendedor Title
+            doc.setFillColor(240, 245, 255);
+            doc.rect(10, currentY, 190, 8, 'F');
+            doc.setTextColor(0, 74, 153);
+            doc.setFontSize(12);
+            doc.setFont("helvetica", "bold");
+            doc.text(`${item.vendedor.toUpperCase()} - ${item.cargo}`, 14, currentY + 6);
+            currentY += 12;
+
+            // Stats row
+            autoTable(doc, {
+                startY: currentY,
+                head: [['Meta Mensual', 'Ventas Logradas', '% Cumpl', 'Envíos', 'Recogidas']],
+                body: [[
+                    `$${Math.round(item.meta).toLocaleString()}`,
+                    `$${Math.round(item.logrado).toLocaleString()}`,
+                    `${item.cumplimiento.toFixed(1)}%`,
+                    item.envios.toString(),
+                    item.recogidas.toString()
+                ]],
+                headStyles: { fillColor: [100, 100, 100], textColor: [255, 255, 255], fontSize: 9 },
+                bodyStyles: { fontSize: 10, fontStyle: 'bold' },
+                theme: 'grid',
+                margin: { left: 14, right: 14 }
+            });
+
+            currentY = (doc as any).lastAutoTable.finalY + 8;
+
+            // Historial Title Small
+            doc.setFontSize(9);
+            doc.setTextColor(0,0,0);
+            doc.text("Comparativa Mensual (Histórico):", 14, currentY);
+            currentY += 2;
+
+            // History Table
+            autoTable(doc, {
+                startY: currentY,
+                head: [['Mes', 'Presupuesto', 'Logrado', 'Cotiz.', '%']],
+                body: item.historial.map(h => [
+                    h.month,
+                    `$${Math.round(h.budget).toLocaleString()}`,
+                    `$${Math.round(h.sales).toLocaleString()}`,
+                    h.quotes.toString(),
+                    `${h.percent.toFixed(1)}%`
+                ]),
+                headStyles: { fillColor: [200, 200, 200], textColor: [0, 0, 0], fontSize: 8 },
+                bodyStyles: { fontSize: 8 },
+                theme: 'striped',
+                margin: { left: 20, right: 20 }
+            });
+
+            currentY = (doc as any).lastAutoTable.finalY + 15;
+        });
+
+        // Final Footer
+        doc.setFontSize(7);
+        doc.setTextColor(150, 150, 150);
+        doc.text("Help Soluciones Informáticas HSI SAS - HelpiCRM Business Intelligence", 105, 285, { align: 'center' });
+
+        doc.save(`INFORME_COMERCIAL_${report.periodo.inicio}_${report.periodo.fin}.pdf`);
+
+    } catch (error) {
+        console.error("PDF Error:", error);
+        alert("Error al generar reporte PDF.");
+    }
+};

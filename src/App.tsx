@@ -1547,7 +1547,7 @@ function App() {
     { id: 'agente-informes', label: 'Agente de Informes', icon: '🤖' },
   ].filter(item => {
     if (item.id === 'productos') return true; // Everyone can see/edit products
-    if ((item.id === 'facturacion' || item.id === 'ventas-manuales' || item.id === 'leads-web' || item.id === 'registros-web') && currentUser?.rol === 'Admin') return true;
+    if ((item.id === 'facturacion' || item.id === 'ventas-manuales' || item.id === 'leads-web' || item.id === 'registros-web' || item.id === 'vendedores' || item.id === 'informes') && currentUser?.rol === 'Admin') return true;
     if (item.id === 'leads-web' && currentUser?.rol === 'Comercial') return true;
     return currentUser?.permisos.includes(item.id);
   });
@@ -1791,6 +1791,8 @@ function App() {
           budgets={budgets}
           cotizaciones={cotizaciones}
           ventasManuales={ventasManuales}
+          despachos={despachos}
+          ordenesCompra={ordenesCompra}
           currentUser={currentUser}
         />;
       case 'dashboard':

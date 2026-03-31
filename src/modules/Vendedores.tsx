@@ -1,15 +1,25 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { AppUser, SalesBudget, Cotizacion, VentaManual } from '../App';
+import { generateCommercialReportPDF } from '../utils/pdfGenerator';
 
 interface IProps {
     users: AppUser[];
     budgets: SalesBudget[];
     cotizaciones: Cotizacion[];
     ventasManuales: VentaManual[];
+    despachos: any[];
+    ordenesCompra: any[];
     currentUser: AppUser;
 }
 
-const Vendedores: React.FC<IProps> = ({ users, budgets, cotizaciones, ventasManuales, currentUser }) => {
+const Vendedores: React.FC<IProps> = ({ users, budgets, cotizaciones, ventasManuales, despachos, ordenesCompra, currentUser }) => {
+    const today = new Date().toISOString().split('T')[0];
+    const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+    
+    const [fechaInicio, setFechaInicio] = useState(firstDayOfMonth);
+    const [fechaFin, setFechaFin] = useState(today);
+    const [appliedFilters, setAppliedFilters] = useState({ inicio: firstDayOfMonth, fin: today });
+
     // Include all users who have a budget assigned (any month), plus Comercials
     const userIdsWithBudget = new Set(budgets.map(b => b.usuarioId));
     const vendedores = users.filter(u =>
@@ -18,109 +28,231 @@ const Vendedores: React.FC<IProps> = ({ users, budgets, cotizaciones, ventasManu
         userIdsWithBudget.has(u.id)
     );
 
-
-    const getBudgetForUser = (userId: string, month: number, year: number) => {
-        const budget = budgets.find(b => b.usuarioId === userId && b.anio === year && b.mes === month);
-        return budget ? budget.monto : 0;
+    const getBudgetForPeriod = (userId: string, start: string, end: string) => {
+        const [startY, startM] = start.split('-').map(Number);
+        const [endY, endM] = end.split('-').map(Number);
+        
+        // For simplicity, if range covers multiple months, we sum them. 
+        // Usually, management looks at one month or a specific range within a month.
+        return budgets.filter(b => 
+            b.usuarioId === userId && 
+            ((b.anio > startY || (b.anio === startY && b.mes >= (startM - 1))) &&
+             (b.anio < endY || (b.anio === endY && b.mes <= (endM - 1))))
+        ).reduce((acc, b) => acc + b.monto, 0);
     };
 
-    const getSalesForUser = (userId: string, month: number, year: number) => {
+    const getSalesForPeriod = (userId: string, start: string, end: string) => {
         const quoteSales = cotizaciones
             .filter(c => {
                 if (!c.fecha || c.estado !== 'Ganado' || c.usuarioId !== userId) return false;
-                const [y, m] = c.fecha.split('-').map(Number);
-                return y === year && (m - 1) === month;
+                return c.fecha >= start && c.fecha <= end;
             })
             .reduce((acc, c) => acc + c.total, 0);
 
         const manualSales = (ventasManuales || []).filter(v => {
             if (!v.fecha || v.usuarioId !== userId) return false;
-            const [y, m] = v.fecha.split('-').map(Number);
-            return y === year && (m - 1) === month;
+            return v.fecha >= start && v.fecha <= end;
         }).reduce((acc, v) => acc + v.monto, 0);
 
         return quoteSales + manualSales;
     };
 
-    const now = new Date();
-    const curMonth = now.getMonth();
-    const curYear = now.getFullYear();
+    const getLogisticsForPeriod = (userId: string, start: string, end: string) => {
+        const userDespachos = (despachos || []).filter(d => 
+            d.usuarioId === userId && d.fechaSolicitud >= start && d.fechaSolicitud <= end
+        ).length;
+
+        const userRecogidas = (ordenesCompra || []).filter(oc => 
+            oc.usuarioId === userId && oc.tipo === 'Recogida' && oc.fecha >= start && oc.fecha <= end
+        ).length;
+
+        return { despachos: userDespachos, recogidas: userRecogidas, total: userDespachos + userRecogidas };
+    };
+
+    const getMonthlyHistory = (userId: string) => {
+        const history = [];
+        for (let i = 5; i >= 0; i--) {
+            const d = new Date();
+            d.setMonth(d.getMonth() - i);
+            const m = d.getMonth();
+            const y = d.getFullYear();
+            const monthStr = d.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' });
+            
+            const monthStart = new Date(y, m, 1).toISOString().split('T')[0];
+            const monthEnd = new Date(y, m + 1, 0).toISOString().split('T')[0];
+            
+            const budget = getBudgetForPeriod(userId, monthStart, monthEnd);
+            const sales = getSalesForPeriod(userId, monthStart, monthEnd);
+            const quotes = cotizaciones.filter(c => c.usuarioId === userId && c.fecha >= monthStart && c.fecha <= monthEnd).length;
+            
+            history.push({ month: monthStr, budget, sales, quotes, percent: budget > 0 ? (sales / budget) * 100 : 0 });
+        }
+        return history;
+    };
 
     // Filter: Admins see all, others see only themselves
-    const displayedVendedores = currentUser.rol === 'Admin'
+    const displayedVendedores = currentUser.rol === 'Admin' || currentUser.cargo?.toLowerCase().includes('gerente') || currentUser.cargo?.toLowerCase().includes('administrador')
         ? vendedores
         : vendedores.filter(v => v.id === currentUser.id);
 
     const formatCurrency = (val: number) => `$${Math.round(val).toLocaleString('es-CO')}`;
 
+    const handleDownloadPDF = () => {
+        const reportData = displayedVendedores.map(v => {
+            const budget = getBudgetForPeriod(v.id, appliedFilters.inicio, appliedFilters.fin);
+            const sales = getSalesForPeriod(v.id, appliedFilters.inicio, appliedFilters.fin);
+            const logistics = getLogisticsForPeriod(v.id, appliedFilters.inicio, appliedFilters.fin);
+            const history = getMonthlyHistory(v.id);
+            return {
+                vendedor: v.nombre,
+                cargo: v.cargo || 'Asesor Comercial',
+                meta: budget,
+                logrado: sales,
+                cumplimiento: budget > 0 ? (sales / budget) * 100 : 0,
+                envios: logistics.despachos,
+                recogidas: logistics.recogidas,
+                historial: history
+            };
+        });
+
+        generateCommercialReportPDF({
+            periodo: { inicio: appliedFilters.inicio, fin: appliedFilters.fin },
+            data: reportData
+        });
+    };
+
+    const handleSearch = () => {
+        setAppliedFilters({ inicio: fechaInicio, fin: fechaFin });
+    };
+
     return (
         <div className="module-container">
-            <div className="module-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="module-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
-                    <h2>Asesores Comerciales</h2>
-                    <p>Gestión y seguimiento de equipo de ventas</p>
+                    <h2>Gestión Comercial y Ventas</h2>
+                    <p>Herramienta de seguimiento para Gerencia y Administración</p>
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                     <button className="btn-success" onClick={handleDownloadPDF} title="Descargar Reporte Gerencial">📊 Descargar PDF Gerencial</button>
+                </div>
+            </div>
+
+            <div className="card filters-card" style={{ marginTop: '1rem', marginBottom: '1rem' }}>
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                    <div className="form-group" style={{ margin: 0 }}>
+                        <label style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>Desde</label>
+                        <input type="date" className="input-field" value={fechaInicio} onChange={e => setFechaInicio(e.target.value)} />
+                    </div>
+                    <div className="form-group" style={{ margin: 0 }}>
+                        <label style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>Hasta</label>
+                        <input type="date" className="input-field" value={fechaFin} onChange={e => setFechaFin(e.target.value)} />
+                    </div>
+                    <button className="btn-primary" onClick={handleSearch} style={{ height: '42px' }}>🔍 Filtrar Periodo</button>
                 </div>
             </div>
 
             <div className="vendedores-grid">
                 {displayedVendedores.map(v => {
-                    const budget = getBudgetForUser(v.id, curMonth, curYear);
-                    const sales = getSalesForUser(v.id, curMonth, curYear);
+                    const budget = getBudgetForPeriod(v.id, appliedFilters.inicio, appliedFilters.fin);
+                    const sales = getSalesForPeriod(v.id, appliedFilters.inicio, appliedFilters.fin);
+                    const logistics = getLogisticsForPeriod(v.id, appliedFilters.inicio, appliedFilters.fin);
+                    const history = getMonthlyHistory(v.id);
                     const percent = budget > 0 ? (sales / budget) * 100 : 0;
-                    // Colors: <60% Red, 60-80% Orange, >=80% Green
                     const performanceColor = percent >= 80 ? '#10b981' : percent >= 60 ? '#f59e0b' : '#dc2626';
 
                     return (
-                        <div key={v.id} className="card vendedor-card animate-fade-in">
-                            <div className="vendedor-header">
-                                <div className="vendedor-avatar" style={{ background: performanceColor }}>
-                                    {v.nombre.charAt(0)}
-                                </div>
-                                <div className="vendedor-info">
-                                    <h3>{v.nombre}</h3>
-                                    <p>{v.cargo || 'Asesor Comercial'}</p>
-                                </div>
-                                <div className="percent-badge" style={{ backgroundColor: performanceColor + '20', color: performanceColor }}>
-                                    {percent.toFixed(1)}%
-                                </div>
-                            </div>
-
-                            <div className="performance-section">
-                                <div className="chart-container">
-                                    <div className="bar-group">
-                                        <div className="bar-label">
-                                            <span>Meta: {formatCurrency(budget)}</span>
+                        <div key={v.id} className="card vendedor-card animate-fade-in" style={{ gridColumn: 'span 3' }}>
+                            <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
+                                {/* User Profile & Main KPI */}
+                                <div style={{ flex: '1 1 300px' }}>
+                                    <div className="vendedor-header">
+                                        <div className="vendedor-avatar" style={{ background: performanceColor }}>
+                                            {v.nombre.charAt(0)}
                                         </div>
-                                        <div className="bar-bg">
-                                            <div className="bar-fill budget-bar" style={{ width: '100%' }}></div>
+                                        <div className="vendedor-info">
+                                            <h3>{v.nombre}</h3>
+                                            <p>{v.cargo || 'Asesor Comercial'}</p>
+                                        </div>
+                                        <div className="percent-badge" style={{ backgroundColor: performanceColor + '20', color: performanceColor }}>
+                                            {percent.toFixed(1)}%
                                         </div>
                                     </div>
-                                    <div className="bar-group">
-                                        <div className="bar-label">
-                                            <span>Logrado: {formatCurrency(sales)}</span>
+
+                                    <div className="performance-section">
+                                        <div className="chart-container">
+                                            <div className="bar-group">
+                                                <div className="bar-label">
+                                                    <span>Meta Periodo: {formatCurrency(budget)}</span>
+                                                </div>
+                                                <div className="bar-bg">
+                                                    <div className="bar-fill budget-bar" style={{ width: '100%' }}></div>
+                                                </div>
+                                            </div>
+                                            <div className="bar-group">
+                                                <div className="bar-label">
+                                                    <span>Logrado: {formatCurrency(sales)}</span>
+                                                </div>
+                                                <div className="bar-bg">
+                                                    <div className="bar-fill sales-bar" style={{
+                                                        width: `${Math.min(percent, 100)}%`,
+                                                        backgroundColor: performanceColor
+                                                    }}></div>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div className="bar-bg">
-                                            <div className="bar-fill sales-bar" style={{
-                                                width: `${Math.min(percent, 100)}%`,
-                                                backgroundColor: performanceColor
-                                            }}></div>
+
+                                        <div className="trend-indicator" style={{ color: performanceColor }}>
+                                            {percent >= 100 ? '🚀 Meta Superada' : percent >= 80 ? '📈 Excelente' : percent >= 60 ? '⚠️ En progreso' : '📉 Por mejorar'}
+                                            <div className="trend-sub">
+                                                Diferencia: {formatCurrency(sales - budget)}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="logistics-stats" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
+                                        <div className="stat-card" style={{ padding: '0.75rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+                                            <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 'bold', textTransform: 'uppercase' }}>📦 Envíos</div>
+                                            <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#1e293b' }}>{logistics.despachos}</div>
+                                        </div>
+                                        <div className="stat-card" style={{ padding: '0.75rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+                                            <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 'bold', textTransform: 'uppercase' }}>🚚 Recogidas</div>
+                                            <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#1e293b' }}>{logistics.recogidas}</div>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="trend-indicator" style={{ color: performanceColor }}>
-                                    {percent >= 100 ? '🚀 Meta Superada' : percent >= 80 ? '📈 En excelente camino' : percent >= 60 ? '⚠️ Necesita impulso' : '📉 Nivel Bajo'}
-                                    <div className="trend-sub">
-                                        Faltan {formatCurrency(Math.max(0, budget - sales))} para la meta
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="vendedor-stats">
-                                <div className="stat-item">
-                                    <label>Contacto</label>
-                                    <span className="stat-detail">📧 {v.email}</span>
-                                    <span className="stat-detail">📱 {v.telefono}</span>
+                                {/* monthly History Table */}
+                                <div style={{ flex: '2 1 500px', borderLeft: '1px solid #e2e8f0', paddingLeft: '1.5rem' }}>
+                                    <h4 style={{ marginBottom: '1rem', color: '#475569' }}>📊 Historial de los últimos 6 meses</h4>
+                                    <table className="data-table" style={{ fontSize: '0.85rem' }}>
+                                        <thead>
+                                            <tr>
+                                                <th>Mes</th>
+                                                <th className="text-right">Meta</th>
+                                                <th className="text-right">Venta</th>
+                                                <th className="text-center">Cotiz.</th>
+                                                <th className="text-right">% Cumpl.</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {history.map((h, i) => (
+                                                <tr key={i}>
+                                                    <td style={{ fontWeight: i === 5 ? 'bold' : 'normal' }}>{h.month}</td>
+                                                    <td className="text-right">{formatCurrency(h.budget)}</td>
+                                                    <td className="text-right" style={{ fontWeight: 'bold' }}>{formatCurrency(h.sales)}</td>
+                                                    <td className="text-center">{h.quotes}</td>
+                                                    <td className="text-right">
+                                                        <span style={{ 
+                                                            color: h.percent >= 80 ? '#166534' : h.percent >= 60 ? '#92400e' : '#991b1b',
+                                                            fontWeight: 'bold'
+                                                        }}>
+                                                            {h.percent.toFixed(1)}%
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                         </div>
