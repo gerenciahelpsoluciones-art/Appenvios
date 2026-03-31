@@ -16,6 +16,7 @@ import AlquileresModule from './modules/Alquileres'
 import FacturacionModule from './modules/Facturacion'
 import VentasManualesModule from './modules/VentasManuales'
 import LeadsWebModule, { type ClienteWeb } from './modules/LeadsWeb'
+import RegistrosWeb, { type RegistroPendiente } from './modules/RegistrosWeb'
 import AgenteInformesModule from './modules/AgenteInformes'
 import { supabase } from './lib/supabaseClient'
 import RegistrationForm from './modules/RegistrationForm';
@@ -316,6 +317,7 @@ function App() {
   const [budgets, setBudgets] = useState<SalesBudget[]>([]);
   const [users, setUsers] = useState<AppUser[]>([]);
   const [clientesWeb, setClientesWeb] = useState<ClienteWeb[]>([]);
+  const [registros, setRegistros] = useState<RegistroPendiente[]>([]);
   const [realtimeStatus, setRealtimeStatus] = useState<string>('Desconectado');
   const [currentTrm, setCurrentTrm] = useState<number>(0);
 
@@ -529,6 +531,11 @@ function App() {
         setClientesWeb(leadsWebData as ClienteWeb[]);
       }
 
+      const { data: registrosData } = await supabase.from('registros_pendientes').select('*').order('created_at', { ascending: false });
+      if (registrosData) {
+        setRegistros(registrosData as RegistroPendiente[]);
+      }
+
       // Fetch TRM
       try {
         const res = await fetch('https://co.dolarapi.com/v1/trm');
@@ -573,6 +580,7 @@ function App() {
         .on('postgres_changes', { event: '*', schema: 'public', table: 'budgets' }, () => fetchInitialData())
         .on('postgres_changes', { event: '*', schema: 'public', table: 'ventas_manuales' }, () => fetchInitialData())
         .on('postgres_changes', { event: '*', schema: 'public', table: 'clientes_web' }, () => fetchInitialData())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'registros_pendientes' }, () => fetchInitialData())
         .subscribe((status) => {
           console.log('Estado de conexión Realtime:', status);
           setRealtimeStatus(status === 'SUBSCRIBED' ? 'En Línea' : status);
@@ -844,10 +852,32 @@ function App() {
   };
 
   const addReparacion = async (r: Reparacion) => {
+    // 1. Re-calculate the absolute maximum consecutive from the database to avoid collisions
+    const { data: latestREPs, error: fetchError } = await supabase
+      .from('reparaciones')
+      .select('consecutivo')
+      .ilike('consecutivo', 'REP-%')
+      .order('consecutivo', { ascending: false })
+      .limit(1);
+
+    let finalConsecutivo = r.consecutivo;
+
+    if (!fetchError && latestREPs && latestREPs.length > 0) {
+      const dbMax = parseInt(latestREPs[0].consecutivo.replace('REP-', ''), 10);
+      const proposed = parseInt(r.consecutivo.replace('REP-', ''), 10);
+      
+      // If the database has a higher or equal number, increment it
+      if (!isNaN(dbMax) && dbMax >= proposed) {
+        finalConsecutivo = `REP-${(dbMax + 1).toString().padStart(3, '0')}`;
+        console.log(`Colisión detectada en Reparaciones. Cambiando ${r.consecutivo} a ${finalConsecutivo}`);
+      }
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, clienteId, clienteNombre, tipoServicio, proveedorId, proveedorNombre, conductorId, conductorNombre, fechaIngreso, ...cleanR } = r;
     const { data, error } = await supabase.from('reparaciones').insert([{
       ...cleanR,
+      consecutivo: finalConsecutivo,
       cliente_id: r.clienteId,
       cliente_nombre: r.clienteNombre,
       tipo_servicio: r.tipoServicio,
@@ -857,7 +887,9 @@ function App() {
       conductor_nombre: r.conductorNombre,
       fecha_ingreso: r.fechaIngreso
     }]).select();
+
     if (error) {
+      console.error('Error al añadir reparación:', error);
       alert('Error al añadir reparación: ' + error.message);
     } else if (data) {
       const dbR = data[0];
@@ -872,6 +904,7 @@ function App() {
         conductorNombre: dbR.conductor_nombre,
         fechaIngreso: dbR.fecha_ingreso
       } as Reparacion, ...prev]);
+      alert('Reparación registrada con éxito.');
     }
   };
   const updateReparacion = async (r: Reparacion) => {
@@ -1484,9 +1517,19 @@ function App() {
     }
   };
 
+  const onUpdateRegistroStatus = async (id: string, newStatus: RegistroPendiente['estado']) => {
+    const { error } = await supabase.from('registros_pendientes').update({ estado: newStatus }).eq('id', id);
+    if (error) {
+      alert('Error actualizando estado del Registro: ' + error.message);
+    } else {
+      setRegistros(prev => prev.map(r => r.id === id ? { ...r, estado: newStatus } : r));
+    }
+  };
+
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: '📊' },
     { id: 'leads-web', label: 'Leads Web', icon: '✨' },
+    { id: 'registros-web', label: 'Registros Web', icon: '📝' },
     { id: 'cotizaciones', label: 'Cotizaciones', icon: '📄' },
     { id: 'ordenes-compra', label: 'Ordenes de Compra', icon: '🛒' },
     { id: 'clientes', label: 'Clientes', icon: '👥' },
@@ -1504,7 +1547,7 @@ function App() {
     { id: 'agente-informes', label: 'Agente de Informes', icon: '🤖' },
   ].filter(item => {
     if (item.id === 'productos') return true; // Everyone can see/edit products
-    if ((item.id === 'facturacion' || item.id === 'ventas-manuales' || item.id === 'leads-web') && currentUser?.rol === 'Admin') return true;
+    if ((item.id === 'facturacion' || item.id === 'ventas-manuales' || item.id === 'leads-web' || item.id === 'registros-web') && currentUser?.rol === 'Admin') return true;
     if (item.id === 'leads-web' && currentUser?.rol === 'Comercial') return true;
     return currentUser?.permisos.includes(item.id);
   });
@@ -1596,6 +1639,8 @@ function App() {
         return <AgenteInformesModule clientes={clientes} currentUser={currentUser} />;
       case 'leads-web':
         return <LeadsWebModule leads={clientesWeb} onUpdateLead={updateLeadWeb} currentUser={currentUser} />;
+      case 'registros-web':
+        return <RegistrosWeb registros={registros} onUpdateStatus={onUpdateRegistroStatus} currentUser={currentUser} />;
       case 'clientes':
         return <ClientesModule clientes={filteredClientes} onAdd={addCliente} onUpdate={updateCliente} onDelete={deleteCliente} userRole={currentUser?.rol || ''} />;
       case 'cotizaciones':
