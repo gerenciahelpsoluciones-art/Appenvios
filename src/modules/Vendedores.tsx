@@ -23,9 +23,10 @@ const Vendedores: React.FC<IProps> = ({ users, budgets, cotizaciones, ventasManu
     // Include all users who have a budget assigned (any month), plus Comercials
     const userIdsWithBudget = new Set(budgets.map(b => b.usuarioId));
     const vendedores = users.filter(u =>
-        u.rol === 'Comercial' ||
+        (u.rol === 'Comercial' ||
         (u.cargo && u.cargo.toLowerCase().includes('comercial')) ||
-        userIdsWithBudget.has(u.id)
+        userIdsWithBudget.has(u.id)) &&
+        u.rol !== 'Tecnico'
     );
 
     const getBudgetForPeriod = (userId: string, start: string, end: string) => {
