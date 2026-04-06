@@ -13,12 +13,14 @@ const RecoveryAssistant: React.FC<RecoveryAssistantProps> = ({ onClose, onRestor
   const [isLoading, setIsLoading] = useState(false);
   const [detectedProducts, setDetectedProducts] = useState<Partial<Producto>[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<string | null>(null);
 
   const handleAnalyze = async () => {
     if (!inputText.trim()) return;
     
     setIsLoading(true);
     setError(null);
+    setDebugInfo(null);
     
     try {
       const prompt = `
@@ -28,8 +30,7 @@ const RecoveryAssistant: React.FC<RecoveryAssistantProps> = ({ onClose, onRestor
         
         REGLAS:
         1. Extrae: Nombre, Descripción, Precio de Venta, Costo (si aparece), Unidad, IVA (si aparece).
-        2. Intenta identificar si el producto ya existe en nuestro catálogo comparando con esta lista:
-           ${existingProducts.map(ep => `${ep.nombre} (P/N: ${ep.numPart})`).join(', ')}
+        2. Si solo ves un nombre de producto, agrégalo al JSON con valores por defecto (0 o vacío). NO FALLER si el texto es corto.
         3. El formato de salida DEBE SER ÚNICAMENTE un arreglo JSON con objetos que tengan:
            {
              "nombre": "string",
@@ -42,24 +43,34 @@ const RecoveryAssistant: React.FC<RecoveryAssistantProps> = ({ onClose, onRestor
              "exentoIva": boolean
            }
         
-        TEXTO DEL PDF:
+        TEXTO DEL PDF/ORIGEN:
         ---
         ${inputText}
         ---
       `;
 
       const responseText = await generateContent(prompt);
-      const jsonStr = responseText.replace(/```json|```/g, '').trim();
-      const products = JSON.parse(jsonStr);
       
-      if (Array.isArray(products)) {
-        setDetectedProducts(products);
-      } else {
-        throw new Error('La respuesta de la IA no es un formato válido.');
+      try {
+        const jsonStr = responseText.replace(/```json|```/g, '').trim();
+        const products = JSON.parse(jsonStr);
+        
+        if (Array.isArray(products)) {
+          setDetectedProducts(products);
+        } else {
+          throw new Error('La respuesta no es un arreglo válido.');
+        }
+      } catch (parseError) {
+        setDebugInfo(responseText);
+        throw new Error('La IA respondió algo que no pudimos procesar. Intenta con un texto más claro.');
       }
     } catch (err: any) {
       console.error('Error in recovery:', err);
-      setError('No pudimos analizar el texto. Asegúrate de que sea el contenido de una cotización legible.');
+      if (err.message?.includes('API Key')) {
+        setError('🔑 Error de Configuración: La API Key de Gemini no está configurada en la nube (Vercel). Debes agregar VITE_GEMINI_API_KEY a tus variables de entorno.');
+      } else {
+        setError(err.message || 'Error desconocido al conectar con la IA.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -85,9 +96,9 @@ const RecoveryAssistant: React.FC<RecoveryAssistantProps> = ({ onClose, onRestor
         <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-6 text-white flex justify-between items-center">
           <div>
             <h2 className="text-2xl font-bold flex items-center gap-2">
-              <span className="text-3xl">🪄</span> Asistente de Rescate de Catálogo
+              <span className="text-3xl">🪄</span> Asistente de Rescate (v2.0)
             </h2>
-            <p className="text-blue-100 text-sm mt-1">Pega el texto de tu cotización PDF y recuperaremos los productos.</p>
+            <p className="text-blue-100 text-sm mt-1">Recuperación inteligente con diagnóstico mejorado.</p>
           </div>
           <button onClick={onClose} className="hover:bg-white/20 p-2 rounded-full transition-colors font-bold text-xl">×</button>
         </div>
@@ -96,11 +107,11 @@ const RecoveryAssistant: React.FC<RecoveryAssistantProps> = ({ onClose, onRestor
           {detectedProducts.length === 0 ? (
             <div className="space-y-4">
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
-                Pega aquí el texto copiado de tu PDF de cotización:
+                Pega aquí el texto de tu cotización o el nombre del producto:
               </label>
               <textarea
                 className="w-full h-48 p-4 rounded-2xl border-2 border-gray-200 dark:border-gray-700 focus:border-blue-500 outline-none transition-all dark:bg-gray-900 resize-none font-mono text-sm"
-                placeholder="Ejemplo: Bitdefender GravityZone... $125.000... 15-24 usuarios..."
+                placeholder="Pega aquí el contenido de tus PDFs..."
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
               />
@@ -110,7 +121,7 @@ const RecoveryAssistant: React.FC<RecoveryAssistantProps> = ({ onClose, onRestor
                   disabled={!inputText.trim() || isLoading}
                   className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white px-8 py-4 rounded-2xl font-bold transition-all shadow-lg hover:shadow-blue-500/30 flex items-center gap-2"
                 >
-                  {isLoading ? 'Analizando con IA...' : '✨ Analizar y Recuperar Nombres'}
+                  {isLoading ? 'Analizando con IA...' : '✨ Analizar y Recuperar'}
                 </button>
               </div>
             </div>
@@ -125,7 +136,6 @@ const RecoveryAssistant: React.FC<RecoveryAssistantProps> = ({ onClose, onRestor
                     <tr>
                       <th className="p-4 text-sm font-bold text-gray-600 dark:text-gray-400">Nombre</th>
                       <th className="p-4 text-sm font-bold text-gray-600 dark:text-gray-400">P/N</th>
-                      <th className="p-4 text-sm font-bold text-gray-600 dark:text-gray-400">Costo Estimado</th>
                       <th className="p-4 text-sm font-bold text-gray-600 dark:text-gray-400">IVA</th>
                     </tr>
                   </thead>
@@ -134,7 +144,6 @@ const RecoveryAssistant: React.FC<RecoveryAssistantProps> = ({ onClose, onRestor
                       <tr key={i} className="hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-colors">
                         <td className="p-4 font-medium text-gray-900 dark:text-white">{p.nombre}</td>
                         <td className="p-4 text-sm text-gray-500 dark:text-gray-400">{p.numPart || 'N/A'}</td>
-                        <td className="p-4 text-sm font-mono text-blue-600 dark:text-blue-400">${p.precioCompra?.toLocaleString()}</td>
                         <td className="p-4">
                           <span className={`px-2 py-1 rounded-full text-xs font-bold ${p.exentoIva ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
                             {p.exentoIva ? 'Exento' : 'Gravado'}
@@ -146,12 +155,6 @@ const RecoveryAssistant: React.FC<RecoveryAssistantProps> = ({ onClose, onRestor
                 </table>
               </div>
               
-              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-2xl border border-blue-100 dark:border-blue-800/50">
-                <p className="text-sm text-blue-800 dark:text-blue-200">
-                  ⚠️ <strong>Nota:</strong> Al confirmar, estos productos se añadirán a tu catálogo local. Si el producto ya existe, se actualizarán sus datos.
-                </p>
-              </div>
-
               <div className="flex gap-4 justify-end mt-6">
                 <button
                   onClick={() => setDetectedProducts([])}
@@ -163,7 +166,7 @@ const RecoveryAssistant: React.FC<RecoveryAssistantProps> = ({ onClose, onRestor
                   onClick={handleConfirm}
                   className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg hover:shadow-green-500/30"
                 >
-                  🚀 Confirmar y Restaurar Todo
+                  🚀 Confirmar y Restaurar
                 </button>
               </div>
             </div>
@@ -171,7 +174,14 @@ const RecoveryAssistant: React.FC<RecoveryAssistantProps> = ({ onClose, onRestor
           
           {error && (
             <div className="bg-red-50 text-red-700 p-4 rounded-2xl border border-red-100">
-              <p className="flex items-center gap-2"><span>⚠️</span> {error}</p>
+              <p className="flex items-center gap-2 font-bold mb-2"><span>⚠️</span> Error en el proceso</p>
+              <p className="text-sm">{error}</p>
+              {debugInfo && (
+                <details className="mt-2">
+                  <summary className="text-xs cursor-pointer opacity-70">Ver detalles técnicos</summary>
+                  <pre className="text-[10px] mt-2 bg-white/50 p-2 rounded overflow-x-auto">{debugInfo}</pre>
+                </details>
+              )}
             </div>
           )}
         </div>
