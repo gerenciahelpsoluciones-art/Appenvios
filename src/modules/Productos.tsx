@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import type { Producto } from '../App';
 import InventarioModule from './Inventario';
 
+import RecoveryAssistant from '../components/RecoveryAssistant';
+
 interface IProps {
     productos: Producto[];
     onAdd: (p: Producto) => void;
@@ -14,6 +16,7 @@ const ProductosModule: React.FC<IProps> = ({ productos, onAdd, onUpdate, onDelet
     const [activeTab, setActiveTab] = useState<'locales' | 'siigo'>('locales');
     const [selectedProduct, setSelectedProduct] = useState<Producto | null>(null);
     const [isAdding, setIsAdding] = useState(false);
+    const [showRecovery, setShowRecovery] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [formData, setFormData] = useState<Partial<Producto>>({
@@ -56,6 +59,33 @@ const ProductosModule: React.FC<IProps> = ({ productos, onAdd, onUpdate, onDelet
         }
     };
 
+    const handleRecoveryRestore = async (recoveredProducts: Partial<Producto>[]) => {
+        for (const p of recoveredProducts) {
+            // Check if product already exists by name or part number to avoid duplicates
+            const exists = productos.find(ep => 
+                ep.nombre.toLowerCase() === p.nombre?.toLowerCase() || 
+                (p.numPart && ep.numPart?.toLowerCase() === p.numPart.toLowerCase())
+            );
+
+            if (exists) {
+                // If it exists, we update it with the recovered info (maybe new price)
+                onUpdate({
+                    ...exists,
+                    ...p as Producto,
+                    id: exists.id,
+                    history: [...exists.history, { date: new Date().toISOString().split('T')[0], price: p.precioCompra || 0 }]
+                });
+            } else {
+                // Create new
+                onAdd({
+                    ...p as Producto,
+                    id: crypto.randomUUID(),
+                    history: [{ date: new Date().toISOString().split('T')[0], price: p.precioCompra || 0 }]
+                });
+            }
+        }
+    };
+
     const startEdit = (p: Producto) => {
         setFormData(p);
         setEditingId(p.id);
@@ -87,6 +117,14 @@ const ProductosModule: React.FC<IProps> = ({ productos, onAdd, onUpdate, onDelet
                 </button>
             </div>
 
+            {showRecovery && (
+                <RecoveryAssistant 
+                    onClose={() => setShowRecovery(false)} 
+                    onRestore={handleRecoveryRestore}
+                    existingProducts={productos}
+                />
+            )}
+
             {activeTab === 'siigo' ? (
                 <InventarioModule />
             ) : (
@@ -105,7 +143,15 @@ const ProductosModule: React.FC<IProps> = ({ productos, onAdd, onUpdate, onDelet
                                 />
                             </div>
                         </div>
-                        <button onClick={() => { setIsAdding(true); setEditingId(null); setFormData({ nombre: '', numPart: '', descripcion: '', unidad: 'Und', precioCompra: 0, moneda: 'COP', tipo: 'Producto', exentoIva: false }); }}>+ Nuevo Producto</button>
+                        <div style={{ display: 'flex', gap: '1rem' }}>
+                            <button 
+                                onClick={() => setShowRecovery(true)}
+                                style={{ background: 'var(--secondary-blue)', color: 'var(--primary-blue)', border: '1px solid var(--primary-blue)' }}
+                            >
+                                🪄 Rescatar desde PDF
+                            </button>
+                            <button onClick={() => { setIsAdding(true); setEditingId(null); setFormData({ nombre: '', numPart: '', descripcion: '', unidad: 'Und', precioCompra: 0, moneda: 'COP', tipo: 'Producto', exentoIva: false }); }}>+ Nuevo Producto</button>
+                        </div>
                     </div>
 
                     {(isAdding || editingId) && (
@@ -227,7 +273,13 @@ const ProductosModule: React.FC<IProps> = ({ productos, onAdd, onUpdate, onDelet
                                 </thead>
                                 <tbody>
                                     {productos.filter(p =>
-                                        p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                        (p.nombre || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                        (p.numPart || '').toLowerCase().includes(searchTerm.toLowerCase())
+                                    ).length === 0 ? (
+                                        <tr><td colSpan={7} style={{ textAlign: 'center', padding: '3rem', opacity: 0.4, fontSize: '1rem' }}>No se encontraron productos. Usa el botón "+ Nuevo Producto" para añadir.</td></tr>
+                                    ) : (
+                                    productos.filter(p =>
+                                        (p.nombre || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                                         (p.numPart || '').toLowerCase().includes(searchTerm.toLowerCase())
                                     ).map(p => (
                                         <tr key={p.id}>
@@ -261,35 +313,33 @@ const ProductosModule: React.FC<IProps> = ({ productos, onAdd, onUpdate, onDelet
                                                 </div>
                                             </td>
                                         </tr>
-                                    ))}
+                                    )))}
                                 </tbody>
                             </table>
                         </div>
                     </div>
 
-                    {
-                        selectedProduct && (
-                            <div className="modal-overlay" onClick={() => setSelectedProduct(null)}>
-                                <div className="modal-content card" onClick={e => e.stopPropagation()}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                                        <h3 style={{ margin: 0 }}>Historial de Precios</h3>
-                                        <button className="btn-close" onClick={() => setSelectedProduct(null)}>×</button>
-                                    </div>
-                                    <p style={{ marginBottom: '1rem' }}><strong>Producto:</strong> {selectedProduct.nombre}</p>
-                                    <ul className="history-list">
-                                        {selectedProduct.history.map((h, i) => (
-                                            <li key={i}>
-                                                <span className="history-date">{h.date}</span>
-                                                <span className="history-price">
-                                                    {selectedProduct.moneda === 'USD' ? 'US$' : '$'}{h.price.toLocaleString()}
-                                                </span>
-                                            </li>
-                                        ))}
-                                    </ul>
+                    {selectedProduct && (
+                        <div className="modal-overlay" onClick={() => setSelectedProduct(null)}>
+                            <div className="modal-content card" onClick={e => e.stopPropagation()}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                                    <h3 style={{ margin: 0 }}>Historial de Precios</h3>
+                                    <button className="btn-close" onClick={() => setSelectedProduct(null)}>×</button>
                                 </div>
+                                <p style={{ marginBottom: '1rem' }}><strong>Producto:</strong> {selectedProduct.nombre}</p>
+                                <ul className="history-list">
+                                    {(selectedProduct.history || []).map((h, i) => (
+                                        <li key={i}>
+                                            <span className="history-date">{h.date}</span>
+                                            <span className="history-price">
+                                                {selectedProduct.moneda === 'USD' ? 'US$' : '$'}{h.price.toLocaleString()}
+                                            </span>
+                                        </li>
+                                    ))}
+                                </ul>
                             </div>
-                        )
-                    }
+                        </div>
+                    )}
                 </>
             )}
 
