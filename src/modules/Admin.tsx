@@ -12,6 +12,7 @@ interface IProps {
     onAddBudget: (b: SalesBudget) => void;
     onUpdateBudget: (b: SalesBudget) => void;
     onDeleteBudget: (id: string) => void;
+    onExportAll: () => Promise<void>;
 }
 
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -44,9 +45,11 @@ const AdminModule: React.FC<IProps> = ({
     budgets,
     onAddBudget,
     onUpdateBudget,
-    onDeleteBudget
+    onDeleteBudget,
+    onExportAll
 }) => {
-    const [activeSubTab, setActiveSubTab] = useState<'users' | 'budgets'>('users');
+    const [activeSubTab, setActiveSubTab] = useState<'users' | 'budgets' | 'backups'>('users');
+    const [isExporting, setIsExporting] = useState(false);
     const [isAdding, setIsAdding] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [formData, setFormData] = useState<Partial<AppUser>>({
@@ -146,15 +149,20 @@ const AdminModule: React.FC<IProps> = ({
                 >
                     Presupuestos de Ventas
                 </button>
+                <button
+                    className={`admin-tab-btn ${activeSubTab === 'backups' ? 'active' : ''}`}
+                    onClick={() => setActiveSubTab('backups')}
+                >
+                    Seguridad y Backups 🛡️
+                </button>
             </div>
 
-            {activeSubTab === 'users' ? (
-                <>
+            {activeSubTab === 'users' && (
+                <div className="animate-fade-in">
                     <div className="module-header" style={{ marginTop: '1rem' }}>
                         <h2>Gestión de Usuarios</h2>
                         <button onClick={() => { setIsAdding(true); setEditingId(null); setFormData({ rol: 'Comercial', permisos: ['dashboard'] }); }}>+ Nuevo Usuario</button>
                     </div>
-                    {/* Existing User form and table logic */}
 
                     {(isAdding || editingId) && (
                         <div className="card animate-fade-in" style={{ marginBottom: '2rem' }}>
@@ -223,7 +231,7 @@ const AdminModule: React.FC<IProps> = ({
                         </div>
                     )}
 
-                    <div className="card table-card animate-fade-in">
+                    <div className="card table-card">
                         <table className="data-table">
                             <thead>
                                 <tr>
@@ -267,14 +275,16 @@ const AdminModule: React.FC<IProps> = ({
                             </tbody>
                         </table>
                     </div>
-                </>
-            ) : (
-                <div style={{ marginTop: '1rem' }}>
+                </div>
+            )}
+
+            {activeSubTab === 'budgets' && (
+                <div style={{ marginTop: '1rem' }} className="animate-fade-in">
                     <div className="module-header">
                         <h2>Metas de Ventas por Usuario</h2>
                     </div>
 
-                    <div className="card animate-fade-in" style={{ marginBottom: '2rem' }}>
+                    <div className="card" style={{ marginBottom: '2rem' }}>
                         <h3>Asignar Nuevo Presupuesto</h3>
                         <div className="form-grid">
                             <div className="form-group">
@@ -309,7 +319,7 @@ const AdminModule: React.FC<IProps> = ({
                         </div>
                     </div>
 
-                    <div className="card table-card animate-fade-in">
+                    <div className="card table-card">
                         <table className="data-table">
                             <thead>
                                 <tr>
@@ -348,6 +358,63 @@ const AdminModule: React.FC<IProps> = ({
                                 )}
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            )}
+
+            {activeSubTab === 'backups' && (
+                <div style={{ marginTop: '1rem' }} className="animate-fade-in">
+                    <div className="module-header">
+                        <h2>Seguridad y Copias de Resguardo</h2>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', marginTop: '1rem' }}>
+                        <div className="card" style={{ border: '2px solid #3b82f6', background: '#eff6ff' }}>
+                            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🚨</div>
+                            <h3 style={{ color: '#1e40af', fontSize: '1.25rem', marginBottom: '0.5rem' }}>Botón de Pánico (Exportación)</h3>
+                            <p style={{ color: '#1e3a8a', fontSize: '0.9rem', marginBottom: '1.5rem', lineHeight: '1.5' }}>
+                                Descarga una copia completa de toda tu base de datos en un solo archivo JSON. 
+                                Guarda este archivo en un lugar seguro (USB, Disco Externo o Drive). 
+                                <strong>Incluye: Productos, Clientes, Cotizaciones y más.</strong>
+                            </p>
+                            <button 
+                                className="btn-success" 
+                                style={{ width: '100%', padding: '1rem', fontSize: '1.1rem', fontWeight: 'bold', background: '#2563eb', boxShadow: '0 4px 6px -1px rgba(37, 99, 235, 0.2)' }}
+                                onClick={async () => {
+                                    setIsExporting(true);
+                                    await onExportAll();
+                                    setIsExporting(false);
+                                }}
+                                disabled={isExporting}
+                            >
+                                {isExporting ? '📦 Generando Backup...' : '📥 Descargar Backup Ahora'}
+                            </button>
+                        </div>
+
+                        <div className="card" style={{ border: '1px solid #e2e8f0' }}>
+                            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>☁️</div>
+                            <h3>Backups Automáticos (Supabase)</h3>
+                            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1rem' }}>
+                                Tu base de datos tiene respaldos automáticos cada 24 horas gestionados por Supabase.
+                            </p>
+                            <ul style={{ fontSize: '0.85rem', color: '#64748b', paddingLeft: '1.2rem' }}>
+                                <li>Frecuencia: Diaria (00:00 UTC)</li>
+                                <li>Retención: 7 días (Plan gratuito)</li>
+                                <li>Punto de recuperación: Toda la DB</li>
+                            </ul>
+                            <div style={{ marginTop: '1.5rem', padding: '0.75rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                <small>Para una restauración total desde la nube, contacta al soporte técnico.</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="card" style={{ marginTop: '1.5rem', background: '#fffbeb', border: '1px solid #fef3c7' }}>
+                        <h4 style={{ color: '#92400e', marginBottom: '0.5rem' }}>🛡️ Consejos de Seguridad</h4>
+                        <p style={{ fontSize: '0.85rem', color: '#b45309' }}>
+                            1. Exporta tus datos al menos una vez por semana o después de una carga masiva de productos.<br/>
+                            2. No compartas los archivos de backup con nadie ajeno a la empresa.<br/>
+                            3. Verifica periódicamente que tu equipo comercial no elimine registros sin autorización.
+                        </p>
                     </div>
                 </div>
             )}

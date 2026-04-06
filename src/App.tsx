@@ -369,18 +369,23 @@ function App() {
       const { data: providerData } = await supabase.from('proveedores').select('*');
       if (providerData) setProveedores(providerData as Proveedor[]);
 
-      const { data: productData } = await supabase.from('productos').select('*');
+      const { data: productData, error: productError } = await supabase.from('productos').select('*');
+      if (productError) console.error('Error cargando productos:', productError.message);
       if (productData) {
         // Map snake_case to camelCase for products
         setProductos(productData.map((p: any) => ({
-          ...p,
-          numPart: p.num_part,
-          precioCompra: p.precio_compra,
+          id: p.id,
+          nombre: p.nombre || '',
+          descripcion: p.descripcion || '',
+          unidad: p.unidad || 'Und',
+          history: p.history || [],
+          numPart: p.num_part || '',
+          precioCompra: p.precio_compra || 0,
           moneda: p.moneda || 'COP',
-          trmReferencia: p.trm_referencia,
+          trmReferencia: p.trm_referencia || undefined,
           tipo: p.tipo || 'Producto',
           exentoIva: !!p.exento_iva
-        })));
+        } as Producto)));
       }
 
       const { data: quoteData } = await supabase.from('cotizaciones').select('*');
@@ -743,16 +748,20 @@ function App() {
   };
 
   const addProducto = async (p: Producto) => {
+    // Explicitamente extraemos todos los campos camelCase para evitar enviar columnas inválidas a Supabase
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { id, numPart, precioCompra, exentoIva, moneda, trmReferencia, tipo, ...cleanProd } = p;
+    const { id, numPart, precioCompra, exentoIva, moneda, trmReferencia, tipo, nombre, descripcion, unidad, history } = p;
     const { data, error } = await supabase.from('productos').insert([{
-      ...cleanProd,
-      num_part: p.numPart,
-      precio_compra: p.precioCompra,
-      moneda: p.moneda || 'COP',
-      trm_referencia: p.trmReferencia,
-      tipo: p.tipo || 'Producto',
-      exento_iva: p.exentoIva || false
+      nombre,
+      descripcion: descripcion || '',
+      unidad: unidad || 'Und',
+      history: history || [],
+      num_part: numPart || '',
+      precio_compra: precioCompra || 0,
+      moneda: moneda || 'COP',
+      trm_referencia: trmReferencia || null,
+      tipo: tipo || 'Producto',
+      exento_iva: exentoIva || false
     }]).select();
     if (error) {
       alert('Error al añadir producto: ' + error.message);
@@ -762,26 +771,33 @@ function App() {
         ...dbProd,
         numPart: dbProd.num_part,
         precioCompra: dbProd.precio_compra,
+        descripcion: dbProd.descripcion || '',
         moneda: dbProd.moneda || 'COP',
         trmReferencia: dbProd.trm_referencia,
         tipo: dbProd.tipo || 'Producto',
-        exentoIva: !!dbProd.exento_iva
+        exentoIva: !!dbProd.exento_iva,
+        history: dbProd.history || []
       } as Producto]);
     }
   };
   const updateProducto = async (p: Producto) => {
+    // Explicitamente mapeamos todos los campos para evitar errores de schema cache
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { id, numPart, precioCompra, exentoIva, moneda, trmReferencia, tipo, ...cleanProd } = p;
+    const { id, numPart, precioCompra, exentoIva, moneda, trmReferencia, tipo, nombre, descripcion, unidad, history } = p;
     const { error } = await supabase.from('productos').update({
-      ...cleanProd,
-      num_part: p.numPart,
-      precio_compra: p.precioCompra,
-      moneda: p.moneda || 'COP',
-      trm_referencia: p.trmReferencia,
-      tipo: p.tipo || 'Producto',
-      exento_iva: p.exentoIva || false
+      nombre,
+      descripcion: descripcion || '',
+      unidad: unidad || 'Und',
+      history: history || [],
+      num_part: numPart || '',
+      precio_compra: precioCompra || 0,
+      moneda: moneda || 'COP',
+      trm_referencia: trmReferencia || null,
+      tipo: tipo || 'Producto',
+      exento_iva: exentoIva || false
     }).eq('id', p.id);
     if (!error) setProductos(productos.map(item => item.id === p.id ? p : item));
+    else alert('Error al actualizar producto: ' + error.message);
   };
   const deleteProducto = async (id: string) => {
     const { error } = await supabase.from('productos').delete().eq('id', id);
@@ -968,6 +984,49 @@ function App() {
     const encodedMsg = encodeURIComponent(fullMessage);
     const url = `https://wa.me/${phone.replace(/\s/g, '')}?text=${encodedMsg}`;
     window.open(url, '_blank');
+  };
+
+  const exportAllData = async () => {
+    try {
+      console.log('📦 Preparando copia de seguridad masiva...');
+      const tables = [
+        'productos', 'clientes', 'cotizaciones', 'ordenes_compra', 
+        'proveedores', 'conductores', 'alquileres', 'despachos', 
+        'reparaciones', 'devoluciones', 'ventas_manuales', 'app_users'
+      ];
+      
+      const backup: any = {
+        version: '1.0',
+        timestamp: new Date().toISOString(),
+        data: {}
+      };
+
+      for (const table of tables) {
+        const { data, error } = await supabase.from(table).select('*');
+        if (!error && data) {
+          backup.data[table] = data;
+        } else {
+          console.error(`Error exportando tabla ${table}:`, error);
+        }
+      }
+
+      // Convert to JSON and trigger download
+      const jsonString = JSON.stringify(backup, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `BACKUP_CRM_APPENVIOS_${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      console.log('✅ Copia de seguridad descargada con éxito.');
+    } catch (err) {
+      console.error('Error en exportación masiva:', err);
+      alert('Hubo un error al generar la copia de seguridad.');
+    }
   };
 
   const addCotizacion = async (c: Cotizacion) => {
@@ -1784,6 +1843,7 @@ function App() {
           onAddBudget={addBudget}
           onUpdateBudget={updateBudget}
           onDeleteBudget={deleteBudget}
+          onExportAll={exportAllData}
         />;
       case 'vendedores':
         return <VendedoresModule
