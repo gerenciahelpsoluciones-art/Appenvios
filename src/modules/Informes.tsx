@@ -110,6 +110,26 @@ const InformesModule: React.FC<IProps> = ({
     const totalVendido = wonQuotesInRange.reduce((acc, q) => acc + q.total, 0);
     const totalUtilidad = wonQuotesInRange.reduce((acc, q) => acc + (q.utilidadTotal || 0), 0);
 
+    // Revenue by category from manual sales (using appliedFilters)
+    const manualSalesFiltered = (ventasManuales || []).filter(v => {
+        const dateMatch = v.fecha >= appliedFilters.inicio && v.fecha <= appliedFilters.fin;
+        const advisorMatch = appliedFilters.asesorId ? v.usuarioId === appliedFilters.asesorId : true;
+        const clientMatch = appliedFilters.clienteId ? v.clienteId === appliedFilters.clienteId : true;
+        return dateMatch && advisorMatch && clientMatch;
+    });
+
+    const revenueByContract = manualSalesFiltered
+        .filter(v => v.tipoVenta === 'Contrato')
+        .reduce((acc, v) => acc + v.monto, 0);
+    
+    const revenueByRental = manualSalesFiltered
+        .filter(v => v.tipoVenta === 'Alquiler')
+        .reduce((acc, v) => acc + v.monto, 0);
+    
+    const revenueByLicense = manualSalesFiltered
+        .filter(v => v.tipoVenta === 'Licencia')
+        .reduce((acc, v) => acc + v.monto, 0);
+
     // Monthly performance for cards
     const monthlySalesFromQuotes = cotizaciones.filter(c => {
         if (!c.fecha) return false;
@@ -425,6 +445,25 @@ const InformesModule: React.FC<IProps> = ({
                         <div className="stat-value">${Math.round(totalUtilidad).toLocaleString()}</div>
                         <div className="stat-trend">Margen Bruto</div>
                     </div>
+                    {currentUser.rol === 'Admin' && (
+                        <>
+                            <div className="stat-card" style={{ background: 'linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%)' }}>
+                                <div className="stat-label">Ingresos por Contratos</div>
+                                <div className="stat-value">${Math.round(revenueByContract).toLocaleString()}</div>
+                                <div className="stat-trend">En el periodo</div>
+                            </div>
+                            <div className="stat-card" style={{ background: 'linear-gradient(135deg, #10b981 0%, #047857 100%)' }}>
+                                <div className="stat-label">Ingresos por Alquileres</div>
+                                <div className="stat-value">${Math.round(revenueByRental).toLocaleString()}</div>
+                                <div className="stat-trend">En el periodo</div>
+                            </div>
+                            <div className="stat-card" style={{ background: 'linear-gradient(135deg, #a855f7 0%, #7e22ce 100%)' }}>
+                                <div className="stat-label">Ingresos por Licenciamiento</div>
+                                <div className="stat-value">${Math.round(revenueByLicense).toLocaleString()}</div>
+                                <div className="stat-trend">En el periodo</div>
+                            </div>
+                        </>
+                    )}
                 </div>
             </div>
 

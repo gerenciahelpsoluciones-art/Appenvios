@@ -32,6 +32,7 @@ const VentasManualesModule: React.FC<IProps> = ({
     const [selectedProductoId, setSelectedProductoId] = useState('');
     const [selectedUsuarioId, setSelectedUsuarioId] = useState(currentUser.id);
     const [monto, setMonto] = useState(0);
+    const [tipoVenta, setTipoVenta] = useState<'Venta' | 'Contrato' | 'Alquiler' | 'Licencia'>('Venta');
     const [descripcion, setDescripcion] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
 
@@ -104,6 +105,7 @@ const VentasManualesModule: React.FC<IProps> = ({
                 usuarioId: usuario.id,
                 usuarioNombre: usuario.nombre,
                 monto: monto,
+                tipoVenta: tipoVenta,
                 descripcion: descripcion
             };
             onAdd(newVenta);
@@ -117,6 +119,7 @@ const VentasManualesModule: React.FC<IProps> = ({
         setSelectedProductoId(v.productoId || '');
         setSelectedUsuarioId(v.usuarioId);
         setMonto(v.monto);
+        setTipoVenta(v.tipoVenta || 'Venta');
         setDescripcion(v.descripcion);
         setIsAdding(true);
     };
@@ -129,6 +132,7 @@ const VentasManualesModule: React.FC<IProps> = ({
         setSelectedProductoId('');
         setSelectedUsuarioId(currentUser.id);
         setMonto(0);
+        setTipoVenta('Venta');
         setDescripcion('');
     };
 
@@ -247,7 +251,20 @@ const VentasManualesModule: React.FC<IProps> = ({
                         </div>
 
                         <div className="form-row">
-                            <div className="form-group flex-2">
+                            <div className="form-group flex-1">
+                                <label>Tipo de Venta</label>
+                                <select
+                                    className="input-field"
+                                    value={tipoVenta}
+                                    onChange={e => setTipoVenta(e.target.value as any)}
+                                >
+                                    <option value="Venta">Venta Estándar</option>
+                                    <option value="Contrato">Contrato de Mantenimiento</option>
+                                    <option value="Alquiler">Alquiler de Equipos</option>
+                                    <option value="Licencia">Licenciamiento / Software</option>
+                                </select>
+                            </div>
+                            <div className="form-group flex-1">
                                 <label>Asesor comercial encargado</label>
                                 <select
                                     className="input-field"
