@@ -423,27 +423,27 @@ const InformesModule: React.FC<IProps> = ({
                         currentUser.cargo?.toLowerCase().includes('gerente comercial')
                     ) : true) && (
                         <div className="stat-card budget-card">
-                            <div className="stat-label">Presupuesto {appliedFilters.asesorId ? 'Personal' : 'Empresa (Total)'}</div>
-                            <div className="stat-value" style={{ fontSize: '1.3rem' }}>${activeBudget.toLocaleString()}</div>
-                            <div className="stat-trend">Meta asignada</div>
+                            <div className="stat-label" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.75rem' }}>Presupuesto {appliedFilters.asesorId ? 'Personal' : 'Empresa (Total)'}</div>
+                            <div className="stat-value" style={{ fontSize: '1.2rem', color: '#fff' }}>${activeBudget.toLocaleString()}</div>
+                            <div className="stat-trend" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff' }}>Meta asignada</div>
                         </div>
                     )}
                     <div className="stat-card sales-card">
-                        <div className="stat-label">Ventas Logradas (Ganadas)</div>
-                        <div className="stat-value" style={{ fontSize: '1.3rem' }}>${monthlySales.toLocaleString()}</div>
-                        <div className="stat-trend">Ejecutado</div>
+                        <div className="stat-label" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.75rem' }}>Ventas Logradas (Ganadas)</div>
+                        <div className="stat-value" style={{ fontSize: '1.2rem', color: '#fff' }}>${monthlySales.toLocaleString()}</div>
+                        <div className="stat-trend" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff' }}>Ejecutado</div>
                     </div>
                     <div className="stat-card percent-card">
-                        <div className="stat-label">% Ejecución</div>
-                        <div className="stat-value" style={{ fontSize: '1.3rem' }}>{executionPercent.toFixed(1)}%</div>
-                        <div className="stat-trend" style={{ background: difference >= 0 ? '#059669' : '#991b1b' }}>
+                        <div className="stat-label" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.75rem' }}>% Ejecución</div>
+                        <div className="stat-value" style={{ fontSize: '1.2rem', color: '#fff' }}>{executionPercent.toFixed(1)}%</div>
+                        <div className="stat-trend" style={{ background: difference >= 0 ? 'rgba(255,255,255,0.2)' : 'rgba(255,0,0,0.3)', color: '#fff' }}>
                             {difference >= 0 ? `+ $${difference.toLocaleString()}` : `- $${Math.abs(difference).toLocaleString()}`}
                         </div>
                     </div>
                     <div className="stat-card profit-summary-card">
-                        <div className="stat-label">Utilidad General (Rango)</div>
-                        <div className="stat-value" style={{ fontSize: '1.3rem' }}>${Math.round(totalUtilidad).toLocaleString()}</div>
-                        <div className="stat-trend">Margen Bruto</div>
+                        <div className="stat-label" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.75rem' }}>Utilidad General (Rango)</div>
+                        <div className="stat-value" style={{ fontSize: '1.2rem', color: '#fff' }}>${Math.round(totalUtilidad).toLocaleString()}</div>
+                        <div className="stat-trend" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff' }}>Margen Bruto</div>
                     </div>
                     {currentUser.rol === 'Admin' && (
                         <>
