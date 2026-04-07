@@ -138,7 +138,8 @@ const InformesModule: React.FC<IProps> = ({
     // Monthly performance for execution cards (now based on appliedFilters for consistency)
     const monthlySales = totalVendido + totalManualSales;
 
-    const profitMarginPercent = monthlySales > 0 ? (totalUtilidad / monthlySales) * 100 : 0;
+    const revenueForMargin = monthlySales - revenueByContract;
+    const profitMarginPercent = revenueForMargin > 0 ? (totalUtilidad / revenueForMargin) * 100 : 0;
 
     console.log('Informes Debug:', {
         totalReceivedManual: (ventasManuales || []).length,
