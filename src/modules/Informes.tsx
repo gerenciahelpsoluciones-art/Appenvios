@@ -43,10 +43,12 @@ const InformesModule: React.FC<IProps> = ({
     ordenesCompra,
     users
 }) => {
-    const today = new Date().toISOString().split('T')[0];
-    const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+    const now = new Date();
+    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+    const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+    
     const [fechaInicio, setFechaInicio] = useState(firstDayOfMonth);
-    const [fechaFin, setFechaFin] = useState(today);
+    const [fechaFin, setFechaFin] = useState(lastDayOfMonth);
     const [selectedClienteId, setSelectedClienteId] = useState('');
     const [selectedAsesorId, setSelectedAsesorId] = useState('');
 
@@ -56,7 +58,7 @@ const InformesModule: React.FC<IProps> = ({
 
     // State for dates/filters that are actually being used for filtering
     // State for dates/filters that are actually being used for filtering
-    const [appliedFilters, setAppliedFilters] = useState({ inicio: firstDayOfMonth, fin: today, clienteId: '', asesorId: '' });
+    const [appliedFilters, setAppliedFilters] = useState({ inicio: firstDayOfMonth, fin: lastDayOfMonth, clienteId: '', asesorId: '' });
 
     // Edit modal state
     const [editingQuote, setEditingQuote] = useState<Cotizacion | null>(null);
@@ -98,14 +100,6 @@ const InformesModule: React.FC<IProps> = ({
         return bDate.localeCompare(aDate);
     });
 
-    console.log('Informes Debug:', {
-        totalReceived: cotizaciones.length,
-        filteredCount: filteredQuotes.length,
-        appliedFilters,
-        allDates: cotizaciones.map(c => c.fecha),
-        allConsecutivos: cotizaciones.map(c => c.consecutivo)
-    });
-
     const wonQuotesInRange = filteredQuotes.filter(q => q.estado === 'Ganado');
     const totalVendido = wonQuotesInRange.reduce((acc, q) => acc + q.total, 0);
     const totalUtilidad = wonQuotesInRange.reduce((acc, q) => acc + (q.utilidadTotal || 0), 0);
@@ -129,22 +123,24 @@ const InformesModule: React.FC<IProps> = ({
     const revenueByLicense = manualSalesFiltered
         .filter(v => v.tipoVenta === 'Licencia')
         .reduce((acc, v) => acc + v.monto, 0);
+    
+    const revenueByStandard = manualSalesFiltered
+        .filter(v => v.tipoVenta === 'Venta')
+        .reduce((acc, v) => acc + v.monto, 0);
 
-    // Monthly performance for cards
-    const monthlySalesFromQuotes = cotizaciones.filter(c => {
-        if (!c.fecha) return false;
-        const [y, m] = c.fecha.split('-').map(Number);
-        return y === currentYear && (m - 1) === currentMonth && c.estado === 'Ganado';
-    }).reduce((acc, c) => acc + c.total, 0);
+    // Total manual sales in period
+    const totalManualSales = manualSalesFiltered.reduce((acc, v) => acc + v.monto, 0);
 
-    // Add manual sales for the current month
-    const monthlySalesFromManual = (ventasManuales || []).filter(v => {
-        if (!v.fecha) return false;
-        const [y, m] = v.fecha.split('-').map(Number);
-        return y === currentYear && (m - 1) === currentMonth;
-    }).reduce((acc, v) => acc + v.monto, 0);
+    // Monthly performance for execution cards (now based on appliedFilters for consistency)
+    const monthlySales = totalVendido + totalManualSales;
 
-    const monthlySales = monthlySalesFromQuotes + monthlySalesFromManual;
+    console.log('Informes Debug:', {
+        totalReceivedManual: (ventasManuales || []).length,
+        filteredManualSales: manualSalesFiltered.length,
+        contractRevenue: revenueByContract,
+        dateRange: { inicio: appliedFilters.inicio, fin: appliedFilters.fin },
+        wonQuotes: wonQuotesInRange.length
+    });
 
     const advisorFiltered = appliedFilters.asesorId;
 
@@ -414,7 +410,7 @@ const InformesModule: React.FC<IProps> = ({
     return (
         <div className="reports-container">
             <div className="card filters-card">
-                <h3>Rendimiento del Mes Actual</h3>
+                <h3>Resumen de Rendimiento ({appliedFilters.inicio} a {appliedFilters.fin})</h3>
                 <div className="stats-grid">
                     {(!appliedFilters.asesorId ? (
                         currentUser.rol === 'Admin' || 
@@ -422,14 +418,14 @@ const InformesModule: React.FC<IProps> = ({
                         currentUser.cargo?.toLowerCase().includes('logistica') || 
                         currentUser.cargo?.toLowerCase().includes('gerente comercial')
                     ) : true) && (
-                        <div className="stat-card budget-card">
-                            <div className="stat-label" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.75rem' }}>Presupuesto {appliedFilters.asesorId ? 'Personal' : 'Empresa (Total)'}</div>
+                        <div className="stat-card budget-card" style={{ background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)' }}>
+                            <div className="stat-label" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.75rem' }}>Presupuesto Mensual {appliedFilters.asesorId ? 'Personal' : 'Empresa'}</div>
                             <div className="stat-value" style={{ fontSize: '1.2rem', color: '#fff' }}>${activeBudget.toLocaleString()}</div>
                             <div className="stat-trend" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff' }}>Meta asignada</div>
                         </div>
                     )}
                     <div className="stat-card sales-card">
-                        <div className="stat-label" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.75rem' }}>Ventas Logradas (Ganadas)</div>
+                        <div className="stat-label" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.75rem' }}>Ventas Logradas (Total)</div>
                         <div className="stat-value" style={{ fontSize: '1.2rem', color: '#fff' }}>${monthlySales.toLocaleString()}</div>
                         <div className="stat-trend" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff' }}>Ejecutado</div>
                     </div>
@@ -441,7 +437,7 @@ const InformesModule: React.FC<IProps> = ({
                         </div>
                     </div>
                     <div className="stat-card profit-summary-card">
-                        <div className="stat-label" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.75rem' }}>Utilidad General (Rango)</div>
+                        <div className="stat-label" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.75rem' }}>Utilidad en Rango</div>
                         <div className="stat-value" style={{ fontSize: '1.2rem', color: '#fff' }}>${Math.round(totalUtilidad).toLocaleString()}</div>
                         <div className="stat-trend" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff' }}>Margen Bruto</div>
                     </div>
@@ -457,8 +453,13 @@ const InformesModule: React.FC<IProps> = ({
                                 <div style={{ fontSize: '0.95rem', color: '#fff', fontWeight: 700, margin: '0.15rem 0' }}>${Math.round(revenueByRental).toLocaleString()}</div>
                                 <div className="stat-trend" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', fontSize: '0.68rem' }}>En el periodo</div>
                             </div>
+                            <div className="stat-card" style={{ background: 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)' }}>
+                                <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.9)', fontWeight: 600, marginBottom: '0.2rem' }}>Ventas Estándar</div>
+                                <div style={{ fontSize: '0.95rem', color: '#fff', fontWeight: 700, margin: '0.15rem 0' }}>${Math.round(revenueByStandard).toLocaleString()}</div>
+                                <div className="stat-trend" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', fontSize: '0.68rem' }}>En el periodo</div>
+                            </div>
                             <div className="stat-card" style={{ background: 'linear-gradient(135deg, #c084fc 0%, #9333ea 100%)' }}>
-                                <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.9)', fontWeight: 600, marginBottom: '0.2rem' }}>Ingresos por Licenciamiento</div>
+                                <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.9)', fontWeight: 600, marginBottom: '0.2rem' }}>Licenciamiento</div>
                                 <div style={{ fontSize: '0.95rem', color: '#fff', fontWeight: 700, margin: '0.15rem 0' }}>${Math.round(revenueByLicense).toLocaleString()}</div>
                                 <div className="stat-trend" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', fontSize: '0.68rem' }}>En el periodo</div>
                             </div>
