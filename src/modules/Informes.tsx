@@ -448,19 +448,19 @@ const InformesModule: React.FC<IProps> = ({
                     {currentUser.rol === 'Admin' && (
                         <>
                             <div className="stat-card" style={{ background: 'linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)' }}>
-                                <div className="stat-label" style={{ fontSize: '0.78rem' }}>Ingresos por Contratos</div>
-                                <div className="stat-value">${Math.round(revenueByContract).toLocaleString()}</div>
-                                <div className="stat-trend">En el periodo</div>
+                                <div className="stat-label" style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>Ingresos por Contratos</div>
+                                <div className="stat-value" style={{ fontSize: '1.25rem', color: '#fff', margin: '0.25rem 0' }}>${Math.round(revenueByContract).toLocaleString()}</div>
+                                <div className="stat-trend" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff' }}>En el periodo</div>
                             </div>
                             <div className="stat-card" style={{ background: 'linear-gradient(135deg, #34d399 0%, #059669 100%)' }}>
-                                <div className="stat-label" style={{ fontSize: '0.78rem' }}>Ingresos por Alquileres</div>
-                                <div className="stat-value">${Math.round(revenueByRental).toLocaleString()}</div>
-                                <div className="stat-trend">En el periodo</div>
+                                <div className="stat-label" style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>Ingresos por Alquileres</div>
+                                <div className="stat-value" style={{ fontSize: '1.25rem', color: '#fff', margin: '0.25rem 0' }}>${Math.round(revenueByRental).toLocaleString()}</div>
+                                <div className="stat-trend" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff' }}>En el periodo</div>
                             </div>
                             <div className="stat-card" style={{ background: 'linear-gradient(135deg, #c084fc 0%, #9333ea 100%)' }}>
-                                <div className="stat-label" style={{ fontSize: '0.78rem' }}>Ingresos por Licenciamiento</div>
-                                <div className="stat-value">${Math.round(revenueByLicense).toLocaleString()}</div>
-                                <div className="stat-trend">En el periodo</div>
+                                <div className="stat-label" style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>Ingresos por Licenciamiento</div>
+                                <div className="stat-value" style={{ fontSize: '1.25rem', color: '#fff', margin: '0.25rem 0' }}>${Math.round(revenueByLicense).toLocaleString()}</div>
+                                <div className="stat-trend" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff' }}>En el periodo</div>
                             </div>
                         </>
                     )}
