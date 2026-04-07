@@ -288,7 +288,7 @@ const VentasManualesModule: React.FC<IProps> = ({
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
                         <div>
                             <h3 style={{ margin: 0, color: '#0f172a' }}>Periodo de Facturación Recurrente</h3>
-                            <p style={{ fontSize: '0.9rem', color: '#64748b' }}>Duplique las ventas de un mes anterior hacia un nuevo periodo comercial</p>
+                            <p style={{ fontSize: '0.9rem', color: '#64748b' }}>Seleccione paso a paso las facturas que desea repetir para el nuevo periodo</p>
                         </div>
                         <button className="btn-action" onClick={() => setIsCloning(false)} style={{ background: '#e2e8f0' }}>✖</button>
                     </div>
@@ -300,7 +300,10 @@ const VentasManualesModule: React.FC<IProps> = ({
                                 <select 
                                     className="input-field" 
                                     value={selectedMonth}
-                                    onChange={(e) => setSelectedMonth(e.target.value)}
+                                    onChange={(e) => {
+                                        setSelectedMonth(e.target.value);
+                                        setSalesToClone([]); // Reset selection when month changes
+                                    }}
                                 >
                                     <option value="">Seleccione Periodo...</option>
                                     {availableMonths.map(m => (
@@ -324,45 +327,68 @@ const VentasManualesModule: React.FC<IProps> = ({
                     </div>
 
                     {selectedMonth && (
-                        <div style={{ maxHeight: '300px', overflowY: 'auto', marginBottom: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', background: 'white' }}>
-                            <table className="data-table" style={{ fontSize: '0.9rem' }}>
-                                <thead style={{ position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 10 }}>
-                                    <tr>
-                                        <th style={{ width: '40px' }}>
-                                            <input 
-                                                type="checkbox" 
-                                                onChange={(e) => {
-                                                    const monthSalesIds = ventas.filter(v => v.fecha.startsWith(selectedMonth)).map(v => v.id);
-                                                    setSalesToClone(e.target.checked ? monthSalesIds : []);
-                                                }}
-                                            />
-                                        </th>
-                                        <th>Cliente</th>
-                                        <th>Concepto</th>
-                                        <th className="text-right">Monto</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {ventas.filter(v => v.fecha.startsWith(selectedMonth)).map(v => (
-                                        <tr key={v.id}>
-                                            <td>
-                                                <input 
-                                                    type="checkbox" 
-                                                    checked={salesToClone.includes(v.id)}
-                                                    onChange={(e) => {
-                                                        if (e.target.checked) setSalesToClone([...salesToClone, v.id]);
-                                                        else setSalesToClone(salesToClone.filter(id => id !== v.id));
-                                                    }}
-                                                />
-                                            </td>
-                                            <td>{v.clienteNombre}</td>
-                                            <td>{v.descripcion}</td>
-                                            <td className="text-right">${v.monto.toLocaleString()}</td>
+                        <>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', padding: '0 0.5rem' }}>
+                                <div style={{ position: 'relative', width: '300px' }}>
+                                    <input 
+                                        type="text" 
+                                        placeholder="Filtrar ventas del mes..." 
+                                        className="input-field" 
+                                        style={{ paddingLeft: '2.5rem', fontSize: '0.9rem' }}
+                                        value={searchTerm}
+                                        onChange={e => setSearchTerm(e.target.value)}
+                                    />
+                                    <span style={{ position: 'absolute', left: '0.8rem', top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }}>🔍</span>
+                                </div>
+                                <div style={{ fontSize: '0.9rem', color: '#475569', fontWeight: '500' }}>
+                                    Confirmado para clonar: <span style={{ color: 'var(--primary-blue)', fontSize: '1.1rem', fontWeight: '700' }}>
+                                        ${ventas.filter(v => salesToClone.includes(v.id)).reduce((s, v) => s + v.monto, 0).toLocaleString()}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div style={{ maxHeight: '350px', overflowY: 'auto', marginBottom: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', background: 'white', boxShadow: 'inset 0 2px 4px 0 rgba(0,0,0,0.05)' }}>
+                                <table className="data-table" style={{ fontSize: '0.9rem' }}>
+                                    <thead style={{ position: 'sticky', top: 0, backgroundColor: '#f8fafc', zIndex: 10 }}>
+                                        <tr>
+                                            <th style={{ width: '40px' }}> 
+                                                 {/* Checkbox global removed to avoid "import all" accidents */}
+                                            </th>
+                                            <th>Cliente</th>
+                                            <th>Concepto</th>
+                                            <th className="text-right">Monto Original</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+                                    </thead>
+                                    <tbody>
+                                        {ventas
+                                            .filter(v => v.fecha.startsWith(selectedMonth))
+                                            .filter(v => 
+                                                !searchTerm || 
+                                                v.clienteNombre.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                                v.descripcion.toLowerCase().includes(searchTerm.toLowerCase())
+                                            )
+                                            .map(v => (
+                                            <tr key={v.id} style={{ cursor: 'pointer', backgroundColor: salesToClone.includes(v.id) ? '#f0f9ff' : 'transparent' }} onClick={() => {
+                                                if (salesToClone.includes(v.id)) setSalesToClone(salesToClone.filter(id => id !== v.id));
+                                                else setSalesToClone([...salesToClone, v.id]);
+                                            }}>
+                                                <td>
+                                                    <input 
+                                                        type="checkbox" 
+                                                        checked={salesToClone.includes(v.id)}
+                                                        readOnly
+                                                        style={{ transform: 'scale(1.2)' }}
+                                                    />
+                                                </td>
+                                                <td><strong>{v.clienteNombre}</strong></td>
+                                                <td>{v.descripcion}</td>
+                                                <td className="text-right">${v.monto.toLocaleString()}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </>
                     )}
 
                     <div className="form-actions" style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
@@ -373,7 +399,7 @@ const VentasManualesModule: React.FC<IProps> = ({
                             onClick={handleCloneSubmit}
                             style={{ background: 'var(--success)' }}
                         >
-                            Confirmar Clonación ({salesToClone.length} items)
+                            Confirmar Selección ({salesToClone.length} items)
                         </button>
                     </div>
                 </div>
