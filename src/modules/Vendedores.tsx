@@ -178,7 +178,7 @@ const Vendedores: React.FC<IProps> = ({ users, budgets, cotizaciones, ventasManu
                         <div key={v.id} className="card vendedor-card animate-fade-in" style={{ gridColumn: 'span 3' }}>
                             <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
                                 {/* User Profile & Main KPI */}
-                                <div style={{ flex: '1 1 300px' }}>
+                                <div style={{ flex: '1 1 280px' }}>
                                     <div className="vendedor-header">
                                         <div className="vendedor-avatar" style={{ background: performanceColor }}>
                                             {v.nombre.charAt(0)}
@@ -236,7 +236,7 @@ const Vendedores: React.FC<IProps> = ({ users, budgets, cotizaciones, ventasManu
                                 </div>
 
                                 {/* monthly History Table */}
-                                <div style={{ flex: '2 1 500px', borderLeft: '1px solid #e2e8f0', paddingLeft: '1.5rem' }}>
+                                <div style={{ flex: '3 1 600px', borderLeft: '1px solid #e2e8f0', paddingLeft: '1.5rem' }}>
                                     <h4 style={{ marginBottom: '1rem', color: '#475569' }}>📊 Historial de los últimos 6 meses</h4>
                                     <table className="data-table" style={{ fontSize: '0.85rem' }}>
                                         <thead>
