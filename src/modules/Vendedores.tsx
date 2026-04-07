@@ -23,23 +23,17 @@ const Vendedores: React.FC<IProps> = ({ users, budgets, cotizaciones, ventasManu
     // Include all users who have a budget assigned (any month), plus Comercials
     const userIdsWithBudget = new Set(budgets.map(b => b.usuarioId));
     const vendedores = users.filter(u => {
+        // Fundamental constraint: Seller must have a budget assigned to appear here
+        if (!userIdsWithBudget.has(u.id)) return false;
+
         const rol = (u.rol || '').toLowerCase();
-        const cargo = (u.cargo || '').toLowerCase();
         
-        // Explicitly exclude technical and logistics staff
+        // Exclude technical and logistics staff even if they have a budget (safety check)
         if (rol.includes('tecnico') || rol.includes('técnico') || rol.includes('logistica') || rol.includes('logística')) {
             return false;
         }
 
-        // Include if they are commercial, admin, or have a budget
-        return (
-            rol === 'comercial' ||
-            rol === 'admin' ||
-            cargo.includes('comercial') ||
-            cargo.includes('gerente') ||
-            cargo.includes('asesor') ||
-            userIdsWithBudget.has(u.id)
-        );
+        return true;
     });
 
     const getBudgetForPeriod = (userId: string, start: string, end: string) => {
