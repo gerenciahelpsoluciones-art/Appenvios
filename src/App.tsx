@@ -530,7 +530,8 @@ function App() {
           clienteId: v.cliente_id,
           clienteNombre: v.cliente_nombre,
           usuarioId: v.usuario_id,
-          usuarioNombre: v.usuario_nombre
+          usuarioNombre: v.usuario_nombre,
+          tipoVenta: v.tipo_venta || 'Venta'
         })));
       }
 
@@ -1545,6 +1546,7 @@ function App() {
       usuario_nombre: v.usuarioNombre,
       monto: v.monto,
       moneda: v.moneda || 'COP',
+      tipo_venta: v.tipoVenta || 'Venta',
       descripcion: v.descripcion
     };
     const { data, error } = await supabase.from('ventas_manuales').insert([payload]).select();
@@ -1557,7 +1559,8 @@ function App() {
         clienteId: dbV.cliente_id,
         clienteNombre: dbV.cliente_nombre,
         usuarioId: dbV.usuario_id,
-        usuarioNombre: dbV.usuario_nombre
+        usuarioNombre: dbV.usuario_nombre,
+        tipoVenta: dbV.tipo_venta || 'Venta'
       } as VentaManual]);
     }
   };
@@ -1573,6 +1576,7 @@ function App() {
       usuario_nombre: v.usuarioNombre,
       monto: v.monto,
       moneda: v.moneda || 'COP',
+      tipo_venta: v.tipoVenta || 'Venta',
       descripcion: v.descripcion
     }));
 
@@ -1602,6 +1606,7 @@ function App() {
       usuario_nombre: v.usuarioNombre,
       monto: v.monto,
       moneda: v.moneda || 'COP',
+      tipo_venta: v.tipoVenta || 'Venta',
       descripcion: v.descripcion
     };
 

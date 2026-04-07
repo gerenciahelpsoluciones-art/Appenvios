@@ -91,6 +91,7 @@ const VentasManualesModule: React.FC<IProps> = ({
                 usuarioId: usuario.id,
                 usuarioNombre: usuario.nombre,
                 monto,
+                tipoVenta: tipoVenta,
                 descripcion
             });
             setEditingVenta(null);

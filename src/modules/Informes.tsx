@@ -447,18 +447,18 @@ const InformesModule: React.FC<IProps> = ({
                     </div>
                     {currentUser.rol === 'Admin' && (
                         <>
-                            <div className="stat-card" style={{ background: 'linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%)' }}>
-                                <div className="stat-label">Ingresos por Contratos</div>
+                            <div className="stat-card" style={{ background: 'linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)' }}>
+                                <div className="stat-label" style={{ fontSize: '0.78rem' }}>Ingresos por Contratos</div>
                                 <div className="stat-value">${Math.round(revenueByContract).toLocaleString()}</div>
                                 <div className="stat-trend">En el periodo</div>
                             </div>
-                            <div className="stat-card" style={{ background: 'linear-gradient(135deg, #10b981 0%, #047857 100%)' }}>
-                                <div className="stat-label">Ingresos por Alquileres</div>
+                            <div className="stat-card" style={{ background: 'linear-gradient(135deg, #34d399 0%, #059669 100%)' }}>
+                                <div className="stat-label" style={{ fontSize: '0.78rem' }}>Ingresos por Alquileres</div>
                                 <div className="stat-value">${Math.round(revenueByRental).toLocaleString()}</div>
                                 <div className="stat-trend">En el periodo</div>
                             </div>
-                            <div className="stat-card" style={{ background: 'linear-gradient(135deg, #a855f7 0%, #7e22ce 100%)' }}>
-                                <div className="stat-label">Ingresos por Licenciamiento</div>
+                            <div className="stat-card" style={{ background: 'linear-gradient(135deg, #c084fc 0%, #9333ea 100%)' }}>
+                                <div className="stat-label" style={{ fontSize: '0.78rem' }}>Ingresos por Licenciamiento</div>
                                 <div className="stat-value">${Math.round(revenueByLicense).toLocaleString()}</div>
                                 <div className="stat-trend">En el periodo</div>
                             </div>
