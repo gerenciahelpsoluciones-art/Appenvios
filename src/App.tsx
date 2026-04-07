@@ -297,6 +297,7 @@ export interface VentaManual {
   usuarioId: string;
   usuarioNombre: string;
   monto: number;
+  moneda?: 'COP' | 'USD';
   descripcion: string;
 }
 
@@ -1542,6 +1543,7 @@ function App() {
       usuario_id: v.usuarioId,
       usuario_nombre: v.usuarioNombre,
       monto: v.monto,
+      moneda: v.moneda || 'COP',
       descripcion: v.descripcion
     };
     const { data, error } = await supabase.from('ventas_manuales').insert([payload]).select();
@@ -1556,6 +1558,57 @@ function App() {
         usuarioId: dbV.usuario_id,
         usuarioNombre: dbV.usuario_nombre
       } as VentaManual]);
+    }
+  };
+
+  const addVentasManuales = async (ventasArr: VentaManual[]) => {
+    const payloads = ventasArr.map(v => ({
+      fecha: v.fecha,
+      cliente_id: v.clienteId,
+      cliente_nombre: v.clienteNombre,
+      producto_id: v.productoId || null,
+      producto_nombre: v.productoNombre || null,
+      usuario_id: v.usuarioId,
+      usuario_nombre: v.usuarioNombre,
+      monto: v.monto,
+      moneda: v.moneda || 'COP',
+      descripcion: v.descripcion
+    }));
+
+    const { data, error } = await supabase.from('ventas_manuales').insert(payloads).select();
+    if (error) {
+      alert('Error al registrar lote de ventas: ' + error.message);
+    } else if (data) {
+      const dbVentas = data.map((dbV: any) => ({
+        ...dbV,
+        clienteId: dbV.cliente_id,
+        clienteNombre: dbV.cliente_nombre,
+        usuarioId: dbV.usuario_id,
+        usuarioNombre: dbV.usuario_nombre
+      } as VentaManual));
+      setVentasManuales(prev => [...prev, ...dbVentas]);
+    }
+  };
+
+  const updateVentaManual = async (v: VentaManual) => {
+    const payload = {
+      fecha: v.fecha,
+      cliente_id: v.clienteId,
+      cliente_nombre: v.clienteNombre,
+      producto_id: v.productoId || null,
+      producto_nombre: v.productoNombre || null,
+      usuario_id: v.usuarioId,
+      usuario_nombre: v.usuarioNombre,
+      monto: v.monto,
+      moneda: v.moneda || 'COP',
+      descripcion: v.descripcion
+    };
+
+    const { error } = await supabase.from('ventas_manuales').update(payload).eq('id', v.id);
+    if (error) {
+      alert('Error al actualizar venta manual: ' + error.message);
+    } else {
+      setVentasManuales(prev => prev.map(item => item.id === v.id ? v : item));
     }
   };
 
@@ -1809,6 +1862,8 @@ function App() {
           users={users}
           currentUser={currentUser}
           onAdd={addVentaManual}
+          onAddBulk={addVentasManuales}
+          onUpdate={updateVentaManual}
           onDelete={deleteVentaManual}
         />;
       case 'informes':

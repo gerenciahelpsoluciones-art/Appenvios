@@ -256,3 +256,100 @@ button:active {
 .animate-fade-in {
   animation: fadeIn 0.3s ease-out forwards;
 }
+/* Premium UI Components */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+}
+
+.stat-card {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.stat-icon {
+  background: var(--secondary-blue);
+  color: var(--primary-blue);
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+
+.stat-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary-blue);
+}
+
+.stat-sub {
+  font-size: 0.75rem;
+  color: var(--success);
+  margin-top: 2px;
+}
+
+/* Badges \*/
+.badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.badge-info {
+  background: var(--secondary-blue);
+  color: var(--primary-blue);
+}
+
+.btn-secondary {
+  background-color: var(--background-white) !important;
+  color: var(--primary-blue) !important;
+  border: 1px solid var(--primary-blue) !important;
+}
+
+.btn-secondary:hover {
+  background-color: var(--secondary-blue) !important;
+}
+
+.btn-action {
+  background: transparent;
+  color: var(--text-muted);
+  padding: 0.5rem;
+  border-radius: 8px;
+  line-height: 1;
+  border: none !important;
+  width: auto !important;
+}
+
+.btn-action:hover {
+  background: var(--secondary-blue);
+  color: var(--primary-blue);
+}
