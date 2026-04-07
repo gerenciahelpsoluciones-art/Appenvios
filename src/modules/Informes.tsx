@@ -138,6 +138,8 @@ const InformesModule: React.FC<IProps> = ({
     // Monthly performance for execution cards (now based on appliedFilters for consistency)
     const monthlySales = totalVendido + totalManualSales;
 
+    const profitMarginPercent = monthlySales > 0 ? (totalUtilidad / monthlySales) * 100 : 0;
+
     console.log('Informes Debug:', {
         totalReceivedManual: (ventasManuales || []).length,
         filteredManualSales: manualSalesFiltered.length,
@@ -444,6 +446,11 @@ const InformesModule: React.FC<IProps> = ({
                         <div className="stat-label" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.75rem' }}>Utilidad en Rango</div>
                         <div className="stat-value" style={{ fontSize: '1.2rem', color: '#fff' }}>${Math.round(totalUtilidad).toLocaleString()}</div>
                         <div className="stat-trend" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff' }}>Margen Bruto</div>
+                    </div>
+                    <div className="stat-card margin-percent-card" style={{ background: 'linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)' }}>
+                        <div className="stat-label" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.75rem' }}>Porcentaje de Utilidad</div>
+                        <div className="stat-value" style={{ fontSize: '1.2rem', color: '#fff' }}>{profitMarginPercent.toFixed(1)}%</div>
+                        <div className="stat-trend" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff' }}>Sobre Ventas Totales</div>
                     </div>
                     {currentUser.rol === 'Admin' && (
                         <>
