@@ -158,13 +158,18 @@ const LogisticaModule: React.FC<IProps> = ({
     };
 
     const downloadFile = (url: string, filename: string) => {
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = filename;
-        link.target = '_blank';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        // Favoring browser's native PDF viewer over forced download
+        if (url.toLowerCase().endsWith('.pdf')) {
+            window.open(url, '_blank', 'noreferrer');
+        } else {
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            link.target = '_blank';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
     };
 
     const handleAddManualItem = () => {

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import RecoveryAssistant from './components/RecoveryAssistant'
 import './index.css'
 import ClientesModule from './modules/Clientes'
 import CotizacionesModule from './modules/Cotizaciones'
