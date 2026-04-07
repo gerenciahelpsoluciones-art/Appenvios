@@ -424,25 +424,25 @@ const InformesModule: React.FC<IProps> = ({
                     ) : true) && (
                         <div className="stat-card budget-card">
                             <div className="stat-label">Presupuesto {appliedFilters.asesorId ? 'Personal' : 'Empresa (Total)'}</div>
-                            <div className="stat-value">${activeBudget.toLocaleString()}</div>
+                            <div className="stat-value" style={{ fontSize: '1.3rem' }}>${activeBudget.toLocaleString()}</div>
                             <div className="stat-trend">Meta asignada</div>
                         </div>
                     )}
                     <div className="stat-card sales-card">
                         <div className="stat-label">Ventas Logradas (Ganadas)</div>
-                        <div className="stat-value">${monthlySales.toLocaleString()}</div>
+                        <div className="stat-value" style={{ fontSize: '1.3rem' }}>${monthlySales.toLocaleString()}</div>
                         <div className="stat-trend">Ejecutado</div>
                     </div>
                     <div className="stat-card percent-card">
                         <div className="stat-label">% Ejecución</div>
-                        <div className="stat-value">{executionPercent.toFixed(1)}%</div>
+                        <div className="stat-value" style={{ fontSize: '1.3rem' }}>{executionPercent.toFixed(1)}%</div>
                         <div className="stat-trend" style={{ background: difference >= 0 ? '#059669' : '#991b1b' }}>
                             {difference >= 0 ? `+ $${difference.toLocaleString()}` : `- $${Math.abs(difference).toLocaleString()}`}
                         </div>
                     </div>
                     <div className="stat-card profit-summary-card">
                         <div className="stat-label">Utilidad General (Rango)</div>
-                        <div className="stat-value">${Math.round(totalUtilidad).toLocaleString()}</div>
+                        <div className="stat-value" style={{ fontSize: '1.3rem' }}>${Math.round(totalUtilidad).toLocaleString()}</div>
                         <div className="stat-trend">Margen Bruto</div>
                     </div>
                     {currentUser.rol === 'Admin' && (
