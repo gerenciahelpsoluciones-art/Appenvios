@@ -471,15 +471,19 @@ const InformesModule: React.FC<IProps> = ({
                         >
                             <option value="">-- Todos los Asesores --</option>
                             {users
-                                .filter(u => 
-                                    u.rol === 'Comercial' || 
-                                    u.rol === 'Admin' || 
-                                    (u.cargo && (
-                                        u.cargo.toLowerCase().includes('comercial') || 
-                                        u.cargo.toLowerCase().includes('gerente') ||
-                                        u.cargo.toLowerCase().includes('asesor')
-                                    ))
-                                )
+                                .filter(u => {
+                                    const rol = (u.rol || '').toLowerCase();
+                                    const cargo = (u.cargo || '').toLowerCase();
+                                    const isExcluded = rol.includes('tecnico') || rol.includes('técnico') || rol.includes('logistica') || rol.includes('logística');
+                                    
+                                    return !isExcluded && (
+                                        rol === 'comercial' || 
+                                        rol === 'admin' || 
+                                        cargo.includes('comercial') || 
+                                        cargo.includes('gerente') ||
+                                        cargo.includes('asesor')
+                                    );
+                                })
                                 .map(u => (
                                     <option key={u.id} value={u.id}>{u.nombre} ({u.rol})</option>
                                 ))}

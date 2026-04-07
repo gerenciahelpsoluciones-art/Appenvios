@@ -22,12 +22,25 @@ const Vendedores: React.FC<IProps> = ({ users, budgets, cotizaciones, ventasManu
 
     // Include all users who have a budget assigned (any month), plus Comercials
     const userIdsWithBudget = new Set(budgets.map(b => b.usuarioId));
-    const vendedores = users.filter(u =>
-        (u.rol === 'Comercial' ||
-        (u.cargo && u.cargo.toLowerCase().includes('comercial')) ||
-        userIdsWithBudget.has(u.id)) &&
-        u.rol !== 'Tecnico'
-    );
+    const vendedores = users.filter(u => {
+        const rol = (u.rol || '').toLowerCase();
+        const cargo = (u.cargo || '').toLowerCase();
+        
+        // Explicitly exclude technical and logistics staff
+        if (rol.includes('tecnico') || rol.includes('técnico') || rol.includes('logistica') || rol.includes('logística')) {
+            return false;
+        }
+
+        // Include if they are commercial, admin, or have a budget
+        return (
+            rol === 'comercial' ||
+            rol === 'admin' ||
+            cargo.includes('comercial') ||
+            cargo.includes('gerente') ||
+            cargo.includes('asesor') ||
+            userIdsWithBudget.has(u.id)
+        );
+    });
 
     const getBudgetForPeriod = (userId: string, start: string, end: string) => {
         const [startY, startM] = start.split('-').map(Number);
