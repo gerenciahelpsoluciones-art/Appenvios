@@ -13,14 +13,25 @@ interface IProps {
 }
 
 const FacturacionModule: React.FC<IProps> = ({ despachos, cotizaciones, clientes, productos, onUpdateDespacho, onUpdateQuote }) => {
+    const now = new Date();
+    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+    const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+
     const [activeTab, setActiveTab] = useState<'pendientes' | 'historial'>('pendientes');
     const [searchTerm, setSearchTerm] = useState('');
+    const [fechaInicio, setFechaInicio] = useState(firstDayOfMonth);
+    const [fechaFin, setFechaFin] = useState(lastDayOfMonth);
     const [viewingCot, setViewingCot] = useState<Cotizacion | null>(null);
 
     // Filtering logic
     const entregados = despachos.filter(d => d.estado === 'Entregado');
     const pendientes = entregados.filter(d => !d.facturado);
-    const historial = entregados.filter(d => d.facturado);
+    const historial = entregados.filter(d => {
+        if (!d.facturado) return false;
+        // Si estamos en la pestaña de historial, aplicamos el filtro de fecha
+        const dateMatch = d.fechaSolicitud >= fechaInicio && d.fechaSolicitud <= fechaFin;
+        return dateMatch;
+    });
 
     const displayList = activeTab === 'pendientes' ? pendientes : historial;
 
@@ -90,18 +101,56 @@ const FacturacionModule: React.FC<IProps> = ({ despachos, cotizaciones, clientes
 
     return (
         <div className="module-container">
-            <div className="module-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
-                <h2>Dashboard de Facturación</h2>
-                <div className="search-bar" style={{ minWidth: '300px' }}>
-                    <input
-                        type="text"
-                        placeholder="Buscar pedido, cliente o NIT..."
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                        className="search-input"
-                        style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #cbd5e1' }}
-                    />
+            <div className="module-header" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                    <h2 style={{ margin: 0 }}>Dashboard de Facturación</h2>
+                    <div className="search-bar" style={{ minWidth: '300px', flex: 1 }}>
+                        <input
+                            type="text"
+                            placeholder="Buscar pedido, cliente o NIT..."
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                            className="search-input"
+                            style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                        />
+                    </div>
                 </div>
+
+                {activeTab === 'historial' && (
+                    <div className="date-filters animate-fade-in" style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '1rem', 
+                        background: '#f8fafc',
+                        padding: '1rem',
+                        borderRadius: '12px',
+                        border: '1px solid #e2e8f0'
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span style={{ fontSize: '0.875rem', fontWeight: 700, color: '#64748b' }}>📅 Rango Historial:</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.1rem' }}>
+                                <input 
+                                    type="date" 
+                                    className="input-field" 
+                                    style={{ padding: '0.4rem', fontSize: '0.85rem' }}
+                                    value={fechaInicio}
+                                    onChange={e => setFechaInicio(e.target.value)}
+                                />
+                                <span style={{ color: '#94a3b8' }}>a</span>
+                                <input 
+                                    type="date" 
+                                    className="input-field" 
+                                    style={{ padding: '0.4rem', fontSize: '0.85rem' }}
+                                    value={fechaFin}
+                                    onChange={e => setFechaFin(e.target.value)}
+                                />
+                            </div>
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: '#64748b', fontStyle: 'italic' }}>
+                            Viendo lo facturado entre {fechaInicio} y {fechaFin}
+                        </div>
+                    </div>
+                )}
             </div>
 
             <div className="admin-tabs" style={{ display: 'flex', gap: '1rem', borderBottom: '2px solid #e2e8f0', marginBottom: '1.5rem' }}>

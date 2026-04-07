@@ -32,7 +32,7 @@ const VentasManualesModule: React.FC<IProps> = ({
     const [selectedProductoId, setSelectedProductoId] = useState('');
     const [selectedUsuarioId, setSelectedUsuarioId] = useState(currentUser.id);
     const [monto, setMonto] = useState(0);
-    const [tipoVenta, setTipoVenta] = useState<'Venta' | 'Contrato' | 'Alquiler' | 'Licencia'>('Venta');
+    const [tipoVenta, setTipoVenta] = useState<'Venta' | 'Contrato' | 'Alquiler' | 'Licencia' | 'Licitacion'>('Venta');
     const [descripcion, setDescripcion] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
 
@@ -260,9 +260,10 @@ const VentasManualesModule: React.FC<IProps> = ({
                                     onChange={e => setTipoVenta(e.target.value as any)}
                                 >
                                     <option value="Venta">Venta Estándar</option>
-                                    <option value="Contrato">Contrato de Mantenimiento</option>
+                                    <option value="Contrato">Contrato de Mantenimiento / Soporte</option>
                                     <option value="Alquiler">Alquiler de Equipos</option>
                                     <option value="Licencia">Licenciamiento / Software</option>
+                                    <option value="Licitacion">Licitación / Bidding</option>
                                 </select>
                             </div>
                             <div className="form-group flex-1">

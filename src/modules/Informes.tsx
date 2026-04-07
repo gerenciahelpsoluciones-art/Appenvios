@@ -124,6 +124,10 @@ const InformesModule: React.FC<IProps> = ({
         .filter(v => v.tipoVenta === 'Licencia')
         .reduce((acc, v) => acc + v.monto, 0);
     
+    const revenueByTenders = manualSalesFiltered
+        .filter(v => v.tipoVenta === 'Licitacion')
+        .reduce((acc, v) => acc + v.monto, 0);
+    
     const revenueByStandard = manualSalesFiltered
         .filter(v => v.tipoVenta === 'Venta')
         .reduce((acc, v) => acc + v.monto, 0);
@@ -456,6 +460,11 @@ const InformesModule: React.FC<IProps> = ({
                             <div className="stat-card" style={{ background: 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)' }}>
                                 <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.9)', fontWeight: 600, marginBottom: '0.2rem' }}>Ventas Estándar</div>
                                 <div style={{ fontSize: '0.95rem', color: '#fff', fontWeight: 700, margin: '0.15rem 0' }}>${Math.round(revenueByStandard).toLocaleString()}</div>
+                                <div className="stat-trend" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', fontSize: '0.68rem' }}>En el periodo</div>
+                            </div>
+                            <div className="stat-card" style={{ background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)' }}>
+                                <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.9)', fontWeight: 600, marginBottom: '0.2rem' }}>Licitaciones</div>
+                                <div style={{ fontSize: '0.95rem', color: '#fff', fontWeight: 700, margin: '0.15rem 0' }}>${Math.round(revenueByTenders).toLocaleString()}</div>
                                 <div className="stat-trend" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', fontSize: '0.68rem' }}>En el periodo</div>
                             </div>
                             <div className="stat-card" style={{ background: 'linear-gradient(135deg, #c084fc 0%, #9333ea 100%)' }}>

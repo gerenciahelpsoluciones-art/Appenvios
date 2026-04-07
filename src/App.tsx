@@ -298,7 +298,7 @@ export interface VentaManual {
   usuarioNombre: string;
   monto: number;
   moneda?: 'COP' | 'USD';
-  tipoVenta?: 'Venta' | 'Contrato' | 'Alquiler' | 'Licencia';
+  tipoVenta?: 'Venta' | 'Contrato' | 'Alquiler' | 'Licencia' | 'Licitacion';
   descripcion: string;
 }
 
