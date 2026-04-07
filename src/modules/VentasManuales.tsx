@@ -13,12 +13,38 @@ interface IProps {
 
 const VentasManualesModule: React.FC<IProps> = ({ ventas, clientes, productos, users, currentUser, onAdd, onDelete }) => {
     const [isAdding, setIsAdding] = useState(false);
+    const [isCloning, setIsCloning] = useState(false);
+    const [selectedMonth, setSelectedMonth] = useState('');
+    const [salesToClone, setSalesToClone] = useState<string[]>([]);
+
     const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0]);
     const [selectedClienteId, setSelectedClienteId] = useState('');
     const [selectedProductoId, setSelectedProductoId] = useState('');
     const [selectedUsuarioId, setSelectedUsuarioId] = useState(currentUser.id);
     const [monto, setMonto] = useState(0);
     const [descripcion, setDescripcion] = useState('');
+
+    // Group sales by Month/Year for the selector
+    const availableMonths = Array.from(new Set(ventas.map(v => v.fecha.substring(0, 7)))).sort().reverse();
+
+    const handleCloneSubmit = () => {
+        const selectedSales = ventas.filter(v => salesToClone.includes(v.id));
+        const today = new Date().toISOString().split('T')[0];
+
+        selectedSales.forEach(sale => {
+            const clonedVenta: VentaManual = {
+                ...sale,
+                id: crypto.randomUUID(),
+                fecha: today,
+            };
+            onAdd(clonedVenta);
+        });
+
+        setIsCloning(false);
+        setSalesToClone([]);
+        setSelectedMonth('');
+        alert(`${selectedSales.length} ventas clonadas exitosamente para hoy.`);
+    };
 
     const handlesubmit = () => {
         const cliente = clientes.find(c => c.id === selectedClienteId);
@@ -69,7 +95,10 @@ const VentasManualesModule: React.FC<IProps> = ({ ventas, clientes, productos, u
                     <h2>Ventas Manuales</h2>
                     <p>Registro de ventas directas sin cotización previa</p>
                 </div>
-                <button className="btn-primary" onClick={() => setIsAdding(true)}>+ Registrar Venta</button>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button className="btn-secondary" onClick={() => setIsCloning(true)}>🔄 Importar Facturación</button>
+                    <button className="btn-primary" onClick={() => setIsAdding(true)}>+ Registrar Venta</button>
+                </div>
             </div>
 
             {isAdding && (
@@ -160,6 +189,81 @@ const VentasManualesModule: React.FC<IProps> = ({ ventas, clientes, productos, u
                             <button className="btn-secondary" onClick={resetForm}>Cancelar</button>
                             <button className="btn-primary" onClick={handlesubmit}>Guardar Venta</button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {isCloning && (
+                <div className="card form-card animate-fade-in" style={{ marginBottom: '2rem', borderLeft: '4px solid var(--primary-blue)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                        <div>
+                            <h3 style={{ margin: 0 }}>Importar Ventas Históricas</h3>
+                            <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>Seleccione un periodo para duplicar facturas con la fecha de hoy</p>
+                        </div>
+                        <select 
+                            className="input-field" 
+                            style={{ maxWidth: '200px' }}
+                            value={selectedMonth}
+                            onChange={(e) => setSelectedMonth(e.target.value)}
+                        >
+                            <option value="">Seleccione Mes</option>
+                            {availableMonths.map(m => (
+                                <option key={m} value={m}>{m} (Ventas: {ventas.filter(v => v.fecha.startsWith(m)).length})</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {selectedMonth && (
+                        <div style={{ maxHeight: '300px', overflowY: 'auto', marginBottom: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                            <table className="data-table" style={{ fontSize: '0.9rem' }}>
+                                <thead style={{ position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 10 }}>
+                                    <tr>
+                                        <th style={{ width: '40px' }}>
+                                            <input 
+                                                type="checkbox" 
+                                                onChange={(e) => {
+                                                    const monthSalesIds = ventas.filter(v => v.fecha.startsWith(selectedMonth)).map(v => v.id);
+                                                    setSalesToClone(e.target.checked ? monthSalesIds : []);
+                                                }}
+                                            />
+                                        </th>
+                                        <th>Cliente</th>
+                                        <th>Descripción</th>
+                                        <th className="text-right">Monto</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {ventas.filter(v => v.fecha.startsWith(selectedMonth)).map(v => (
+                                        <tr key={v.id}>
+                                            <td>
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={salesToClone.includes(v.id)}
+                                                    onChange={(e) => {
+                                                        if (e.target.checked) setSalesToClone([...salesToClone, v.id]);
+                                                        else setSalesToClone(salesToClone.filter(id => id !== v.id));
+                                                    }}
+                                                />
+                                            </td>
+                                            <td>{v.clienteNombre}</td>
+                                            <td>{v.descripcion}</td>
+                                            <td className="text-right">${v.monto.toLocaleString()}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+
+                    <div className="form-actions" style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+                        <button className="btn-secondary" onClick={() => { setIsCloning(false); setSalesToClone([]); setSelectedMonth(''); }}>Cancelar</button>
+                        <button 
+                            className="btn-primary" 
+                            disabled={salesToClone.length === 0} 
+                            onClick={handleCloneSubmit}
+                        >
+                            Clonar Seleccionados ({salesToClone.length})
+                        </button>
                     </div>
                 </div>
             )}
