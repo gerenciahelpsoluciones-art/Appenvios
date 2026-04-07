@@ -1951,7 +1951,7 @@ function App() {
             {/* Header Section */}
             <div className="dashboard-header" style={{ marginBottom: '1rem' }}>
               <h2 style={{ margin: 0, fontSize: '2rem', color: '#1e293b' }}>
-                ¡Hola, {currentUser.nombre.split(' ')[0]}!
+                ¡Bienvenido, {currentUser.nombre.split(' ')[0]}!
               </h2>
               <p style={{ margin: 0, color: '#64748b', fontSize: '1.1rem' }}>
                 Aquí está el resumen de tu negocio para {now.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}.
