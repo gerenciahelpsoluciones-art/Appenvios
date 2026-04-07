@@ -238,24 +238,24 @@ const Vendedores: React.FC<IProps> = ({ users, budgets, cotizaciones, ventasManu
                                 {/* monthly History Table */}
                                 <div style={{ flex: '3 1 600px', borderLeft: '1px solid #e2e8f0', paddingLeft: '1.5rem' }}>
                                     <h4 style={{ marginBottom: '1rem', color: '#475569' }}>📊 Historial de los últimos 6 meses</h4>
-                                    <table className="data-table" style={{ fontSize: '0.85rem' }}>
+                                    <table className="data-table" style={{ fontSize: '0.85rem', width: '100%', borderCollapse: 'collapse' }}>
                                         <thead>
                                             <tr>
-                                                <th>Mes</th>
-                                                <th className="text-right">Meta</th>
-                                                <th className="text-right">Venta</th>
-                                                <th className="text-center">Cotiz.</th>
-                                                <th className="text-right">% Cumpl.</th>
+                                                <th style={{ textAlign: 'left', padding: '0.75rem 0.5rem' }}>Mes</th>
+                                                <th className="text-right" style={{ padding: '0.75rem 0.5rem', minWidth: '100px' }}>Meta</th>
+                                                <th className="text-right" style={{ padding: '0.75rem 0.5rem', minWidth: '100px' }}>Venta</th>
+                                                <th className="text-center" style={{ padding: '0.75rem 0.5rem' }}>Cotiz.</th>
+                                                <th className="text-right" style={{ padding: '0.75rem 0.5rem' }}>% Cumpl.</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {history.map((h, i) => (
-                                                <tr key={i}>
-                                                    <td style={{ fontWeight: i === 5 ? 'bold' : 'normal' }}>{h.month}</td>
-                                                    <td className="text-right">{formatCurrency(h.budget)}</td>
-                                                    <td className="text-right" style={{ fontWeight: 'bold' }}>{formatCurrency(h.sales)}</td>
-                                                    <td className="text-center">{h.quotes}</td>
-                                                    <td className="text-right">
+                                                <tr key={i} style={{ borderTop: '1px solid #f1f5f9' }}>
+                                                    <td style={{ fontWeight: i === 5 ? 'bold' : 'normal', padding: '0.75rem 0.5rem' }}>{h.month}</td>
+                                                    <td className="text-right" style={{ padding: '0.75rem 0.5rem' }}>{formatCurrency(h.budget)}</td>
+                                                    <td className="text-right" style={{ fontWeight: 'bold', padding: '0.75rem 0.5rem' }}>{formatCurrency(h.sales)}</td>
+                                                    <td className="text-center" style={{ padding: '0.75rem 0.5rem' }}>{h.quotes}</td>
+                                                    <td className="text-right" style={{ padding: '0.75rem 0.5rem' }}>
                                                         <span style={{ 
                                                             color: h.percent >= 80 ? '#166534' : h.percent >= 60 ? '#92400e' : '#991b1b',
                                                             fontWeight: 'bold'
