@@ -470,9 +470,19 @@ const InformesModule: React.FC<IProps> = ({
                             onChange={e => setSelectedAsesorId(e.target.value)}
                         >
                             <option value="">-- Todos los Asesores --</option>
-                            {users.map(u => (
-                                <option key={u.id} value={u.id}>{u.nombre} ({u.rol})</option>
-                            ))}
+                            {users
+                                .filter(u => 
+                                    u.rol === 'Comercial' || 
+                                    u.rol === 'Admin' || 
+                                    (u.cargo && (
+                                        u.cargo.toLowerCase().includes('comercial') || 
+                                        u.cargo.toLowerCase().includes('gerente') ||
+                                        u.cargo.toLowerCase().includes('asesor')
+                                    ))
+                                )
+                                .map(u => (
+                                    <option key={u.id} value={u.id}>{u.nombre} ({u.rol})</option>
+                                ))}
                         </select>
                     </div>
                     <div className="button-box">

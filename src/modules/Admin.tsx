@@ -292,9 +292,19 @@ const AdminModule: React.FC<IProps> = ({
                                 <select className="input-field" value={budgetForm.usuarioId} onChange={e => setBudgetForm({ ...budgetForm, usuarioId: e.target.value })}>
                                     <option value="">Seleccione...</option>
                                     <option value="company-total">🏢 Empresa (Global)</option>
-                                    {users.map(u => (
-                                        <option key={u.id} value={u.id}>{u.nombre} ({u.rol})</option>
-                                    ))}
+                                    {users
+                                        .filter(u => 
+                                            u.rol === 'Comercial' || 
+                                            u.rol === 'Admin' || 
+                                            (u.cargo && (
+                                                u.cargo.toLowerCase().includes('comercial') || 
+                                                u.cargo.toLowerCase().includes('gerente') ||
+                                                u.cargo.toLowerCase().includes('asesor')
+                                            ))
+                                        )
+                                        .map(u => (
+                                            <option key={u.id} value={u.id}>{u.nombre} ({u.rol})</option>
+                                        ))}
                                 </select>
                             </div>
                             <div className="form-group">

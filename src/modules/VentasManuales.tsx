@@ -255,9 +255,19 @@ const VentasManualesModule: React.FC<IProps> = ({
                                     onChange={e => setSelectedUsuarioId(e.target.value)}
                                     disabled={currentUser.rol !== 'Admin'}
                                 >
-                                    {users.filter(u => u.rol === 'Comercial' || (u.cargo && u.cargo.toLowerCase().includes('comercial')) || u.rol === 'Admin').map(u => (
-                                        <option key={u.id} value={u.id}>{u.nombre}</option>
-                                    ))}
+                                    {users
+                                        .filter(u => 
+                                            u.rol === 'Comercial' || 
+                                            u.rol === 'Admin' || 
+                                            (u.cargo && (
+                                                u.cargo.toLowerCase().includes('comercial') || 
+                                                u.cargo.toLowerCase().includes('gerente') ||
+                                                u.cargo.toLowerCase().includes('asesor')
+                                            ))
+                                        )
+                                        .map(u => (
+                                            <option key={u.id} value={u.id}>{u.nombre}</option>
+                                        ))}
                                 </select>
                             </div>
                         </div>
