@@ -1,0 +1,4 @@
+Order ID,Salesperson Email,Client ID,Driver ID,Status,Quote ID,Pickup Address,Pickup LatLong,Delivery Address,Delivery LatLong,Request Date,Notes,Delivery Photo
+ORD-101,comercial1@empresa.com,C001,,En preparacion,QUO-001,"Calle 100 #15-37, Bogota","4.6825, -74.0422","Calle 72 #10-34, Bogota","4.6591, -74.0628",2026-02-12 14:00,Nueva solicitud comercial,
+ORD-102,comercial2@empresa.com,C002,D003,En camino,QUO-002,"Carrera 48 #32S-29, Envigado","6.1759, -75.5911","Calle 10 #43E-11, Medellin","6.2084, -75.5679",2026-02-12 11:30,Urgente,
+ORD-103,comercial1@empresa.com,C003,D001,Entregado,,"Avenida Simon Bolivar, Cali","3.3725, -76.5297","Calle 5 #66-00, Cali","3.4111, -76.5412",2026-02-12 09:00,Entregado con exito,

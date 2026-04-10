@@ -1,0 +1,82 @@
+﻿
+> help-solutions@0.1.0 build
+> next build
+
+Ôû▓ Next.js 16.1.6 (Turbopack)
+
+  Creating an optimized production build ...
+node.exe : Error: Cannot apply unknown utility class `border-border`
+En línea: 1 Carácter: 1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Error: Cannot a...`border-border`:String 
+   ) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+    [2m[at onInvalidCandidate (C:\Users\carlo\OneDrive - Help Soluciones Informaticas
+\Documentos\Testing\Appenvios\help-solutions-main-new\node_modules\tailwindcss\dist\li
+b.js:21:1511)][0m
+    [2m[at Te (C:\Users\carlo\OneDrive - Help Soluciones Informaticas\Documentos\Test
+ing\Appenvios\help-solutions-main-new\node_modules\tailwindcss\dist\lib.js:16:36652)]
+[0m
+    [2m[at C:\Users\carlo\OneDrive - Help Soluciones Informaticas\Documentos\Testing\
+Appenvios\help-solutions-main-new\node_modules\tailwindcss\dist\lib.js:21:355][0m
+    [2m[at Rr (C:\Users\carlo\OneDrive - Help Soluciones Informaticas\Documentos\Test
+ing\Appenvios\help-solutions-main-new\node_modules\tailwindcss\dist\lib.js:3:1718)][0
+m
+    [2m[at _ (C:\Users\carlo\OneDrive - Help Soluciones Informaticas\Documentos\Testi
+ng\Appenvios\help-solutions-main-new\node_modules\tailwindcss\dist\lib.js:3:1377)][0m
+    [2m[at $e (C:\Users\carlo\OneDrive - Help Soluciones Informaticas\Documentos\Test
+ing\Appenvios\help-solutions-main-new\node_modules\tailwindcss\dist\lib.js:21:172)][0
+m
+    [2m[at un (C:\Users\carlo\OneDrive - Help Soluciones Informaticas\Documentos\Test
+ing\Appenvios\help-solutions-main-new\node_modules\tailwindcss\dist\lib.js:38:294)][0
+m
+    [2m[at async cn (C:\Users\carlo\OneDrive - Help Soluciones Informaticas\Documento
+s\Testing\Appenvios\help-solutions-main-new\node_modules\tailwindcss\dist\lib.js:38:63
+1)][0m
+    [2m[at async Xr (C:\Users\carlo\OneDrive - Help Soluciones Informaticas\Documento
+s\Testing\Appenvios\help-solutions-main-new\node_modules\@tailwindcss\node\dist\index.
+js:10:3417)][0m
+    [2m[at async I (C:\Users\carlo\OneDrive - Help Soluciones Informaticas\Documentos
+\Testing\Appenvios\help-solutions-main-new\node_modules\@tailwindcss\postcss\dist\inde
+x.js:10:3977)][0m
+
+> Build error occurred
+Error: Turbopack build failed with 1 errors:
+./app/globals.css
+Error evaluating Node.js code
+CssSyntaxError: tailwindcss: C:\Users\carlo\OneDrive - Help Soluciones Informaticas\Do
+cumentos\Testing\Appenvios\help-solutions-main-new\app\globals.css:1:1: Cannot apply 
+unknown utility class `border-border`
+    at Input.error (node_modules/postcss/lib/input.js:135:16) 
+[C:\Users\carlo\OneDrive - Help Soluciones Informaticas\Documentos\Testing\Appenvios\h
+elp-solutions-main-new\.next\build\chunks\node_modules_fe693df6._.js:4651:22]
+    at Root.error (node_modules/postcss/lib/node.js:146:32) [C:\Users\carlo\OneDrive 
+- Help Soluciones Informaticas\Documentos\Testing\Appenvios\help-solutions-main-new\.n
+ext\build\chunks\node_modules_fe693df6._.js:928:38]
+    [at Object.Once (C:\Users\carlo\OneDrive - Help Soluciones Informaticas\Documentos
+\Testing\Appenvios\help-solutions-main-new\node_modules\@tailwindcss\postcss\dist\inde
+x.js:10:6911)]
+    at async LazyResult.runAsync (node_modules/postcss/lib/lazy-result.js:293:11) 
+[C:\Users\carlo\OneDrive - Help Soluciones Informaticas\Documentos\Testing\Appenvios\h
+elp-solutions-main-new\.next\build\chunks\node_modules_fe693df6._.js:6206:21]
+    at async transform (turbopack:///[turbopack-node]/transforms/postcss.ts:70:34) 
+[C:\Users\carlo\OneDrive - Help Soluciones Informaticas\Documentos\Testing\Appenvios\h
+elp-solutions-main-new\.next\build\chunks\[root-of-the-server]__51225daf._.js:146:36]
+    at async run (turbopack:///[turbopack-node]/ipc/evaluate.ts:92:23) 
+[C:\Users\carlo\OneDrive - Help Soluciones Informaticas\Documentos\Testing\Appenvios\h
+elp-solutions-main-new\.next\build\chunks\[root-of-the-server]__974941ed._.js:443:31]
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component]
+
+
+    at async transform (turbopack:///[turbopack-node]/transforms/postcss.ts:70:34) 
+[C:\Users\carlo\OneDrive - Help Soluciones Informaticas\Documentos\Testing\Appenvios\h
+elp-solutions-main-new\.next\build\chunks\[root-of-the-server]__51225daf._.js:146:36])
+    at async run (turbopack:///[turbopack-node]/ipc/evaluate.ts:92:23) 
+[C:\Users\carlo\OneDrive - Help Soluciones Informaticas\Documentos\Testing\Appenvios\h
+elp-solutions-main-new\.next\build\chunks\[root-of-the-server]__974941ed._.js:443:31])

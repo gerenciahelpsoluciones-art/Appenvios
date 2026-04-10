@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Supabase Diagnostic</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body style="font-family: sans-serif; padding: 20px;">
+    <h1>Supabase Connection Diagnostic</h1>
+    <div id="results">Testing...</div>
+
+    <script>
+        const SB_URL = "https://matyjysinegbibdwzhoq.supabase.co";
+        const KEY_JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1hdHlqeXNpbmVnYmlid3pob3EiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTczODIxNjEwMiwiZXhwIjoyMDUzNzkyMTAyfQ.UvshWST_v9G14u6fW5G1YtO_p5m728yY_u_vi_6890";
+        const KEY_SECRET = "sb_secret_vi6890ktDX5SceFPvzNF_w_B5_ze28O";
+
+        async function testKey(name, key) {
+            const client = supabase.createClient(SB_URL, key);
+            try {
+                // Test fetching from a table we know might exist or just a random check
+                const { data, error, status } = await client.from('visitantes_web').select('count', { count: 'exact', head: true });
+                return { name, status, error: error ? error.message : null };
+            } catch (e) {
+                return { name, status: 'EXCEPTION', error: e.message };
+            }
+        }
+
+        async function runDiagnostics() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = "Running tests...";
+            
+            const res1 = await testKey("JWT Key", KEY_JWT);
+            const res2 = await testKey("Secret Key", KEY_SECRET);
+
+            resultsDiv.innerHTML = `
+                <h3>Test 1: ${res1.name}</h3>
+                <p>Status: ${res1.status}</p>
+                <p>Error: ${res1.error || 'NONE'}</p>
+                <hr>
+                <h3>Test 2: ${res2.name}</h3>
+                <p>Status: ${res2.status}</p>
+                <p>Error: ${res2.error || 'NONE'}</p>
+            `;
+        }
+
+        runDiagnostics();
+    </script>
+</body>
+</html>

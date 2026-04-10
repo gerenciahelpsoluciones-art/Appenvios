@@ -1,0 +1,4 @@
+Driver ID,Name,Email,Phone,Status,Current Location
+D001,Juan Perez,juan.perez@example.com,3001234567,Active,"4.6097, -74.0817"
+D002,Maria Rodriguez,maria.rodriguez@example.com,3109876543,Offline,
+D003,Carlos Mejia,carlos.mejia@example.com,3201112233,Busy,"6.2442, -75.5812"

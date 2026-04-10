@@ -1,0 +1,355 @@
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary-blue: #004A99;
+  --primary-hover: #003366;
+  --secondary-blue: #E6F0FF;
+  --text-main: #1A1A1A;
+  --text-muted: #666666;
+  --background-white: #FFFFFF;
+  --background-light: #F8FAFC;
+  --border-color: #E2E8F0;
+  --success: #10B981;
+  --error: #EF4444;
+  --warning: #F59E0B;
+
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: var(--text-main);
+  background-color: var(--background-light);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100vh;
+  background-color: var(--background-light);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  color: var(--primary-blue);
+  font-weight: 600;
+}
+
+a {
+  color: var(--primary-blue);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+a:hover {
+  color: var(--primary-hover);
+}
+
+button {
+  background-color: var(--primary-blue);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 0.75rem 1.5rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+button:hover {
+  background-color: var(--primary-hover);
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+.brand-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.card {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.input-field {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 3px rgba(0, 74, 153, 0.1);
+}
+
+/* Utils */
+.text-right {
+  text-align: right;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.text-left {
+  text-align: left;
+}
+
+/* --- Responsive Design --- */
+
+/* Tablet and smaller */
+@media (max-width: 1024px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .app-container {
+    flex-direction: column;
+  }
+
+  /* Make sidebar horizontal or a top bar */
+  .sidebar {
+    width: 100% !important;
+    padding: 1rem !important;
+    flex-direction: row !important;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    height: auto;
+  }
+
+  .brand-box {
+    border-bottom: none !important;
+    padding-bottom: 0 !important;
+    flex-direction: row !important;
+    align-items: center;
+    margin-right: auto;
+  }
+
+  .brand-box img {
+    width: 40px !important;
+  }
+
+  .logo-text {
+    font-size: 1rem !important;
+    margin-top: 0 !important;
+  }
+
+  .nav-menu {
+    flex-direction: row !important;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 0 !important;
+    padding: 0.5rem !important;
+  }
+
+  .nav-item {
+    width: auto !important;
+    padding: 0.5rem !important;
+    font-size: 0.85rem;
+  }
+
+  .nav-icon {
+    display: none;
+    /* Hide icons on mobile to save space if desired, or keep them */
+  }
+
+  .main-content {
+    width: 100%;
+  }
+
+  .top-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 1rem !important;
+    gap: 1rem;
+  }
+
+  .user-info {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .content-area {
+    padding: 1rem !important;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .wide-card {
+    grid-column: span 1 !important;
+  }
+
+  /* Make tables responsive */
+  .table-card {
+    padding: 1rem 0 !important;
+    /* give scroll room */
+  }
+
+  .data-table,
+  .inner-table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .module-header {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 1rem;
+  }
+
+  .header-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .header-actions button,
+  .header-actions select {
+    flex: 1;
+    min-width: 120px;
+  }
+
+  /* Grid layouts in cards */
+  div[style*="grid-template-columns: 1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+/* Premium UI Components */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+}
+
+.stat-card {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.stat-icon {
+  background: var(--secondary-blue);
+  color: var(--primary-blue);
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+
+.stat-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary-blue);
+}
+
+.stat-sub {
+  font-size: 0.75rem;
+  color: var(--success);
+  margin-top: 2px;
+}
+
+/* Badges \*/
+.badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.badge-info {
+  background: var(--secondary-blue);
+  color: var(--primary-blue);
+}
+
+.btn-secondary {
+  background-color: var(--background-white) !important;
+  color: var(--primary-blue) !important;
+  border: 1px solid var(--primary-blue) !important;
+}
+
+.btn-secondary:hover {
+  background-color: var(--secondary-blue) !important;
+}
+
+.btn-action {
+  background: transparent;
+  color: var(--text-muted);
+  padding: 0.5rem;
+  border-radius: 8px;
+  line-height: 1;
+  border: none !important;
+  width: auto !important;
+}
+
+.btn-action:hover {
+  background: var(--secondary-blue);
+  color: var(--primary-blue);
+}

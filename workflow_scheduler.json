@@ -1,0 +1,34 @@
+{
+  "name": "[CDO] Social Media Scheduler",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 60
+            }
+          ]
+        }
+      },
+      "id": "1",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "content": "## Módulo Scheduler\nEncargado de publicar en Facebook, IG, LinkedIn y TikTok."
+      },
+      "id": "2",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [200, 100]
+    }
+  ],
+  "connections": {},
+  "settings": {}
+}

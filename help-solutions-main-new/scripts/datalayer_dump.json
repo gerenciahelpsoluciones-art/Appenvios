@@ -1,0 +1,33 @@
+{
+  "standard": [
+    {
+      "gtm.blacklist": []
+    },
+    {
+      "gtm.start": 1773874137424,
+      "event": "gtm.js",
+      "gtm.uniqueEventId": 3
+    },
+    {
+      "event": "pageView",
+      "location": "https://www.impresistem.com/",
+      "page": "/",
+      "referrer": "https://www.idoneaservice.com/",
+      "originalLocation": "https://www.impresistem.com/",
+      "originalReferrer": "https://www.idoneaservice.com/",
+      "gtm.uniqueEventId": 4
+    },
+    {
+      "event": "homeView",
+      "gtm.uniqueEventId": 5
+    },
+    {
+      "event": "gtm.dom",
+      "gtm.uniqueEventId": 6
+    },
+    {
+      "event": "gtm.load",
+      "gtm.uniqueEventId": 12
+    }
+  ]
+}

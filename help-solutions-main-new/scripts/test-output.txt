@@ -1,0 +1,8 @@
+GET columns: 200
+Columnas: id, created_at, nombre, empresa, email, telefono, requerimiento, historial_chat, borrador_cotizacion, estado, cotizacion_draft, asesor
+POST minimal: 201
+POST response: [{"id":"4dc29e8a-7e7d-42ff-a857-16100fe1aa43","created_at":"2026-03-29T01:05:05.904428+00:00","nombre":"Test Final Script","empresa":null,"email":null,"telefono":"3001112222","requerimiento":"Prueba automática","historial_chat":null,"borrador_cotizacion":null,"estado":"Nuevo","cotizacion_draft":null
+GET leads: 200
+Leads: [{"id":"4dc29e8a-7e7d-42ff-a857-16100fe1aa43","nombre":"Test Final Script","telefono":"3001112222","requerimiento":"Prueba automática","created_at":"2026-03-29T01:05:05.904428+00:00"}, 
+ {"id":"8b128928-be48-40e5-98e3-8943f81b9d6b","nombre":"Test Completo","telefono":"3009998877","requerimiento":"Prueba completa","created_at":"2026-03-29T01:04:07.363656+00:00"}, 
+ {"id":"588f90ef-c6e5-4d47-9490-dd93c5154946","nombre":"Test Lead Antigravity","telefono":"5551234","requerimiento":"Prueba de integra

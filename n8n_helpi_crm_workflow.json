@@ -1,0 +1,129 @@
+{
+  "name": "Master Plan: Helpi ➜ CRM Appenvios",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "helpi-lead-alert",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "1a2b3c4d",
+      "name": "Webhook Helpi",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "AIzaSyBa0bSGpO-90m6pb_y5MxLEc_OsoIeDBJk"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"contents\": [\n    {\n      \"parts\": [\n        {\n          \"text\": \"Eres un asistente comercial experto. El cliente solicitó: {{$('Webhook Helpi').item.json.body.lead.requerimiento}}. Genera un borrador corto estructurado como un arreglo JSON (ej: [\\\"Producto A\\\", \\\"Servicio B\\\"]) con los nombres de los productos o servicios que le recomendarías cotizar de tu catálogo. Regresa SOLO el arreglo JSON y NADA MÁS NINGUN TEXTO ADICIONAL.\"\n        }\n      ]\n    }\n  ]\n}"
+      },
+      "id": "2b3c4d5e",
+      "name": "Crear Cotización Mágica",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [200, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://matyjysinegbibdwzhoq.supabase.co/rest/v1/clientes_web",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "sb_secret_vi6890ktDX5SceFPvzNF_w_B5_ze28O" },
+            { "name": "Authorization", "value": "Bearer sb_secret_vi6890ktDX5SceFPvzNF_w_B5_ze28O" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=representation" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"nombre\": \"{{$('Webhook Helpi').item.json.body.lead.nombre}}\",\n  \"empresa\": \"{{$('Webhook Helpi').item.json.body.lead.empresa}}\",\n  \"email\": \"{{$('Webhook Helpi').item.json.body.lead.email}}\",\n  \"telefono\": \"{{$('Webhook Helpi').item.json.body.lead.telefono}}\",\n  \"requerimiento\": \"{{$('Webhook Helpi').item.json.body.lead.requerimiento}}\",\n  \"historial_chat\": {{$('Webhook Helpi').item.json.body.history | stringify}},\n  \"borrador_cotizacion\": {{$('Crear Cotización Mágica').item.json.candidates[0].content.parts[0].text || \"[]\"}}\n}"
+      },
+      "id": "3c4d5e6f",
+      "name": "Supabase Appenvios CRM",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [400, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://[TU_API_WHATSAPP]/message/sendText/[INSTANCIA]",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "[TU_TOKEN_API]" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \"573123709335\",\n  \"text\": \"🚨 *NUEVO LEAD WEB*\\n\\n👤 Nombre: {{$('Webhook Helpi').item.json.body.lead.nombre}}\\n🏢 Empresa: {{$('Webhook Helpi').item.json.body.lead.empresa}}\\n📞 Teléfono: {{$('Webhook Helpi').item.json.body.lead.telefono}}\\n\\n💻 *Requerimiento:* {{$('Webhook Helpi').item.json.body.lead.requerimiento}}\\n\\n👉 *Abre Appenvios CRM para ver el chat completo y aprobar la cotización mágica generada.*\"\n}"
+      },
+      "id": "4d5e6f7g",
+      "name": "Notificación WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [600, 0]
+    }
+  ],
+  "connections": {
+    "Webhook Helpi": {
+      "main": [
+        [
+          {
+            "node": "Crear Cotización Mágica",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crear Cotización Mágica": {
+      "main": [
+        [
+          {
+            "node": "Supabase Appenvios CRM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Appenvios CRM": {
+      "main": [
+        [
+          {
+            "node": "Notificación WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

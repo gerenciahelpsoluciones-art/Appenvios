@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Lead Insert Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body style="font-family: sans-serif; padding: 20px;">
+    <h1>Lead Insertion Diagnostic</h1>
+    <div id="status">Testing Anon Insert...</div>
+    <pre id="output" style="background: #f4f4f4; padding: 10px; border-radius: 5px;"></pre>
+
+    <script>
+        const SB_URL = "https://matyjysinegbibdwzhoq.supabase.co";
+        const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1hdHlqeXNpbmVnYmlid3pob3EiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTczODIxNjEwMiwiZXhwIjoyMDUzNzkyMTAyfQ.UvshWST_v9G14u6fW5G1YtO_p5m728yY_u_vi_6890";
+        
+        const supabaseClient = supabase.createClient(SB_URL, SB_KEY);
+        const output = document.getElementById('output');
+
+        async function test() {
+            output.textContent += "Attempting to insert lead into 'clientes_web' WITHOUT 'asesor' column...\n";
+            
+            const dummyLead = {
+                nombre: "Test Diagnostic 2",
+                telefono: "9876543210",
+                requerimiento: "Prueba sin asesor",
+                estado: "Nuevo"
+            };
+
+            try {
+                const { data, error } = await supabaseClient.from('clientes_web').insert([dummyLead]);
+                
+                if (error) {
+                    output.textContent += "❌ FAILED: " + error.message + "\n";
+                    output.textContent += "Code: " + error.code + "\n";
+                    output.textContent += "Hint: " + error.hint + "\n";
+                } else {
+                    output.textContent += "✅ SUCCESS: Lead inserted without 'asesor'! This confirms the key is valid and the issue was the missing column.\n";
+                }
+            } catch (e) {
+                output.textContent += "❌ EXCEPTION: " + e.message + "\n";
+            }
+        }
+
+        test();
+    </script>
+</body>
+</html>

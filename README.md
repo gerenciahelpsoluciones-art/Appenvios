@@ -1,73 +1,137 @@
-# React + TypeScript + Vite
+# Instrucciones de Configuración de AppEnvios
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Esta guía explica cómo configurar el sistema de entregas **AppEnvios** utilizando las plantillas CSV proporcionadas y AppSheet.
 
-Currently, two official plugins are available:
+## 1. Preparar Google Sheets
+1. Abra [Google Sheets](https://sheets.google.com).
+2. Cree una nueva hoja de cálculo llamada `AppEnvios_DB`.
+3. Importe cada archivo CSV en una pestaña separada:
+    - `Drivers.csv` -> Nombre de pestaña: **Conductores**
+    - `Clients.csv` -> Nombre de pestaña: **Clientes**
+    - `Orders.csv` -> Nombre de pestaña: **Pedidos**
+4. Asegúrese de que la primera fila contenga los encabezados.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 2. Conectar a AppSheet
+1. Vaya a [AppSheet](https://www.appsheet.com).
+2. Haga clic en **Create** -> **App** -> **Start with existing data**.
+3. Nombre la app `AppEnvios` y seleccione la hoja `AppEnvios_DB`.
 
-## React Compiler
+## 3. Configuración de Georeferencia (Crucial)
+Para habilitar los mapas y funciones de ubicación, configure estas columnas en el Editor de AppSheet (**Data > Columns**):
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Tabla Clientes
+- **Main Address**: Tipo = `Address`.
+- **Coordinates**: Tipo = `LatLong`.
 
-## Expanding the ESLint configuration
+### Tabla Conductores
+- **Current Location**: Tipo = `LatLong`.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### Tabla Pedidos
+- **Salesperson Email**: Tipo = `Email`.
+- **Pickup Address** y **Delivery Address**: Tipo = `Address`.
+- **Pickup LatLong** y **Delivery LatLong**: Tipo = `LatLong`.
+- **Delivery Photo**: Tipo = `Image`.
+- **Status**: Tipo = `Enum` (Valores: En preparacion, En camino, Entregado, Cancelado).
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## 4. Configuración del Módulo Comercial (NUEVO)
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+### A. Automatización: Notificación a Logística
+1. Vaya a **Automation > Bots**.
+2. Cree un bot: "Nueva Solicitud Comercial".
+3. **Event**: Data Change -> Adds Only en la tabla `Pedidos`.
+4. **Process**: Send an Email.
+    - **To**: `logistica@empresa.com` (O el correo de su área de despacho).
+    - **Subject**: "NUEVA SOLICITUD DE DESPACHO - [Order ID]"
+    - **Body**: "El comercial [Salesperson Email] ha solicitado un despacho para el cliente [ID Cliente]."
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+### B. Automatización: Notificación a Comerciales
+1. Cree otro bot: "Notificar Cambio de Estado a Comercial".
+2. **Event**: Data Change -> Updates Only en la tabla `Pedidos`.
+    - Condition: `[Status] <> LOOKUP([_THISROW].[Order ID], "Pedidos", "Order ID", "Status")`
+3. **Process**: Send an Email.
+    - **To**: `[Salesperson Email]`
+    - **Subject**: "Actualización de Pedido: [Order ID]"
+    - **Body**: "Hola, su solicitud de despacho ahora se encuentra: [Status]."
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### C. Vista de Ventas (Slice)
+1. Vaya a **Data > Slices**.
+2. Cree un Slice "Mis Solicitudes".
+    - Filter condition: `[Salesperson Email] = USEREMAIL()`.
+3. Vaya a **UX > Views** y cree una vista basada en este Slice para que cada comercial vea solo sus pedidos.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### B. Dashboard de Envíos
+1. Vaya a **Data > Slices**.
+2. Cree un Slice llamado "Filtro de Entregas".
+    - Base table: `Pedidos`.
+    - Row filter condition: Use una expresión como `AND([Order Date] >= [_THISUSER].[FechaInicio], [Order Date] <= [_THISUSER].[FechaFin])` para filtros dinámicos.
+3. Vaya a **UX > Views**.
+4. Cree una vista tipo **Dashboard**.
+5. Incluya vistas de tipo **Chart** (Gráfico) que usen el Slice "Filtro de Entregas" agrupadas por `Driver ID`.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## 5. Módulo de Cotizaciones (NUEVO)
+
+### A. Configuración de Tablas
+1. Importe `Quotes.csv`, `Quote_Items.csv` y `Suppliers.csv`.
+2. **Quotes**: 
+   - `Profit Margin %`: Tipo `Percent`. Validación (`Valid_If`): `AND([_THIS] >= 0.07, [_THIS] <= 0.50)`.
+3. **Quote_Items**:
+   - `VAT %`: Tipo `Percent` (Ejem: 0.19).
+   - `Subtotal Cost`: Fórmula: `[Cost Before VAT] * (1 + [VAT %])`.
+   - `Sales Price`: Fórmula: `[Cost Before VAT] * (1 + [Quote ID].[Profit Margin %])`.
+   - `Product Image`: Tipo `Image`.
+
+### B. Exportación a PDF (Bot)
+1. Vaya a **Automation > Tasks**.
+2. Cree una tarea **Create a new file**.
+3. **Template**: Haga clic en "Create" para generar una plantilla predeterminada.
+4. **Personalización**: Edite el documento para incluir los campos dinámicos:
+   - Encabezado: `<<[ID Cliente].[Nombre]>>`
+   - Tabla de productos: Use `<<Start: [Related Quote_Items]>> ... <<End>>`.
+   - Mostrar el precio de venta aplicado con la utilidad: `<<[Sales Price]>>`.
+
+## 6. Gestión Avanzada de Cotizaciones (NUEVO)
+
+### A. Botones de Acción (App > Actions)
+1. **Aprobar Cotización**:
+   - For a record of table: `Quotes`.
+   - Do this: `Data: set the values of some columns in this row`.
+   - Set these columns: `Status` = "Aprobada".
+2. **Solicitar Despacho**:
+   - For a record of table: `Quotes`.
+   - Do this: `Data: add a new row to another table using values from this row`.
+   - Table to add to: `Pedidos`.
+   - Map fields: `ID Cliente` = `[ID Cliente]`, `ID Cotización` = `[ID Cotización]`, `Status` = "En preparación".
+   - Only if this condition is true: `[Status] = "Aprobada"`.
+
+### B. Filtro de Fecha (Slice)
+1. Vaya a **Data > Slices**.
+2. Cree un Slice "Histórico Cotizaciones".
+    - Base table: `Quotes`.
+    - Filter condition: `AND([Fecha] >= [_THISUSER].[FechaInicio], [Fecha] <= [_THISUSER].[FechaFin])`.
+3. Vaya a **UX > Views** y cree una vista para mostrar este Slice.
+
+## 7. Módulo de Informes Comerciales (NUEVO)
+
+### A. Vista de Gráficos (UX > Views)
+1. **Cotizaciones por Cliente**:
+   - View Type: `Chart`.
+   - Data source: `Quotes`.
+   - Chart Type: `Col Series` o `Pie Chart`.
+   - Group by: `ID Cliente`.
+2. **Estado de Cotizaciones**:
+   - View Type: `Chart`.
+   - Data source: `Quotes`.
+   - Group by: `Status`.
+
+### B. Dashboard de Informes
+1. Cree una nueva vista tipo `Dashboard` llamada "Informes de Ventas".
+2. Añada las dos vistas de gráficos creadas anteriormente.
+3. **Filtro**: Puede usar el Slice "Histórico Cotizaciones" como fuente de datos para que los informes también respondan al rango de fechas.
+
+### C. Botón "Marcar como Perdida"
+1. Vaya a **App > Actions**.
+2. Cree una acción para `Quotes`: `Data: set the values of some columns in this row`.
+3. Set `Status` = "Lost" (Perdida).
+
+## 8. Cálculo de Distancia (Opcional)
+... [Mismo que antes]

@@ -1,0 +1,53 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary: #F47321;
+  --bg-dark: #121212;
+  --bg-card: #1A1A1A;
+  --text-main: #FAF5E4;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-dark);
+}
+
+body {
+  color: var(--text-main);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  overflow: hidden; /* Prevent body scroll, use app scroll instead */
+}
+
+@layer components {
+  .btn-racing {
+    @apply px-6 py-2 bg-racing-orange text-white font-racing font-bold transition-all relative
+           hover:scale-105 active:scale-95 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.3)];
+    clip-path: polygon(5% 0, 100% 0, 95% 100%, 0 100%);
+  }
+
+  .glass-card {
+    @apply bg-racing-black/60 backdrop-blur-md border border-white/10 rounded-xl p-6;
+  }
+
+  .racing-title {
+    @apply font-racing text-4xl uppercase tracking-tighter italic font-bold;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar {
+    @apply w-1.5;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-white/10 rounded-full hover:bg-racing-orange/50 transition-colors;
+  }
+}
+
+.racing-gradient {
+  background: linear-gradient(135deg, #F47321 0%, #FF4B2B 100%);
+}

@@ -1,0 +1,3 @@
+Item ID,Quote ID,Product Name,Supplier ID,Cost Before VAT,VAT %,Subtotal Cost,Sales Price,Product Image
+ITEM-001,QUO-001,Laptop Dell XPS,SUP-001,4000000,0.19,4760000,4600000,
+ITEM-002,QUO-001,Monitor LG 27,SUP-002,800000,0.19,952000,920000,

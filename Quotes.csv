@@ -1,0 +1,6 @@
+Quote ID,Client ID,Salesperson Email,Date,Profit Margin %,Commercial Conditions,Status
+QUO-001,C001,comercial1@empresa.com,2026-02-12,0.15,"Entrega en 3 días hábiles. Pago a 30 días.",Approved
+QUO-002,C002,comercial2@empresa.com,2026-02-12,0.20,"Envío incluido. Garantía de 1 año.",Lost
+QUO-003,C001,comercial1@empresa.com,2026-02-10,0.10,"Descuento por volumen.",Approved
+QUO-004,C003,comercial2@empresa.com,2026-02-09,0.25,"Precio especial preventa.",Lost
+
