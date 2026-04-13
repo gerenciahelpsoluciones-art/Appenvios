@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { logoBase64 } from '../assets/logoBase64';
-import type { Alquiler, Cliente, AppUser } from '../App';
+import type { Alquiler, Cliente, AppUser } from '../types/crm';
 
 interface IProps {
     alquileres: Alquiler[];

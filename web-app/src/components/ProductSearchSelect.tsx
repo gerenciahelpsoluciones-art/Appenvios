@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import type { Producto } from '../App';
+import type { Producto } from '../types/crm';
 
 interface ProductSearchSelectProps {
     productos: Producto[];

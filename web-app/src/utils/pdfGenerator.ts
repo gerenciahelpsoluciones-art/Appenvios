@@ -1,7 +1,7 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { logoBase64 } from '../assets/logoBase64';
-import type { Cliente, Producto } from '../App';
+import type { Cliente, Producto } from '../types/crm';
 
 export interface PDFData {
     consecutivo: string;

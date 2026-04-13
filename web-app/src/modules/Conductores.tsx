@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { Conductor, Despacho, OrdenCompra, Cliente, Proveedor, Devolucion, Reparacion } from '../App';
+import type { Conductor, Despacho, OrdenCompra, Cliente, Proveedor, Devolucion, Reparacion } from '../types/crm';
 import { supabase } from '../lib/supabaseClient';
 
 interface IProps {

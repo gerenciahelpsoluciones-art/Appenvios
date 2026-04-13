@@ -11,7 +11,8 @@ import {
     type Reparacion,
     type Cliente,
     type Cotizacion
-} from '../App';
+} from '../types/crm';
+import RemisionesModule from './Remisiones';
 
 interface IProps {
     despachos: Despacho[];
@@ -31,6 +32,7 @@ interface IProps {
     onUpdateDevolucion: (dev: Devolucion) => any;
     onDeleteDevolucion: (id: string) => any;
     reparaciones: Reparacion[];
+    onDeleteOC: (id: string) => void;
     onUpdateReparacion: (r: Reparacion) => any;
     cotizaciones: Cotizacion[];
 }
@@ -48,6 +50,7 @@ const LogisticaModule: React.FC<IProps> = ({
     onUpdateDespacho,
     onDeleteDespacho,
     onUpdateOC,
+    onDeleteOC,
     onAddOC,
     onAddDevolucion,
     onUpdateDevolucion,
@@ -56,7 +59,7 @@ const LogisticaModule: React.FC<IProps> = ({
     onUpdateReparacion,
     cotizaciones
 }) => {
-    const [activeTab, setActiveTab] = useState<'despachos' | 'recogidas' | 'devoluciones' | 'reparaciones' | 'informes'>('despachos');
+    const [activeTab, setActiveTab] = useState<'despachos' | 'recogidas' | 'devoluciones' | 'reparaciones' | 'remisiones' | 'informes'>('despachos');
     const [filterEstado, setFilterEstado] = useState<string>('Todos');
     const [expandedId, setExpandedId] = useState<string | null>(null);
     const [viewMode, setViewMode] = useState<'resumen' | 'tiempos'>('resumen');
@@ -720,6 +723,7 @@ const LogisticaModule: React.FC<IProps> = ({
                                                 <div className="action-buttons">
                                                     <button className="btn-status" onClick={() => handleOCStatusChange(oc, 'Recogido')} title="Recogido" disabled={oc.estado === 'Recogido'}>🚚</button>
                                                     <button className="btn-status" onClick={() => handleOCStatusChange(oc, 'En Bodega')} title="En Bodega" disabled={oc.estado === 'En Bodega'}>🏢</button>
+                                                    <button className="btn-status" style={{ color: 'var(--error)' }} onClick={() => { if(window.confirm('¿Eliminar esta recogida?')) onDeleteOC(oc.id) }} title="Eliminar">🗑️</button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -920,6 +924,16 @@ const LogisticaModule: React.FC<IProps> = ({
                     </div>
                 </div>
             );
+        } else if (activeTab === 'remisiones') {
+            return (
+                <div className="animate-fade-in" style={{ marginTop: '1.5rem' }}>
+                    <RemisionesModule 
+                        clientes={clientes} 
+                        productos={productos} 
+                        currentUser={currentUser} 
+                    />
+                </div>
+            );
         }
     };
 
@@ -952,6 +966,12 @@ const LogisticaModule: React.FC<IProps> = ({
                             onClick={() => { setActiveTab('reparaciones'); setFilterEstado('Todos'); }}
                         >
                             🛠️ Reparaciones Ext.
+                        </button>
+                        <button
+                            className={`btn-tab ${activeTab === 'remisiones' ? 'active' : ''}`}
+                            onClick={() => { setActiveTab('remisiones'); setFilterEstado('Todos'); }}
+                        >
+                            📄 Remisiones
                         </button>
                         <button
                             className={`btn-tab ${activeTab === 'informes' ? 'active' : ''}`}

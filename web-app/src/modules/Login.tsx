@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { AppUser } from '../App';
+import type { AppUser } from '../types/crm';
 import { logoBase64 } from '../assets/logoBase64';
 
 interface IProps {

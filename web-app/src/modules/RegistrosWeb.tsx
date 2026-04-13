@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { type AppUser } from '../App';
+import { type AppUser } from '../types/crm';
 import { 
   Building2, 
   User, 

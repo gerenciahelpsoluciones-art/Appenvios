@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import type { VentaManual, Cliente, AppUser, Producto } from '../App';
+import type { VentaManual, Cliente, AppUser, Producto } from '../types/crm';
 
 interface IProps {
     ventas: VentaManual[];

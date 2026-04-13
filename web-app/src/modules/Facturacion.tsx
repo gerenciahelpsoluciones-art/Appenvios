@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { Despacho, Cotizacion, Cliente, Producto } from '../App';
+import type { Despacho, Cotizacion, Cliente, Producto } from '../types/crm';
 import { generateQuotationPDF } from '../utils/pdfGenerator';
 import { supabase } from '../lib/supabaseClient';
 

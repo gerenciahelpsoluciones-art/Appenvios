@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { type AppUser } from '../App';
+import { type AppUser } from '../types/crm';
 import { Phone, Mail, Building, Clock, CircleCheck, CircleX, MessageSquare, Sparkles, Share2, Copy, Send } from 'lucide-react';
 
 export interface ClienteWeb {

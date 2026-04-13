@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { Reparacion, Cliente, Proveedor } from '../App';
+import type { Reparacion, Cliente, Proveedor } from '../types/crm';
 import { jsPDF } from 'jspdf';
 import QRCode from 'qrcode';
 

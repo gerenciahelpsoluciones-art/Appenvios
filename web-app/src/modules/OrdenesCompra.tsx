@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { Proveedor, Producto, OrdenCompra, OrdenCompraItem, AppUser, Alquiler } from '../App';
+import type { Proveedor, Producto, OrdenCompra, OrdenCompraItem, AppUser, Alquiler } from '../types/crm';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { logoBase64 } from '../assets/logoBase64';

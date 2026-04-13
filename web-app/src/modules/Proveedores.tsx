@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { Proveedor } from '../App';
+import type { Proveedor } from '../types/crm';
 
 interface IProps {
     proveedores: Proveedor[];

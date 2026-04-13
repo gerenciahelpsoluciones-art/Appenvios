@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { Cliente } from '../App';
+import type { Cliente } from '../types/crm';
 
 interface IProps {
   clientes: Cliente[];

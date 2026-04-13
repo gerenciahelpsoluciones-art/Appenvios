@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { AppUser, SalesBudget } from '../App';
+import type { AppUser, SalesBudget } from '../types/crm';
 
 interface IProps {
     users: AppUser[];

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { Producto } from '../App';
+import type { Producto } from '../types/crm';
 import InventarioModule from './Inventario';
 
 import RecoveryAssistant from '../components/RecoveryAssistant';

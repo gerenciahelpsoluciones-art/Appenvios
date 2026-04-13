@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import type { Cliente, AppUser } from '../App';
+import type { Cliente, AppUser } from '../types/crm';
 import { generateReportPDF } from '../utils/reportPdfGenerator';
 
 interface IProps {

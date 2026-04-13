@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { AppUser, SalesBudget, Cotizacion, VentaManual } from '../App';
+import type { AppUser, SalesBudget, Cotizacion, VentaManual } from '../types/crm';
 import { generateCommercialReportPDF } from '../utils/pdfGenerator';
 
 interface IProps {

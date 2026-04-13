@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { Cliente, Producto, Cotizacion, AppUser } from '../App';
+import type { Cliente, Producto, Cotizacion, AppUser } from '../types/crm';
 import { generateQuotationPDF } from '../utils/pdfGenerator';
 import ProductSearchSelect from '../components/ProductSearchSelect';
 
