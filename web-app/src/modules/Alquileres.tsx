@@ -351,11 +351,15 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
         const totalMensual = activos.reduce((sum, a) => sum + (a.valorMensual || 0), 0);
 
         // Header Tabla
-        const tableBody = activos.map(a => [
-            a.clienteNombre || 'Sin Asignar',
-            `${a.descripcion}\nSN: ${a.serial}`,
-            `$${a.valorMensual.toLocaleString()}`
-        ]);
+        const tableBody = activos.map(a => {
+            const clienteObj = clientes.find(c => c.id === a.clienteId);
+            const nombreCliente = a.clienteNombre || clienteObj?.nombre || 'Sin Asignar';
+            return [
+                nombreCliente,
+                `${a.descripcion}\nSN: ${a.serial}`,
+                `$${a.valorMensual.toLocaleString()}`
+            ];
+        });
 
         autoTable(doc, {
             startY: startY,
