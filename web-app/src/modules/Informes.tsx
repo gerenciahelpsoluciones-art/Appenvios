@@ -427,13 +427,13 @@ const InformesModule: React.FC<IProps> = ({
                     ) : true) && (
                         <div className="stat-card budget-card" style={{ background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)' }}>
                             <div className="stat-label" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.75rem' }}>Presupuesto Mensual {appliedFilters.asesorId ? 'Personal' : 'Empresa'}</div>
-                            <div className="stat-value" style={{ fontSize: '1.2rem', color: '#fff' }}>${activeBudget.toLocaleString()}</div>
+                            <div className="stat-value" style={{ fontSize: '1.2rem', color: '#fff' }}>${activeBudget.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}</div>
                             <div className="stat-trend" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff' }}>Meta asignada</div>
                         </div>
                     )}
                     <div className="stat-card sales-card">
                         <div className="stat-label" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.75rem' }}>Ventas Logradas (Total)</div>
-                        <div className="stat-value" style={{ fontSize: '1.2rem', color: '#fff' }}>${monthlySales.toLocaleString()}</div>
+                        <div className="stat-value" style={{ fontSize: '1.2rem', color: '#fff' }}>${monthlySales.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}</div>
                         <div className="stat-trend" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff' }}>Ejecutado</div>
                     </div>
                     <div className="stat-card percent-card">
@@ -445,7 +445,7 @@ const InformesModule: React.FC<IProps> = ({
                     </div>
                     <div className="stat-card profit-summary-card">
                         <div className="stat-label" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.75rem' }}>Utilidad en Rango</div>
-                        <div className="stat-value" style={{ fontSize: '1.2rem', color: '#fff' }}>${Math.round(totalUtilidad).toLocaleString()}</div>
+                        <div className="stat-value" style={{ fontSize: '1.2rem', color: '#fff' }}>${totalUtilidad.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}</div>
                         <div className="stat-trend" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff' }}>Margen Bruto</div>
                     </div>
                     <div className="stat-card margin-percent-card" style={{ background: 'linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)' }}>
@@ -557,14 +557,14 @@ const InformesModule: React.FC<IProps> = ({
             <div className="dashboard-grid" style={{ marginTop: '1.5rem', marginBottom: '1.5rem' }}>
                 <div className="card stat-card">
                     <h4>Total en el Rango</h4>
-                    <p className="stat-value">${Math.round(totalVendido).toLocaleString()}</p>
+                    <p className="stat-value">${totalVendido.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}</p>
                     <span className="stat-label">
                         {appliedFilters.inicio} al {appliedFilters.fin} {appliedFilters.clienteId ? `• ${clientes.find(c => c.id === appliedFilters.clienteId)?.nombre}` : ''} • {filteredQuotes.length} cotizaciones
                     </span>
                 </div>
                 <div className="card stat-card" style={{ background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', color: 'white' }}>
                     <h4>Utilidad en el Rango</h4>
-                    <p className="stat-value" style={{ color: 'white' }}>${Math.round(totalUtilidad).toLocaleString()}</p>
+                    <p className="stat-value" style={{ color: 'white' }}>${totalUtilidad.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}</p>
                     <span className="stat-label" style={{ color: 'rgba(255,255,255,0.8)' }}>
                         Margen de ganancia acumulado
                     </span>
@@ -589,8 +589,8 @@ const InformesModule: React.FC<IProps> = ({
                                 {Object.values(profitByClient).sort((a, b) => b.profit - a.profit).map((c, i) => (
                                     <tr key={i}>
                                         <td>{c.nombre}</td>
-                                        <td className="text-right">${Math.round(c.total).toLocaleString()}</td>
-                                        <td className="text-right" style={{ color: 'var(--success)', fontWeight: 'bold' }}>${Math.round(c.profit).toLocaleString()}</td>
+                                        <td className="text-right">${c.total.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}</td>
+                                        <td className="text-right" style={{ color: 'var(--success)', fontWeight: 'bold' }}>${c.profit.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}</td>
                                         <td className="text-right">{(c.profit / (c.total || 1) * 100).toFixed(1)}%</td>
                                     </tr>
                                 ))}
@@ -701,8 +701,8 @@ const InformesModule: React.FC<IProps> = ({
                                 {Object.entries(profitByMonth).sort((a, b) => b[0].localeCompare(a[0])).map(([month, data], i) => (
                                     <tr key={i}>
                                         <td>{month}</td>
-                                        <td className="text-right">${Math.round(data.total).toLocaleString()}</td>
-                                        <td className="text-right" style={{ color: 'var(--success)', fontWeight: 'bold' }}>${Math.round(data.profit).toLocaleString()}</td>
+                                        <td className="text-right">${data.total.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}</td>
+                                        <td className="text-right" style={{ color: 'var(--success)', fontWeight: 'bold' }}>${data.profit.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}</td>
                                         <td className="text-right">{(data.profit / (data.total || 1) * 100).toFixed(1)}%</td>
                                     </tr>
                                 ))}
@@ -738,10 +738,10 @@ const InformesModule: React.FC<IProps> = ({
                                         <td>{q.fecha}</td>
                                         <td><strong>{q.consecutivo}</strong></td>
                                         <td>{q.clienteNombre}</td>
-                                        <td className="text-right">${Math.round(q.subtotal).toLocaleString()}</td>
-                                        <td className="text-right" style={{ color: 'var(--success)', fontWeight: 'bold' }}>${Math.round(q.utilidadTotal || 0).toLocaleString()}</td>
-                                        <td className="text-right">${Math.round(q.iva).toLocaleString()}</td>
-                                        <td className="text-right"><strong>${Math.round(q.total).toLocaleString()}</strong></td>
+                                        <td className="text-right">${q.subtotal.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}</td>
+                                        <td className="text-right" style={{ color: 'var(--success)', fontWeight: 'bold' }}>${(q.utilidadTotal || 0).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}</td>
+                                        <td className="text-right">${q.iva.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}</td>
+                                        <td className="text-right"><strong>${q.total.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}</strong></td>
                                         <td>{q.ejecutivo}</td>
                                         <td className="text-center">
                                             <span className={`status-badge status-${(q.estado || 'Seguimiento').toLowerCase()}`}>
