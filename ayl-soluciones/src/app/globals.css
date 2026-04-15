@@ -66,6 +66,25 @@
   }
 }
 
+@keyframes gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-gradient {
+  animation: gradient 8s ease infinite;
+}
+
+@keyframes slow-zoom {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.1); }
+}
+
+.animate-slow-zoom {
+  animation: slow-zoom 20s linear infinite alternate;
+}
+
 @layer utilities {
   .glass {
     @apply backdrop-blur-xl bg-white/10 border border-white/10 shadow-xl;
@@ -76,7 +95,8 @@
   }
 
   .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-[#10b981] via-[#c1a461] to-[#10b981] bg-[length:200%_auto] animate-gradient;
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-[#10b981] via-[#c1a461] to-[#10b981] bg-[length:200%_auto];
+    animation: gradient 8s ease infinite;
   }
 
   .mesh-green {
@@ -95,25 +115,6 @@
     opacity: 0.03;
     pointer-events: none;
   }
-}
-
-@keyframes gradient {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-.animate-gradient {
-  animation: gradient 8s ease infinite;
-}
-
-@keyframes slow-zoom {
-  0% { transform: scale(1); }
-  100% { transform: scale(1.1); }
-}
-
-.animate-slow-zoom {
-  animation: slow-zoom 20s linear infinite alternate;
 }
 
 .layout-container {

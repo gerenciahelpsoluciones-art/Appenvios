@@ -17,6 +17,11 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
     const [isAdding, setIsAdding] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
+    
+    const filtered = alquileres.filter(a =>
+        a.descripcion.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        a.serial.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     // Form state
     const [descripcion, setDescripcion] = useState('');
@@ -315,7 +320,7 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
     };
 
     const generateInformeGlobal = () => {
-        const activos = alquileres.filter(a => a.estado === 'Alquilado');
+        const activos = filtered.filter(a => a.estado === 'Alquilado');
         if (activos.length === 0) {
             alert('No hay equipos alquilados actualmente para generar el informe.');
             return;
@@ -355,7 +360,7 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
 
         autoTable(doc, {
             startY: startY,
-            head: [['Cliente', 'Equipo', 'Fecha Inicio', 'V. Mensual']],
+            head: [['Cliente', 'Equipo', 'Fecha Inicio', 'Valor Mensual']],
             body: tableBody,
             theme: 'striped',
             headStyles: { fillColor: [0, 74, 153], textColor: [255, 255, 255] },
@@ -374,15 +379,12 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
         doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(0, 0, 0);
-        doc.text(`Total Mensual Proyectado: $${totalMensual.toLocaleString()} COP`, doc.internal.pageSize.width - marginX, finalY, { align: 'right' });
+        doc.text(`Valor Total Mensual: $${totalMensual.toLocaleString()} COP`, doc.internal.pageSize.width - marginX, finalY, { align: 'right' });
 
         doc.save(`Informe_Alquileres_${new Date().toISOString().split('T')[0]}.pdf`);
     };
 
-    const filtered = alquileres.filter(a =>
-        a.descripcion.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        a.serial.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+
 
     const handleAssignClient = async () => {
         if (!assignTarget || !assignClienteId) {

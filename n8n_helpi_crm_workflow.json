@@ -23,7 +23,7 @@
           "parameters": [
             {
               "name": "key",
-              "value": "AIzaSyBa0bSGpO-90m6pb_y5MxLEc_OsoIeDBJk"
+              "value": "[TU_GEMINI_API_KEY]"
             }
           ]
         },
@@ -53,8 +53,8 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "sb_secret_vi6890ktDX5SceFPvzNF_w_B5_ze28O" },
-            { "name": "Authorization", "value": "Bearer sb_secret_vi6890ktDX5SceFPvzNF_w_B5_ze28O" },
+            { "name": "apikey", "value": "[TU_SUPABASE_ANON_KEY]" },
+            { "name": "Authorization", "value": "Bearer [TU_SUPABASE_ANON_KEY]" },
             { "name": "Content-Type", "value": "application/json" },
             { "name": "Prefer", "value": "return=representation" }
           ]
