@@ -110,7 +110,7 @@ BBVA - Cuenta Corriente No. 390021475`;
 
                     // Conversion logic if product is in USD
                     if (monedaItem === 'USD' && currentTrm > 0) {
-                        costo = Math.round(costo * currentTrm);
+                        costo = costo * currentTrm;
 
                         // Add TRM note if not present
                         if (!condiciones.includes('TRM')) {
@@ -119,7 +119,7 @@ BBVA - Cuenta Corriente No. 390021475`;
                     }
 
                     const defaultUtil = 15;
-                    const defaultVenta = costo > 0 ? Math.round(costo / (1 - (defaultUtil / 100))) : 0;
+                    const defaultVenta = costo > 0 ? (costo / (1 - (defaultUtil / 100))) : 0;
                     return { ...item, productoId: value, costoUnitario: costo, precioVenta: defaultVenta, utilidad: defaultUtil, unidad: prod?.unidad || 'Und', iva: prod?.exentoIva ? 0 : 19, moneda: monedaItem };
                 }
                 if (field === 'costoUnitario') {
@@ -128,7 +128,7 @@ BBVA - Cuenta Corriente No. 390021475`;
                     }
                     const newCosto = Number(value);
                     const margin = Math.min(Number(item.utilidad) || 0, 99.99) / 100;
-                    const newVenta = newCosto > 0 ? Math.round(newCosto / (1 - margin)) : 0;
+                    const newVenta = newCosto > 0 ? (newCosto / (1 - margin)) : 0;
                     return { ...item, costoUnitario: newCosto, precioVenta: newVenta };
                 }
                 if (field === 'utilidad') {
@@ -137,7 +137,7 @@ BBVA - Cuenta Corriente No. 390021475`;
                     }
                     const newUtil = Number(value);
                     const margin = Math.min(newUtil, 99.99) / 100;
-                    const newVenta = Number(item.costoUnitario) > 0 ? Math.round(Number(item.costoUnitario) / (1 - margin)) : item.precioVenta;
+                    const newVenta = Number(item.costoUnitario) > 0 ? (Number(item.costoUnitario) / (1 - margin)) : item.precioVenta;
                     return { ...item, utilidad: newUtil, precioVenta: newVenta };
                 }
                 return { ...item, [field]: value };
@@ -154,7 +154,7 @@ BBVA - Cuenta Corriente No. 390021475`;
                     return { ...item, precioVenta: nuevoPrecioVenta, utilidad: 0 };
                 }
                 let newMargin = ((nuevoPrecioVenta - item.costoUnitario) / nuevoPrecioVenta) * 100;
-                newMargin = Math.round(newMargin * 100) / 100;
+                newMargin = newMargin;
                 return { ...item, precioVenta: nuevoPrecioVenta, utilidad: newMargin };
             }
             return item;
@@ -483,8 +483,8 @@ BBVA - Cuenta Corriente No. 390021475`;
                                         onChange={e => updateItem(item.id, 'iva', Number(e.target.value))}
                                     />
                                 </td>
-                                <td className="read-only">${calculateIVAItem(item).toLocaleString()}</td>
-                                <td className="read-only font-bold">${calculateTotalItem(item).toLocaleString()}</td>
+                                <td className="read-only">${calculateIVAItem(item).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}</td>
+                                <td className="read-only font-bold">${calculateTotalItem(item).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}</td>
                                 <td>
                                     <button className="btn-delete" onClick={() => setItems(items.filter(i => i.id !== item.id))}>×</button>
                                 </td>
@@ -494,23 +494,23 @@ BBVA - Cuenta Corriente No. 390021475`;
                     <tfoot>
                         <tr>
                             <td colSpan={7} style={{ textAlign: 'right', padding: '0.5rem 1rem' }}>SUBTOTAL:</td>
-                            <td style={{ textAlign: 'right', padding: '0.5rem 1rem' }}>${subtotalGeneral.toLocaleString()}</td>
+                            <td style={{ textAlign: 'right', padding: '0.5rem 1rem' }}>${subtotalGeneral.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}</td>
                             <td></td>
                         </tr>
                         <tr>
                             <td colSpan={7} style={{ textAlign: 'right', padding: '0.5rem 1rem' }}>IVA TOTAL:</td>
-                            <td style={{ textAlign: 'right', padding: '0.5rem 1rem' }}>${ivaGeneral.toLocaleString()}</td>
+                            <td style={{ textAlign: 'right', padding: '0.5rem 1rem' }}>${ivaGeneral.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}</td>
                             <td></td>
                         </tr>
                         <tr>
                             <td colSpan={7} style={{ textAlign: 'right', padding: '0.5rem 1rem' }}>UTILIDAD BRUTA ($):</td>
-                            <td style={{ textAlign: 'right', padding: '0.5rem 1rem', color: 'var(--success)', fontWeight: 'bold' }}>${profitTotal.toLocaleString()}</td>
+                            <td style={{ textAlign: 'right', padding: '0.5rem 1rem', color: 'var(--success)', fontWeight: 'bold' }}>${profitTotal.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}</td>
                             <td></td>
                         </tr>
                         <tr>
                             <td colSpan={7} style={{ textAlign: 'right', padding: '1rem', fontWeight: 'bold' }}>TOTAL COTIZACIÓN:</td>
                             <td style={{ padding: '1rem', fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--primary-blue)', textAlign: 'right' }}>
-                                ${grandTotal.toLocaleString()}
+                                ${grandTotal.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}
                             </td>
                             <td></td>
                         </tr>
