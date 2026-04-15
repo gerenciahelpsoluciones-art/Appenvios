@@ -352,8 +352,13 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
 
         // Header Tabla
         const tableBody = activos.map(a => {
-            const clienteObj = clientes.find(c => c.id === a.clienteId);
-            const nombreCliente = a.clienteNombre || clienteObj?.nombre || 'Sin Asignar';
+            // Robust lookup: try different property naming conventions and the master client list
+            const cId = a.clienteId || (a as any).cliente_id;
+            const cNameFromRecord = a.clienteNombre || (a as any).cliente_nombre;
+            
+            const clienteObj = clientes.find(c => c.id === cId);
+            const nombreCliente = cNameFromRecord || clienteObj?.nombre || 'Sin Asignar';
+            
             return [
                 nombreCliente,
                 `${a.descripcion}\nSN: ${a.serial}`,
