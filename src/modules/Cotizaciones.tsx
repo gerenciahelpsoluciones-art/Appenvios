@@ -114,7 +114,7 @@ BBVA - Cuenta Corriente No. 390021475`;
 
                         // Add TRM note if not present
                         if (!condiciones.includes('TRM')) {
-                            setCondiciones(prev => prev + `\n\nNota: Los precios de productos en USD se convirtieron a COP usando una TRM de $${currentTrm.toLocaleString()}.`);
+                            setCondiciones(prev => prev + `\n\nNota: Los precios de productos en USD se convirtieron a COP usando una TRM de $${currentTrm.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}.`);
                         }
                     }
 
@@ -287,7 +287,7 @@ BBVA - Cuenta Corriente No. 390021475`;
                 <h2>Generar Cotización</h2>
                 <div className="header-actions" style={{ display: 'flex', gap: '1rem' }}>
                     {selectedCliente && (
-                        <button className="btn-secondary" onClick={() => onSendWhatsApp(selectedCliente.telefono, `Hola ${selectedCliente.nombre}, adjunto envío la cotización ${consecutivo} por valor de $${grandTotal.toLocaleString()}.`)}>
+                        <button className="btn-secondary" onClick={() => onSendWhatsApp(selectedCliente.telefono, `Hola ${selectedCliente.nombre}, adjunto envío la cotización ${consecutivo} por valor de $${grandTotal.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}.`)}>
                             📱 Enviar WhatsApp
                         </button>
                     )}

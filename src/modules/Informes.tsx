@@ -701,8 +701,8 @@ const InformesModule: React.FC<IProps> = ({
                                 {Object.entries(profitByMonth).sort((a, b) => b[0].localeCompare(a[0])).map(([month, data], i) => (
                                     <tr key={i}>
                                         <td>{month}</td>
-                                        <td className="text-right">${Math.round(data.total).toLocaleString()}</td>
-                                        <td className="text-right" style={{ color: 'var(--success)', fontWeight: 'bold' }}>${Math.round(data.profit).toLocaleString()}</td>
+                                        <td className="text-right">${data.total.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}</td>
+                                        <td className="text-right" style={{ color: 'var(--success)', fontWeight: 'bold' }}>${data.profit.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}</td>
                                         <td className="text-right">{(data.profit / (data.total || 1) * 100).toFixed(1)}%</td>
                                     </tr>
                                 ))}
@@ -970,8 +970,8 @@ const InformesModule: React.FC<IProps> = ({
                                                     <td><input className="edit-input num" type="number" value={item.costoUnitario} onChange={e => updateEditItem(item.id, 'costoUnitario', Number(e.target.value))} /></td>
                                                     <td><input className="edit-input num" type="number" value={item.utilidad} onChange={e => updateEditItem(item.id, 'utilidad', Number(e.target.value))} /></td>
                                                     <td><input className="edit-input num" type="number" value={item.iva} onChange={e => updateEditItem(item.id, 'iva', Number(e.target.value))} /></td>
-                                                    <td className="ro">${calcVenta(item).toLocaleString()}</td>
-                                                    <td className="ro bold">${calcTotal(item).toLocaleString()}</td>
+                                                    <td className="ro">${calcVenta(item).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}</td>
+                                                    <td className="ro bold">${calcTotal(item).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}</td>
                                                     <td><button className="btn-remove-item" onClick={() => removeEditItem(item.id)}>×</button></td>
                                                 </tr>
                                             ))}

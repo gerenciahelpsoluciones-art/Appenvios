@@ -440,7 +440,7 @@ const InformesModule: React.FC<IProps> = ({
                         <div className="stat-label" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.75rem' }}>% Ejecución</div>
                         <div className="stat-value" style={{ fontSize: '1.2rem', color: '#fff' }}>{executionPercent.toFixed(1)}%</div>
                         <div className="stat-trend" style={{ background: difference >= 0 ? 'rgba(255,255,255,0.2)' : 'rgba(255,0,0,0.3)', color: '#fff' }}>
-                            {difference >= 0 ? `+ $${difference.toLocaleString()}` : `- $${Math.abs(difference).toLocaleString()}`}
+                            {difference >= 0 ? `+ $${difference.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}` : `- $${Math.abs(difference).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}`}
                         </div>
                     </div>
                     <div className="stat-card profit-summary-card">
@@ -457,27 +457,27 @@ const InformesModule: React.FC<IProps> = ({
                         <>
                             <div className="stat-card" style={{ background: 'linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)' }}>
                                 <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.9)', fontWeight: 600, marginBottom: '0.2rem' }}>Ingresos por Contratos</div>
-                                <div style={{ fontSize: '0.95rem', color: '#fff', fontWeight: 700, margin: '0.15rem 0' }}>${Math.round(revenueByContract).toLocaleString()}</div>
+                                <div style={{ fontSize: '0.95rem', color: '#fff', fontWeight: 700, margin: '0.15rem 0' }}>${revenueByContract.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}</div>
                                 <div className="stat-trend" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', fontSize: '0.68rem' }}>En el periodo</div>
                             </div>
                             <div className="stat-card" style={{ background: 'linear-gradient(135deg, #34d399 0%, #059669 100%)' }}>
                                 <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.9)', fontWeight: 600, marginBottom: '0.2rem' }}>Ingresos por Alquileres</div>
-                                <div style={{ fontSize: '0.95rem', color: '#fff', fontWeight: 700, margin: '0.15rem 0' }}>${Math.round(revenueByRental).toLocaleString()}</div>
+                                <div style={{ fontSize: '0.95rem', color: '#fff', fontWeight: 700, margin: '0.15rem 0' }}>${revenueByRental.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}</div>
                                 <div className="stat-trend" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', fontSize: '0.68rem' }}>En el periodo</div>
                             </div>
                             <div className="stat-card" style={{ background: 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)' }}>
                                 <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.9)', fontWeight: 600, marginBottom: '0.2rem' }}>Ventas Estándar</div>
-                                <div style={{ fontSize: '0.95rem', color: '#fff', fontWeight: 700, margin: '0.15rem 0' }}>${Math.round(revenueByStandard).toLocaleString()}</div>
+                                <div style={{ fontSize: '0.95rem', color: '#fff', fontWeight: 700, margin: '0.15rem 0' }}>${revenueByStandard.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}</div>
                                 <div className="stat-trend" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', fontSize: '0.68rem' }}>En el periodo</div>
                             </div>
                             <div className="stat-card" style={{ background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)' }}>
                                 <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.9)', fontWeight: 600, marginBottom: '0.2rem' }}>Licitaciones</div>
-                                <div style={{ fontSize: '0.95rem', color: '#fff', fontWeight: 700, margin: '0.15rem 0' }}>${Math.round(revenueByTenders).toLocaleString()}</div>
+                                <div style={{ fontSize: '0.95rem', color: '#fff', fontWeight: 700, margin: '0.15rem 0' }}>${revenueByTenders.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}</div>
                                 <div className="stat-trend" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', fontSize: '0.68rem' }}>En el periodo</div>
                             </div>
                             <div className="stat-card" style={{ background: 'linear-gradient(135deg, #c084fc 0%, #9333ea 100%)' }}>
                                 <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.9)', fontWeight: 600, marginBottom: '0.2rem' }}>Licenciamiento</div>
-                                <div style={{ fontSize: '0.95rem', color: '#fff', fontWeight: 700, margin: '0.15rem 0' }}>${Math.round(revenueByLicense).toLocaleString()}</div>
+                                <div style={{ fontSize: '0.95rem', color: '#fff', fontWeight: 700, margin: '0.15rem 0' }}>${revenueByLicense.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}</div>
                                 <div className="stat-trend" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', fontSize: '0.68rem' }}>En el periodo</div>
                             </div>
                         </>
@@ -970,8 +970,8 @@ const InformesModule: React.FC<IProps> = ({
                                                     <td><input className="edit-input num" type="number" value={item.costoUnitario} onChange={e => updateEditItem(item.id, 'costoUnitario', Number(e.target.value))} /></td>
                                                     <td><input className="edit-input num" type="number" value={item.utilidad} onChange={e => updateEditItem(item.id, 'utilidad', Number(e.target.value))} /></td>
                                                     <td><input className="edit-input num" type="number" value={item.iva} onChange={e => updateEditItem(item.id, 'iva', Number(e.target.value))} /></td>
-                                                    <td className="ro">${calcVenta(item).toLocaleString()}</td>
-                                                    <td className="ro bold">${calcTotal(item).toLocaleString()}</td>
+                                                    <td className="ro">${calcVenta(item).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}</td>
+                                                    <td className="ro bold">${calcTotal(item).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}</td>
                                                     <td><button className="btn-remove-item" onClick={() => removeEditItem(item.id)}>×</button></td>
                                                 </tr>
                                             ))}
@@ -1008,9 +1008,9 @@ const InformesModule: React.FC<IProps> = ({
 
                             {/* Totals */}
                             <div className="edit-totals">
-                                <div className="total-row"><span>Subtotal:</span><span>${editSubtotal.toLocaleString()}</span></div>
-                                <div className="total-row"><span>IVA:</span><span>${editIVATotal.toLocaleString()}</span></div>
-                                <div className="total-row grand"><span>TOTAL:</span><span>${editGrandTotal.toLocaleString()}</span></div>
+                                <div className="total-row"><span>Subtotal:</span><span>${editSubtotal.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}</span></div>
+                                <div className="total-row"><span>IVA:</span><span>${editIVATotal.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}</span></div>
+                                <div className="total-row grand"><span>TOTAL:</span><span>${editGrandTotal.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}</span></div>
                             </div>
                         </div>
 
