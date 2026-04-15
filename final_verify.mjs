@@ -1,8 +1,8 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = 'https://matyjysinegbibdwzhoq.supabase.co';
-const supabaseKey = 'sb_secret_vi6890ktDX5SceFPvzNF_w_B5_ze28O';
+const supabaseUrl = process.env.SUPABASE_URL || 'https://matyjysinegbibdwzhoq.supabase.co';
+const supabaseKey = process.env.SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function verifyFlow() {
