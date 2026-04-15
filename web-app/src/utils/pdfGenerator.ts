@@ -71,15 +71,15 @@ export const generateQuotationPDF = (data: PDFData, action: 'save' | 'view' = 's
         // Table Data
         const tableBody = data.items.map(item => {
             const prod = data.productos.find(p => p.id === item.productoId);
-            const ventaUnit = item.precioVenta !== undefined ? item.precioVenta : Math.round((item.costoUnitario || 0) / (1 - Math.min(item.utilidad || 0, 99.99) / 100));
-            const subtotal = Math.round(ventaUnit * item.cantidad);
+            const ventaUnit = item.precioVenta !== undefined ? item.precioVenta : ((item.costoUnitario || 0) / (1 - Math.min(item.utilidad || 0, 99.99) / 100));
+            const itemSubtotal = (ventaUnit * item.cantidad);
 
             return [
                 prod?.nombre || 'N/A',
                 item.unidad || 'Und',
                 item.cantidad,
-                `$${ventaUnit.toLocaleString()}`,
-                `$${subtotal.toLocaleString()}`
+                `$${ventaUnit.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}`,
+                `$${itemSubtotal.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}`
             ];
         });
 
@@ -103,12 +103,12 @@ export const generateQuotationPDF = (data: PDFData, action: 'save' | 'view' = 's
         doc.setFont("helvetica", "bold");
         doc.text(`SUBTOTAL:`, totalsX, finalY + 15);
         doc.setFont("helvetica", "normal");
-        doc.text(`$${(data.subtotal || 0).toLocaleString()}`, valuesX, finalY + 15, { align: 'right' });
+        doc.text(`$${(data.subtotal || 0).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}`, valuesX, finalY + 15, { align: 'right' });
 
         doc.setFont("helvetica", "bold");
         doc.text(`IVA TOTAL:`, totalsX, finalY + 22);
         doc.setFont("helvetica", "normal");
-        doc.text(`$${(data.iva || 0).toLocaleString()}`, valuesX, finalY + 22, { align: 'right' });
+        doc.text(`$${(data.iva || 0).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}`, valuesX, finalY + 22, { align: 'right' });
 
         doc.setFillColor(0, 74, 153);
         doc.rect(totalsX - 5, finalY + 28, 70, 12, 'F');
@@ -116,7 +116,7 @@ export const generateQuotationPDF = (data: PDFData, action: 'save' | 'view' = 's
         doc.setFontSize(11);
         doc.setFont("helvetica", "bold");
         doc.text(`VALOR TOTAL:`, totalsX, finalY + 36);
-        doc.text(`$${(data.total || 0).toLocaleString()}`, valuesX, finalY + 36, { align: 'right' });
+        doc.text(`$${(data.total || 0).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}`, valuesX, finalY + 36, { align: 'right' });
 
         let currentY = finalY + 50;
 
