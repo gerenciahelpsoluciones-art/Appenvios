@@ -354,13 +354,12 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
         const tableBody = activos.map(a => [
             a.clienteNombre || 'Sin Asignar',
             `${a.descripcion}\nSN: ${a.serial}`,
-            a.fechaInicio || 'N/A',
             `$${a.valorMensual.toLocaleString()}`
         ]);
 
         autoTable(doc, {
             startY: startY,
-            head: [['Cliente', 'Equipo', 'Fecha Inicio', 'Valor Mensual']],
+            head: [['Cliente', 'Equipo', 'Valor Mensual']],
             body: tableBody,
             theme: 'striped',
             headStyles: { fillColor: [0, 74, 153], textColor: [255, 255, 255] },
