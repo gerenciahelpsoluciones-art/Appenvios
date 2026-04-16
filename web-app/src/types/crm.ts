@@ -276,3 +276,23 @@ export interface VentaManual {
   tipoVenta?: 'Venta' | 'Contrato' | 'Alquiler' | 'Licencia' | 'Licitacion';
   descripcion: string;
 }
+
+export interface SiigoInvoice {
+  id: number;
+  document: { id: number; name: string };
+  number: number;
+  date: string;
+  customer: { id: string; name: string[] };
+  seller: number;
+  total: number;
+  cost: number;
+  items: any[];
+}
+
+export interface SiigoSeller {
+  id: number;
+  username: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+}

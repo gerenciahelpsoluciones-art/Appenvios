@@ -260,7 +260,7 @@ const RemisionesModule: React.FC<IProps> = ({ clientes = [], productos = [], cur
                                             />
                                         </td>
                                         <td style={{ textAlign: 'right', fontWeight: 600 }}>
-                                            ${(item.subtotal || 0).toLocaleString()}
+                                            ${(item.subtotal || 0).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
                                         </td>
                                         <td style={{ textAlign: 'center' }}>
                                             <button className="btn-delete-icon" onClick={() => handleRemoveItem(item.id!)}>🗑️</button>
@@ -272,7 +272,7 @@ const RemisionesModule: React.FC<IProps> = ({ clientes = [], productos = [], cur
                                 <tr>
                                     <td colSpan={3} style={{ textAlign: 'right', fontWeight: 800 }}>TOTAL:</td>
                                     <td style={{ textAlign: 'right', fontWeight: 800, color: '#2563eb', fontSize: '1.1rem' }}>
-                                        ${calculateTotal().toLocaleString()}
+                                        ${calculateTotal().toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
                                     </td>
                                     <td></td>
                                 </tr>
@@ -350,7 +350,7 @@ const RemisionesModule: React.FC<IProps> = ({ clientes = [], productos = [], cur
                                             <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{r.cliente?.nit}</div>
                                         </td>
                                         <td style={{ textAlign: 'right', fontWeight: 600 }}>
-                                            ${r.total.toLocaleString()}
+                                            ${r.total.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
                                         </td>
                                         <td style={{ textAlign: 'center' }}>
                                             <span className="status-badge" style={{ background: '#dcfce7', color: '#166534' }}>

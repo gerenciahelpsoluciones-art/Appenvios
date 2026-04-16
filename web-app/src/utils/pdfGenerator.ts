@@ -13,6 +13,7 @@ export interface PDFData {
     total: number;
     condiciones: string;
     validez: string;
+    fecha?: string;
     ejecutivo: {
         nombre: string;
         cargo: string;
@@ -65,7 +66,7 @@ export const generateQuotationPDF = (data: PDFData, action: 'save' | 'view' = 's
         doc.text(`Contacto: ${data.cliente.contacto}`, 14, 70);
         doc.text(`Dirección: ${data.cliente.direccion}`, 14, 75);
 
-        doc.text(`Fecha: ${new Date().toISOString().split('T')[0]}`, 150, 60);
+        doc.text(`Fecha: ${data.fecha || new Date().toISOString().split('T')[0]}`, 140, 60);
         doc.text(`Validez: ${data.validez || 3} día(s) calendario`, 150, 65);
 
         // Recalculate totals internally to ensure consistency with displayed items
@@ -75,9 +76,9 @@ export const generateQuotationPDF = (data: PDFData, action: 'save' | 'view' = 's
         const tableBody = data.items.map(item => {
             const prod = data.productos.find(p => p.id === item.productoId);
             // Use high precision for intermediate calculations
-            const ventaUnit = item.precioVenta !== undefined ? item.precioVenta : ((item.costoUnitario || 0) / (1 - Math.min(item.utilidad || 0, 99.99) / 100));
-            const itemSubtotal = (ventaUnit * item.cantidad);
-            const itemIVA = prod?.exentoIva ? 0 : (itemSubtotal * (item.iva || 19) / 100);
+            const ventaUnit = Math.round((item.precioVenta !== undefined ? item.precioVenta : ((item.costoUnitario || 0) / (1 - Math.min(item.utilidad || 0, 99.99) / 100))) * 100) / 100;
+            const itemSubtotal = Math.round((ventaUnit * item.cantidad) * 100) / 100;
+            const itemIVA = Math.round((prod?.exentoIva ? 0 : (itemSubtotal * (item.iva || 19) / 100)) * 100) / 100;
             
             calculatedSubtotal += itemSubtotal;
             calculatedIVA += itemIVA;
@@ -86,8 +87,8 @@ export const generateQuotationPDF = (data: PDFData, action: 'save' | 'view' = 's
                 prod?.nombre || 'N/A',
                 item.unidad || 'Und',
                 item.cantidad,
-                `$${ventaUnit.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}`,
-                `$${itemSubtotal.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}`
+                `$${ventaUnit.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+                `$${itemSubtotal.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
             ];
         });
 
@@ -113,12 +114,12 @@ export const generateQuotationPDF = (data: PDFData, action: 'save' | 'view' = 's
         doc.setFont("helvetica", "bold");
         doc.text(`SUBTOTAL:`, totalsX, finalY + 15);
         doc.setFont("helvetica", "normal");
-        doc.text(`$${calculatedSubtotal.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}`, valuesX, finalY + 15, { align: 'right' });
+        doc.text(`$${calculatedSubtotal.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`, valuesX, finalY + 15, { align: 'right' });
 
         doc.setFont("helvetica", "bold");
         doc.text(`IVA TOTAL:`, totalsX, finalY + 22);
         doc.setFont("helvetica", "normal");
-        doc.text(`$${calculatedIVA.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}`, valuesX, finalY + 22, { align: 'right' });
+        doc.text(`$${calculatedIVA.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`, valuesX, finalY + 22, { align: 'right' });
 
         doc.setFillColor(0, 74, 153);
         doc.rect(totalsX - 5, finalY + 28, 70, 12, 'F');
@@ -126,7 +127,7 @@ export const generateQuotationPDF = (data: PDFData, action: 'save' | 'view' = 's
         doc.setFontSize(11);
         doc.setFont("helvetica", "bold");
         doc.text(`VALOR TOTAL:`, totalsX, finalY + 36);
-        doc.text(`$${calculatedTotal.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}`, valuesX, finalY + 36, { align: 'right' });
+        doc.text(`$${calculatedTotal.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`, valuesX, finalY + 36, { align: 'right' });
 
         let currentY = finalY + 50;
 

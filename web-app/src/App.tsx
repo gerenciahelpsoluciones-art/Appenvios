@@ -19,6 +19,7 @@ import VentasManualesModule from './modules/VentasManuales'
 import LeadsWebModule, { type ClienteWeb } from './modules/LeadsWeb'
 import RegistrosWeb, { type RegistroPendiente } from './modules/RegistrosWeb'
 import AgenteInformesModule from './modules/AgenteInformes'
+import ComisionesModule from './modules/Comisiones'
 import { supabase } from './lib/supabaseClient'
 import RegistrationForm from './modules/RegistrationForm';
 import { logoBase64 } from './assets/logoBase64'
@@ -1398,13 +1399,14 @@ function App() {
     { id: 'informes', label: 'Informes', icon: '📈' },
     { id: 'admin', label: 'Administración', icon: '⚙️' },
     { id: 'vendedores', label: 'Vendedores', icon: '👨‍💼' },
+    { id: 'comisiones', label: 'Comisiones', icon: '💰' },
     { id: 'alquileres', label: 'Alquileres', icon: '💻' },
     { id: 'facturacion', label: 'Facturación', icon: '💲' },
     { id: 'ventas-manuales', label: 'Ventas Manuales', icon: '💰' },
     { id: 'agente-informes', label: 'Agente de Informes', icon: '🤖' },
   ].filter(item => {
     if (item.id === 'productos') return true; // Everyone can see/edit products
-    if ((item.id === 'facturacion' || item.id === 'ventas-manuales' || item.id === 'leads-web' || item.id === 'registros-web' || item.id === 'vendedores' || item.id === 'informes') && currentUser?.rol === 'Admin') return true;
+    if ((item.id === 'facturacion' || item.id === 'ventas-manuales' || item.id === 'leads-web' || item.id === 'registros-web' || item.id === 'vendedores' || item.id === 'informes' || item.id === 'comisiones') && currentUser?.rol === 'Admin') return true;
     if (item.id === 'leads-web' && currentUser?.rol === 'Comercial') return true;
     return Array.isArray(currentUser?.permisos) && currentUser.permisos.includes(item.id);
   });
@@ -1621,6 +1623,7 @@ function App() {
         return <InformesModule
           cotizaciones={restrictedQuotes}
           ventasManuales={restrictedManualSales}
+          alquileres={alquileres}
           budgets={budgets}
           currentUser={currentUser}
           onUpdateQuote={updateCotizacion}
@@ -1645,6 +1648,12 @@ function App() {
           onUpdateBudget={updateBudget}
           onDeleteBudget={deleteBudget}
           onExportAll={exportAllData}
+        />;
+      case 'comisiones':
+        return <ComisionesModule 
+          users={users} 
+          cotizaciones={cotizaciones} 
+          productos={productos} 
         />;
       case 'vendedores':
         return <VendedoresModule
@@ -2063,6 +2072,28 @@ function App() {
           gap: 0.25rem;
           padding: 1rem;
           margin-top: 1rem;
+          flex: 1;
+          overflow-y: auto;
+          scrollbar-width: thin;
+          scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+        }
+
+        /* Custom scrollbar for Webkit browsers */
+        .nav-menu::-webkit-scrollbar {
+          width: 6px;
+        }
+
+        .nav-menu::-webkit-scrollbar-track {
+          background: transparent;
+        }
+
+        .nav-menu::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 10px;
+        }
+
+        .nav-menu::-webkit-scrollbar-thumb:hover {
+          background: rgba(255, 255, 255, 0.2);
         }
         
         .nav-item {

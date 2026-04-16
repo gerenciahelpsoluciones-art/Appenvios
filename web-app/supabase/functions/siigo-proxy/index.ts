@@ -181,7 +181,295 @@ Deno.serve(async (req: Request) => {
             });
         }
 
-        return new Response(JSON.stringify({ error: 'Acción no reconocida. Use ?action=auth o ?action=products' }), {
+        // --- Consulta de Facturas (con filtro de fecha) ---
+        if (action === 'invoices') {
+            const token = req.headers.get('x-siigo-token');
+            const start = url.searchParams.get('created_start');
+            const end = url.searchParams.get('created_end');
+
+            if (!token) {
+                return new Response(JSON.stringify({ error: 'Token de Siigo no proporcionado' }), {
+                    status: 401,
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                });
+            }
+
+            const authHeaders = {
+                'Authorization': `Bearer ${token}`,
+                'Partner-Id': PARTNER_ID,
+                'Content-Type': 'application/json',
+            };
+
+            let query = `${SIIGO_BASE_URL}/v1/invoices?page_size=100`;
+            if (start) query += `&created_start=${start}`;
+            if (end) query += `&created_end=${end}`;
+
+            console.log(`Consultando facturas: ${query}`);
+
+            const response = await fetch(query, {
+                method: 'GET',
+                headers: authHeaders,
+            });
+
+            if (!response.ok) {
+                const err = await response.json();
+                return new Response(JSON.stringify({ error: 'Error al consultar facturas', detail: err }), {
+                    status: response.status,
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                });
+            }
+
+            const data = await response.json();
+            return new Response(JSON.stringify(data), {
+                status: 200,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+        }
+
+        // --- Consulta de Usuarios/Vendedores (Con paginación) ---
+        if (action === 'users') {
+            const token = req.headers.get('x-siigo-token');
+
+            if (!token) {
+                return new Response(JSON.stringify({ error: 'Token de Siigo no proporcionado' }), {
+                    status: 401,
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                });
+            }
+
+            const authHeaders = {
+                'Authorization': `Bearer ${token}`,
+                'Partner-Id': PARTNER_ID,
+                'Content-Type': 'application/json',
+            };
+
+            const firstRes = await fetch(`${SIIGO_BASE_URL}/v1/users?page_size=100`, {
+                method: 'GET',
+                headers: authHeaders,
+            });
+
+            if (!firstRes.ok) {
+                const err = await firstRes.json();
+                return new Response(JSON.stringify({ error: 'Error al consultar usuarios', detail: err }), {
+                    status: firstRes.status,
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                });
+            }
+
+            const firstData = await firstRes.json();
+            let allResults = firstData.results || [];
+
+            // Si hay más páginas, traerlas
+            const totalPages = firstData.pagination?.total_pages || 1;
+            if (totalPages > 1) {
+                for (let page = 2; page <= totalPages; page++) {
+                    try {
+                        const nextRes = await fetch(`${SIIGO_BASE_URL}/v1/users?page_size=100&page=${page}`, {
+                            headers: authHeaders
+                        });
+                        if (nextRes.ok) {
+                            const nextData = await nextRes.json();
+                            allResults = [...allResults, ...(nextData.results || [])];
+                        }
+                    } catch (e) {
+                        console.error(`Error cargando página ${page} de usuarios:`, e);
+                    }
+                }
+            }
+
+            return new Response(JSON.stringify(allResults), {
+                status: 200,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+        }
+
+        // --- Consulta de Centros de Costo (Con paginación) ---
+        if (action === 'cost-centers') {
+            const token = req.headers.get('x-siigo-token');
+
+            if (!token) {
+                return new Response(JSON.stringify({ error: 'Token de Siigo no proporcionado' }), {
+                    status: 401,
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                });
+            }
+
+            const authHeaders = {
+                'Authorization': `Bearer ${token}`,
+                'Partner-Id': PARTNER_ID,
+                'Content-Type': 'application/json',
+            };
+
+            const firstRes = await fetch(`${SIIGO_BASE_URL}/v1/cost-centers?page_size=100`, {
+                method: 'GET',
+                headers: authHeaders,
+            });
+
+            if (!firstRes.ok) {
+                const err = await firstRes.json();
+                return new Response(JSON.stringify({ error: 'Error al consultar centros de costo', detail: err }), {
+                    status: firstRes.status,
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                });
+            }
+
+            const firstData = await firstRes.json();
+            let allResults = firstData.results || [];
+
+            const totalPages = firstData.pagination?.total_pages || 1;
+            if (totalPages > 1) {
+                for (let page = 2; page <= totalPages; page++) {
+                    try {
+                        const nextRes = await fetch(`${SIIGO_BASE_URL}/v1/cost-centers?page_size=100&page=${page}`, {
+                            headers: authHeaders
+                        });
+                        if (nextRes.ok) {
+                            const nextData = await nextRes.json();
+                            allResults = [...allResults, ...(nextData.results || [])];
+                        }
+                    } catch (e) {
+                        console.error(`Error cargando página ${page} de centros de costo:`, e);
+                    }
+                }
+            }
+
+            return new Response(JSON.stringify(allResults), {
+                status: 200,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+        }
+
+        // --- Consulta de Detalle de Factura ---
+        if (action === 'invoice-detail') {
+            const token = req.headers.get('x-siigo-token');
+            const invoiceId = url.searchParams.get('id');
+
+            if (!token || !invoiceId) {
+                return new Response(JSON.stringify({ error: 'Falta token o ID de factura' }), {
+                    status: 400,
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                });
+            }
+
+            const authHeaders = {
+                'Authorization': `Bearer ${token}`,
+                'Partner-Id': PARTNER_ID,
+                'Content-Type': 'application/json',
+            };
+
+            const response = await fetch(`${SIIGO_BASE_URL}/v1/invoices/${invoiceId}`, {
+                method: 'GET',
+                headers: authHeaders,
+            });
+
+            if (!response.ok) {
+                const err = await response.json();
+                return new Response(JSON.stringify({ error: 'Error al consultar detalle', detail: err }), {
+                    status: response.status,
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                });
+            }
+
+            const data = await response.json();
+            return new Response(JSON.stringify(data), {
+                status: 200,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+        }
+
+        // --- Consulta de Facturas de Compra ---
+        if (action === 'purchases') {
+            const token = req.headers.get('x-siigo-token');
+            const start = url.searchParams.get('created_start');
+            const end = url.searchParams.get('created_end');
+
+            if (!token) return new Response(JSON.stringify({ error: 'Falta token' }), { status: 401, headers: corsHeaders });
+
+            const authHeaders = {
+                'Authorization': `Bearer ${token}`,
+                'Partner-Id': PARTNER_ID,
+                'Content-Type': 'application/json',
+            };
+
+            let query = `${SIIGO_BASE_URL}/v1/purchases?page_size=100`;
+            if (start) query += `&created_start=${start}`;
+            if (end) query += `&created_end=${end}`;
+
+            const res = await fetch(query, { method: 'GET', headers: authHeaders });
+            const data = await res.json();
+            return new Response(JSON.stringify(data), {
+                status: res.status,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+        }
+
+        // --- Consulta Masiva de Centros de Costo ---
+        if (action === 'cost-centers') {
+            const token = req.headers.get('x-siigo-token');
+            if (!token) return new Response(JSON.stringify({ error: 'Falta token' }), { status: 401, headers: corsHeaders });
+
+            const authHeaders = {
+                'Authorization': `Bearer ${token}`,
+                'Partner-Id': PARTNER_ID,
+                'Content-Type': 'application/json',
+            };
+
+            const query = `${SIIGO_BASE_URL}/v1/cost-centers?page_size=100`;
+            const res = await fetch(query, { method: 'GET', headers: authHeaders });
+            const data = await res.json();
+            return new Response(JSON.stringify(data), {
+                status: res.status,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+        }
+
+        // --- Consulta de Documentos Soporte (Bills) ---
+        if (action === 'bills') {
+            const token = req.headers.get('x-siigo-token');
+            const start = url.searchParams.get('created_start');
+            const end = url.searchParams.get('created_end');
+
+            if (!token) return new Response(JSON.stringify({ error: 'Falta token' }), { status: 401, headers: corsHeaders });
+
+            const authHeaders = {
+                'Authorization': `Bearer ${token}`,
+                'Partner-Id': PARTNER_ID,
+                'Content-Type': 'application/json',
+            };
+
+            let query = `${SIIGO_BASE_URL}/v1/bills?page_size=100`;
+            if (start) query += `&created_start=${start}`;
+            if (end) query += `&created_end=${end}`;
+
+            const res = await fetch(query, { method: 'GET', headers: authHeaders });
+            const data = await res.json();
+            return new Response(JSON.stringify(data), {
+                status: res.status,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+        }
+
+        // --- Consulta de ID Específico (Súrgico) ---
+        if (action === 'cost-center-detail' || action === 'user-detail') {
+            const token = req.headers.get('x-siigo-token');
+            const id = url.searchParams.get('id');
+            const endpoint = action === 'cost-center-detail' ? 'cost-centers' : 'users';
+
+            if (!token || !id) return new Response(JSON.stringify({ error: 'Falta ID' }), { status: 400, headers: corsHeaders });
+
+            const res = await fetch(`${SIIGO_BASE_URL}/v1/${endpoint}/${id}`, {
+                method: 'GET',
+                headers: { 'Authorization': `Bearer ${token}`, 'Partner-Id': PARTNER_ID, 'Content-Type': 'application/json' },
+            });
+
+            const data = await res.json();
+            return new Response(JSON.stringify(data), {
+                status: res.status,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+        }
+
+        return new Response(JSON.stringify({ error: 'Acción no reconocida. Use ?action=auth, ?action=products, ?action=invoices, ?action=users, ?action=cost-centers, ?action=invoice-detail, ?action=cost-center-detail o ?action=user-detail' }), {
             status: 400,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });

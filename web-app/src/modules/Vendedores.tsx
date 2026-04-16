@@ -103,7 +103,7 @@ const Vendedores: React.FC<IProps> = ({ users, budgets, cotizaciones, ventasManu
         ? vendedores
         : vendedores.filter(v => v.id === currentUser.id);
 
-    const formatCurrency = (val: number) => `$${Math.round(val).toLocaleString('es-CO')}`;
+    const formatCurrency = (val: number) => `$${val.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 
     const handleDownloadPDF = () => {
         const reportData = displayedVendedores.map(v => {

@@ -79,15 +79,17 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
             return;
         }
 
+        const selectedClient = clientes.find(c => c.id === clienteId);
+
         const data: Alquiler = {
             id: editingId || crypto.randomUUID(),
             descripcion,
             serial,
             fotoUrl,
             estado,
-            clienteId: estado === 'Alquilado' ? clienteId : undefined,
-            clienteNombre: estado === 'Alquilado' ? clientes.find(c => c.id === clienteId)?.nombre : undefined,
-            fechaInicio: estado === 'Alquilado' ? fechaInicio : undefined,
+            clienteId: estado === 'Alquilado' ? (clienteId || undefined) : undefined,
+            clienteNombre: estado === 'Alquilado' ? (selectedClient?.nombre || clienteNombre || undefined) : undefined,
+            fechaInicio: estado === 'Alquilado' ? (fechaInicio || undefined) : undefined,
             valorMensual,
             usuarioId: currentUser?.id || '',
             discoDuro: discoDuro || undefined,
@@ -155,7 +157,10 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
         doc.setTextColor(0, 0, 0);
 
         // ─── CLIENT INFO BOX ───
-        const cliente = clientes.find(c => c.id === a.clienteId);
+        // Exhaustive lookup for client info
+        const cId = a.clienteId || (a as any).cliente_id;
+        const cName = a.clienteNombre || (a as any).cliente_nombre;
+        const clienteFromMaster = clientes.find(c => c.id === cId);
 
         doc.setFillColor(240, 249, 255);
         doc.roundedRect(marginX, y, contentWidth, 40, 3, 3, 'F');
@@ -177,32 +182,32 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
         doc.setFont('helvetica', 'bold');
         doc.text('Razón Social:', col1X, y + 16);
         doc.setFont('helvetica', 'normal');
-        doc.text(cliente?.nombre || a.clienteNombre || 'N/A', col1X + 28, y + 16);
+        doc.text(clienteFromMaster?.nombre || cName || 'N/A', col1X + 28, y + 16);
 
         doc.setFont('helvetica', 'bold');
         doc.text('NIT:', col2X, y + 16);
         doc.setFont('helvetica', 'normal');
-        doc.text(cliente?.nit || 'N/A', col2X + 12, y + 16);
+        doc.text(clienteFromMaster?.nit || 'N/A', col2X + 12, y + 16);
 
         doc.setFont('helvetica', 'bold');
         doc.text('Dirección:', col1X, y + 24);
         doc.setFont('helvetica', 'normal');
-        doc.text(cliente?.direccion || 'N/A', col1X + 22, y + 24);
+        doc.text(clienteFromMaster?.direccion || 'N/A', col1X + 22, y + 24);
 
         doc.setFont('helvetica', 'bold');
         doc.text('Ciudad:', col2X, y + 24);
         doc.setFont('helvetica', 'normal');
-        doc.text(cliente?.ciudad || 'N/A', col2X + 16, y + 24);
+        doc.text(clienteFromMaster?.ciudad || 'N/A', col2X + 16, y + 24);
 
         doc.setFont('helvetica', 'bold');
         doc.text('Contacto:', col1X, y + 32);
         doc.setFont('helvetica', 'normal');
-        doc.text(cliente?.contacto || 'N/A', col1X + 22, y + 32);
+        doc.text(clienteFromMaster?.contacto || 'N/A', col1X + 22, y + 32);
 
         doc.setFont('helvetica', 'bold');
         doc.text('Teléfono:', col2X, y + 32);
         doc.setFont('helvetica', 'normal');
-        doc.text(cliente?.telefono || 'N/A', col2X + 20, y + 32);
+        doc.text(clienteFromMaster?.telefono || 'N/A', col2X + 20, y + 32);
 
         y += 50;
 
@@ -302,7 +307,7 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
         doc.setTextColor(0, 74, 153);
         doc.text('RECIBIDO POR', rightX + boxWidth / 2, y + 8, { align: 'center' });
         doc.setFont('helvetica', 'normal');
-        doc.text(cliente?.nombre || a.clienteNombre || 'Cliente', rightX + boxWidth / 2, y + 14, { align: 'center' });
+        doc.text(clienteFromMaster?.nombre || cName || 'Cliente', rightX + boxWidth / 2, y + 14, { align: 'center' });
 
         // Signature line
         doc.setDrawColor(150, 150, 150);
