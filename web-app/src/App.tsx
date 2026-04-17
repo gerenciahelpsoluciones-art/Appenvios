@@ -20,6 +20,7 @@ import LeadsWebModule, { type ClienteWeb } from './modules/LeadsWeb'
 import RegistrosWeb, { type RegistroPendiente } from './modules/RegistrosWeb'
 import AgenteInformesModule from './modules/AgenteInformes'
 import ComisionesModule from './modules/Comisiones'
+import RemisionesModule from './modules/Remisiones'
 import { supabase } from './lib/supabaseClient'
 import RegistrationForm from './modules/RegistrationForm';
 import { logoBase64 } from './assets/logoBase64'

@@ -610,6 +610,7 @@ const LogisticaModule: React.FC<IProps> = ({
                                                 <span className={`status-badge status-${d.estado.toLowerCase().replace(' ', '-')}`}>
                                                     {d.estado}
                                                 </span>
+                                            </td>
                                             <td className="text-center">
                                                 <div className="action-buttons">
                                                     <button className="btn-status" onClick={() => handleStatusChange(d, 'Preparando')} title="Preparando" disabled={d.estado === 'Preparando'}>📦</button>
