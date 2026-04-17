@@ -206,8 +206,8 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, alquile
             item.numPart,
             item.nombreProducto + (item.exentoIva ? ' (*)' : ''),
             item.cantidad,
-            `${oc.moneda === 'USD' ? 'US$' : '$'}${item.precioUnitario.toLocaleString()}`,
-            `${oc.moneda === 'USD' ? 'US$' : '$'}${(item.cantidad * item.precioUnitario).toLocaleString()}`
+            `${oc.moneda === 'USD' ? 'US$' : '$'}${item.precioUnitario.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`,
+            `${oc.moneda === 'USD' ? 'US$' : '$'}${(item.cantidad * item.precioUnitario).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
         ]);
 
         autoTable(doc, {
@@ -245,18 +245,18 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, alquile
         doc.setFont('helvetica', 'bold');
         doc.text('Subtotal:', 135, currentY + 2);
         doc.setFont('helvetica', 'normal');
-        doc.text(`${oc.moneda === 'USD' ? 'US$' : '$'}${oc.subtotal.toLocaleString()}`, 195, currentY + 2, { align: 'right' });
+        doc.text(`${oc.moneda === 'USD' ? 'US$' : '$'}${oc.subtotal.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`, 195, currentY + 2, { align: 'right' });
 
         doc.setFont('helvetica', 'bold');
         doc.text('IVA (19%):', 135, currentY + 9);
         doc.setFont('helvetica', 'normal');
-        doc.text(`${oc.moneda === 'USD' ? 'US$' : '$'}${oc.iva.toLocaleString()}`, 195, currentY + 9, { align: 'right' });
+        doc.text(`${oc.moneda === 'USD' ? 'US$' : '$'}${oc.iva.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`, 195, currentY + 9, { align: 'right' });
 
         doc.setFontSize(11);
         doc.setTextColor(0, 74, 153);
         doc.setFont('helvetica', 'bold');
         doc.text('VALOR TOTAL:', 135, currentY + 18);
-        doc.text(`${oc.moneda === 'USD' ? 'US$' : '$'}${oc.total.toLocaleString()}`, 195, currentY + 18, { align: 'right' });
+        doc.text(`${oc.moneda === 'USD' ? 'US$' : '$'}${oc.total.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`, 195, currentY + 18, { align: 'right' });
 
         currentY += 30;
 
@@ -267,7 +267,7 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, alquile
 
         let trmText = "";
         if (oc.moneda === 'USD') {
-            trmText = `\nNOTA: Esta orden de compra está expresada en Dólares (USD). TRM de referencia: $${oc.trm?.toLocaleString()}`;
+            trmText = `\nNOTA: Esta orden de compra está expresada en Dólares (USD). TRM de referencia: $${oc.trm?.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
         }
         
         const fullConditions = `Condiciones Comerciales:${trmText}\n${oc.condicionesComerciales}`;
@@ -411,7 +411,7 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, alquile
                                                     }
                                                     // If PO is COP and product is USD -> convert to COP
                                                     else if (moneda === 'COP' && p.moneda === 'USD' && currentTrm > 0) {
-                                                        cost = Math.round(cost * currentTrm);
+                                                        cost = cost * currentTrm;
                                                     }
                                                 }
                                                 setPrecioUnitario(cost);
@@ -573,10 +573,10 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, alquile
                         </div>
 
                         <div style={{ marginTop: '1.5rem', textAlign: 'right' }}>
-                            <div className="text-muted" style={{ marginBottom: '0.25rem' }}>Subtotal: {moneda === 'USD' ? 'US$' : '$'}{subtotal.toLocaleString()}</div>
-                            <div className="text-muted" style={{ marginBottom: '0.25rem' }}>IVA (19%): {moneda === 'USD' ? 'US$' : '$'}{iva.toLocaleString()}</div>
+                            <div className="text-muted" style={{ marginBottom: '0.25rem' }}>Subtotal: {moneda === 'USD' ? 'US$' : '$'}{subtotal.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
+                            <div className="text-muted" style={{ marginBottom: '0.25rem' }}>IVA (19%): {moneda === 'USD' ? 'US$' : '$'}{iva.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
                             <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--primary-blue)' }}>
-                                TOTAL: {moneda === 'USD' ? 'US$' : '$'}{total.toLocaleString()}
+                                TOTAL: {moneda === 'USD' ? 'US$' : '$'}{total.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
                             </div>
                         </div>
                     </div>
@@ -625,7 +625,7 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, alquile
                                         <span className={`badge ${oc.moneda === 'USD' ? 'badge-usd' : 'badge-cop'}`}>{oc.moneda || 'COP'}</span>
                                     </td>
                                     <td className="text-right" style={{ color: 'var(--primary-blue)', fontWeight: 'bold', fontFamily: 'Courier New, monospace' }}>
-                                        {oc.moneda === 'USD' ? 'US$' : '$'}{oc.total.toLocaleString()}
+                                        {oc.moneda === 'USD' ? 'US$' : '$'}{oc.total.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
                                     </td>
                                     <td className="text-center">
                                         {oc.verificada ? (

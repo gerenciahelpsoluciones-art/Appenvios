@@ -33,6 +33,7 @@ interface IProps {
     reparaciones: Reparacion[];
     onUpdateReparacion: (r: Reparacion) => any;
     cotizaciones: Cotizacion[];
+    setActiveTab?: (tab: string) => void;
 }
 
 const LogisticaModule: React.FC<IProps> = ({
@@ -54,7 +55,8 @@ const LogisticaModule: React.FC<IProps> = ({
     onDeleteDevolucion,
     reparaciones,
     onUpdateReparacion,
-    cotizaciones
+    cotizaciones,
+    setActiveTab: setGlobalTab
 }) => {
     const [activeTab, setActiveTab] = useState<'despachos' | 'recogidas' | 'devoluciones' | 'reparaciones' | 'informes'>('despachos');
     const [filterEstado, setFilterEstado] = useState<string>('Todos');
@@ -579,6 +581,7 @@ const LogisticaModule: React.FC<IProps> = ({
                                                     <button className="btn-status" onClick={() => handleStatusChange(d, 'Despachado')} title="Despachado" disabled={d.estado === 'Despachado'}>🚚</button>
                                                     <button className="btn-status" onClick={() => handleStatusChange(d, 'Entrega Parcial')} title="Parcial" disabled={d.estado === 'Entrega Parcial'}>🌗</button>
                                                     <button className="btn-status" onClick={() => handleStatusChange(d, 'Entregado')} title="Entregado" disabled={d.estado === 'Entregado'}>✅</button>
+                                                    <button className="btn-status" onClick={() => setGlobalTab && setGlobalTab('remisiones')} title="Ir a Remisiones">📄</button>
                                                     <button className="btn-status" style={{ color: 'var(--error)' }} onClick={() => onDeleteDespacho(d.id)}>🗑️</button>
                                                 </div>
                                             </td>
