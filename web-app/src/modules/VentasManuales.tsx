@@ -172,7 +172,7 @@ const VentasManualesModule: React.FC<IProps> = ({
                     <span className="stat-icon">💰</span>
                     <div className="stat-info">
                         <span className="stat-label">Ingresos del Mes</span>
-                        <span className="stat-value">${stats.monthTotal.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
+                        <span className="stat-value">${stats.monthTotal.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         <span className="stat-sub">{stats.monthCount} ventas registradas</span>
                     </div>
                 </div>
@@ -180,7 +180,7 @@ const VentasManualesModule: React.FC<IProps> = ({
                     <span className="stat-icon">📅</span>
                     <div className="stat-info">
                         <span className="stat-label">Ingresos Anuales</span>
-                        <span className="stat-value">${stats.yearTotal.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
+                        <span className="stat-value">${stats.yearTotal.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     </div>
                 </div>
                 <div className="stat-card animate-fade-in" style={{ animationDelay: '0.2s' }}>
@@ -375,7 +375,7 @@ const VentasManualesModule: React.FC<IProps> = ({
                                 </div>
                                 <div style={{ fontSize: '0.9rem', color: '#475569', fontWeight: '500' }}>
                                     Confirmado para clonar: <span style={{ color: 'var(--primary-blue)', fontSize: '1.1rem', fontWeight: '700' }}>
-                                        ${ventas.filter(v => salesToClone.includes(v.id)).reduce((s, v) => s + v.monto, 0).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                                        ${ventas.filter(v => salesToClone.includes(v.id)).reduce((s, v) => s + v.monto, 0).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </span>
                                 </div>
                             </div>
@@ -415,7 +415,7 @@ const VentasManualesModule: React.FC<IProps> = ({
                                                 </td>
                                                 <td><strong>{v.clienteNombre}</strong></td>
                                                 <td>{v.descripcion}</td>
-                                                <td className="text-right">${v.monto.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</td>
+                                                <td className="text-right">${v.monto.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -482,7 +482,7 @@ const VentasManualesModule: React.FC<IProps> = ({
                                     <td>{v.usuarioNombre}</td>
                                     <td style={{ maxWidth: '300px', fontSize: '0.85rem' }}>{v.descripcion}</td>
                                     <td className="text-right" style={{ fontWeight: 'bold', color: 'var(--primary-blue)' }}>
-                                        ${v.monto.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                                        ${v.monto.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </td>
                                     <td className="text-center">
                                         <div style={{ display: 'flex', gap: '0.25rem', justifyContent: 'center' }}>

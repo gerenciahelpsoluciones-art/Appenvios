@@ -508,12 +508,17 @@ const LogisticaModule: React.FC<IProps> = ({
                                     <th style={{ minWidth: '200px' }}>Conductor</th>
                                     <th className="text-right" style={{ minWidth: '110px' }}>Monto</th>
                                     <th className="text-center" style={{ minWidth: '100px' }}>Pruebas</th>
+                                    <th className="text-center" style={{ minWidth: '110px' }}>OC Cliente</th>
                                     <th className="text-center" style={{ minWidth: '120px' }}>Estado</th>
                                     <th className="text-center" style={{ minWidth: '160px' }}>Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {list.map((d) => (
+                                {list.map((d) => {
+                                    const linkedQuote = cotizaciones.find(q => q.id === d.cotizacionId) || 
+                                                       cotizaciones.find(q => q.consecutivo === d.consecutivoCotizacion);
+                                    const tieneOC = !!(linkedQuote?.ordenCompraCliente || linkedQuote?.ordenCompraUrl);
+                                    return (
                                     <React.Fragment key={d.id}>
                                         <tr className={expandedId === d.id ? 'row-expanded' : ''}>
                                             <td>
@@ -553,7 +558,6 @@ const LogisticaModule: React.FC<IProps> = ({
                                             </td>
                                             <td className="text-center">
                                                 <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
-                                                    {/* Proof buttons: fotoEntrega and fotoRemision are enough for logistics */}
                                                     {d.fotoEntrega ? (
                                                         <button
                                                             className="btn-download"
@@ -572,6 +576,37 @@ const LogisticaModule: React.FC<IProps> = ({
                                                 </div>
                                             </td>
                                             <td className="text-center">
+                                                {linkedQuote ? (
+                                                    tieneOC ? (
+                                                        <span
+                                                            title={`OC: ${linkedQuote.ordenCompraCliente || 'Archivo adjunto'}`}
+                                                            style={{
+                                                                display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
+                                                                background: '#d1fae5', color: '#065f46', padding: '0.2rem 0.55rem',
+                                                                borderRadius: '12px', fontSize: '0.78rem', fontWeight: 700,
+                                                                border: '1px solid #6ee7b7', cursor: 'default'
+                                                            }}
+                                                        >
+                                                            📋 {linkedQuote.ordenCompraCliente || 'Ver OC'}
+                                                        </span>
+                                                    ) : (
+                                                        <span
+                                                            title="Cotización ganada sin OC registrada"
+                                                            style={{
+                                                                display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
+                                                                background: '#fef3c7', color: '#92400e', padding: '0.2rem 0.55rem',
+                                                                borderRadius: '12px', fontSize: '0.78rem', fontWeight: 600,
+                                                                border: '1px solid #fcd34d', cursor: 'default'
+                                                            }}
+                                                        >
+                                                            ⚠️ Sin OC
+                                                        </span>
+                                                    )
+                                                ) : (
+                                                    <span style={{ color: '#94a3b8', fontSize: '0.78rem' }}>—</span>
+                                                )}
+                                            </td>
+                                            <td className="text-center">
                                                 <span className={`status-badge status-${d.estado.toLowerCase().replace(' ', '-')}`}>
                                                     {d.estado}
                                                 </span>
@@ -588,12 +623,16 @@ const LogisticaModule: React.FC<IProps> = ({
                                         </tr>
                                         {expandedId === d.id && (
                                             <tr className="detail-row">
-                                                <td colSpan={10}>
+                                                <td colSpan={11}>
                                                     <div className="product-details-box animate-fade-in">
                                                         <h4>🔍 Detalles de Entrega: {d.direccion}</h4>
                                                         <table className="inner-table">
                                                             <thead>
-                                                                <tr><th>Producto</th><th>N° Parte</th><th className="text-right">Cantidad</th></tr>
+                                                                <tr>
+                                                                    <th>Producto a Despachar</th>
+                                                                    <th>N° Parte</th>
+                                                                    <th className="text-right">Cantidad</th>
+                                                                </tr>
                                                             </thead>
                                                             <tbody>
                                                                 {d.items.map((item, idx) => (
@@ -605,12 +644,120 @@ const LogisticaModule: React.FC<IProps> = ({
                                                                 ))}
                                                             </tbody>
                                                         </table>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        )}
-                                    </React.Fragment>
-                                ))}
+
+                                                        {/* SECCIÓN OC DEL CLIENTE */}
+                                                        {linkedQuote && (
+                                                            <div style={{ 
+                                                                marginTop: '1.25rem', padding: '1.25rem', borderRadius: '12px',
+                                                                background: tieneOC ? '#f0fdf4' : '#fffbeb',
+                                                                border: `1px solid ${tieneOC ? '#b9f6ca' : '#fde68a'}`,
+                                                                boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.02)'
+                                                            }}>
+                                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                                        <span style={{ fontSize: '1.25rem' }}>📋</span>
+                                                                        <h5 style={{ margin: 0, fontSize: '1rem', color: tieneOC ? '#166534' : '#92400e' }}>
+                                                                            Orden de Compra del Cliente
+                                                                        </h5>
+                                                                    </div>
+                                                                    
+                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                                        {linkedQuote.ordenCompraCliente && (
+                                                                            <span style={{ 
+                                                                                background: '#dcfce7', color: '#15803d', padding: '0.35rem 0.85rem', 
+                                                                                borderRadius: '20px', fontWeight: 800, fontSize: '0.85rem', border: '1px solid #b9f6ca' 
+                                                                            }}>
+                                                                                N° {linkedQuote.ordenCompraCliente}
+                                                                            </span>
+                                                                        )}
+                                                                        
+                                                                        {linkedQuote.ordenCompraUrl ? (
+                                                                            <a
+                                                                                href={linkedQuote.ordenCompraUrl}
+                                                                                target="_blank"
+                                                                                rel="noopener noreferrer"
+                                                                                style={{
+                                                                                    background: '#2563eb', color: 'white', padding: '0.5rem 1.25rem',
+                                                                                    borderRadius: '8px', fontWeight: 700, fontSize: '0.85rem',
+                                                                                    textDecoration: 'none', boxShadow: '0 4px 6px -1px rgba(37, 99, 235, 0.2)',
+                                                                                    display: 'inline-flex', alignItems: 'center', gap: '0.5rem'
+                                                                                }}
+                                                                            >
+                                                                                📥 ABRIR DOCUMENTO OC
+                                                                            </a>
+                                                                        ) : linkedQuote.ordenCompraCliente ? (
+                                                                            <span style={{ color: '#dc2626', fontWeight: 600, fontSize: '0.85rem', background: '#fee2e2', padding: '0.4rem 0.8rem', borderRadius: '6px' }}>
+                                                                                ⚠️ Falta archivo PDF (No adjunto)
+                                                                            </span>
+                                                                        ) : (
+                                                                            <span style={{ color: '#92400e', fontStyle: 'italic', fontSize: '0.85rem' }}>
+                                                                                ⚠️ No se registró OC al cerrar
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+                                                                {/* Comparación ítems cotizados vs ítems a despachar */}
+                                                                {linkedQuote.items && linkedQuote.items.length > 0 && (
+                                                                    <>
+                                                                        <p style={{ margin: '0 0 0.5rem', fontSize: '0.82rem', color: '#475569', fontWeight: 600 }}>
+                                                                            Ítems de la cotización (lo que pidió el cliente):
+                                                                        </p>
+                                                                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                                                                            <thead>
+                                                                                <tr style={{ background: 'rgba(0,0,0,0.04)' }}>
+                                                                                    <th style={{ padding: '0.4rem 0.6rem', textAlign: 'left', borderBottom: '1px solid rgba(0,0,0,0.1)' }}>Producto cotizado</th>
+                                                                                    <th style={{ padding: '0.4rem 0.6rem', textAlign: 'right', borderBottom: '1px solid rgba(0,0,0,0.1)', width: '90px' }}>Cant. cot.</th>
+                                                                                    <th style={{ padding: '0.4rem 0.6rem', textAlign: 'right', borderBottom: '1px solid rgba(0,0,0,0.1)', width: '90px' }}>Cant. desp.</th>
+                                                                                    <th style={{ padding: '0.4rem 0.6rem', textAlign: 'center', borderBottom: '1px solid rgba(0,0,0,0.1)', width: '80px' }}>Estado</th>
+                                                                                </tr>
+                                                                            </thead>
+                                                                            <tbody>
+                                                                                {linkedQuote.items.map((qItem, qIdx) => {
+                                                                                    const prod = productos.find(p => p.id === qItem.productoId);
+                                                                                    const prodNombre = prod?.nombre || `Producto ID: ${qItem.productoId.substring(0, 8)}`;
+                                                                                    const matchDespacho = d.items.find(di =>
+                                                                                        di.productoId === qItem.productoId ||
+                                                                                        (prod && di.nombreProducto?.toLowerCase().trim() === prod.nombre?.toLowerCase().trim())
+                                                                                    );
+                                                                                    const cantDesp = matchDespacho?.cantidad;
+                                                                                    const coincide = cantDesp !== undefined && cantDesp === qItem.cantidad;
+                                                                                    const parcial = cantDesp !== undefined && cantDesp !== qItem.cantidad;
+                                                                                    return (
+                                                                                        <tr key={qIdx} style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+                                                                                            <td style={{ padding: '0.4rem 0.6rem' }}>{prodNombre}</td>
+                                                                                            <td style={{ padding: '0.4rem 0.6rem', textAlign: 'right', fontWeight: 600 }}>{qItem.cantidad}</td>
+                                                                                            <td style={{ padding: '0.4rem 0.6rem', textAlign: 'right', color: cantDesp !== undefined ? '#1e293b' : '#94a3b8' }}>
+                                                                                                {cantDesp ?? '—'}
+                                                                                            </td>
+                                                                                            <td style={{ padding: '0.4rem 0.6rem', textAlign: 'center' }}>
+                                                                                                {coincide ? (
+                                                                                                    <span title="Coincide" style={{ color: '#16a34a', fontWeight: 700, fontSize: '1rem' }}>✅</span>
+                                                                                                ) : parcial ? (
+                                                                                                    <span title="Cantidad diferente" style={{ color: '#d97706', fontWeight: 700, fontSize: '1rem' }}>⚠️</span>
+                                                                                                ) : (
+                                                                                                    <span title="No incluido en despacho" style={{ color: '#dc2626', fontWeight: 700, fontSize: '1rem' }}>❌</span>
+                                                                                                )}
+                                                                                            </td>
+                                                                                        </tr>
+                                                                                    );
+                                                                                })}
+                                                                            </tbody>
+                                                                        </table>
+                                                                        <p style={{ margin: '0.6rem 0 0', fontSize: '0.75rem', color: '#64748b' }}>
+                                                                            ✅ Coincide &nbsp;|&nbsp; ⚠️ Cantidad diferente &nbsp;|&nbsp; ❌ No incluido en despacho
+                                                                        </p>
+                                                                    </>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </React.Fragment>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>

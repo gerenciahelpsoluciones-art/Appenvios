@@ -296,7 +296,7 @@ const InventarioModule: React.FC = () => {
                                 <td><code>{p.code}</code></td>
                                 <td>{p.description}</td>
                                 <td className="text-right" style={{ color: '#64748b', fontWeight: 'bold' }}>
-                                    {p.cost > 0 ? `$${p.cost.toLocaleString('es-CO')}` : '—'}
+                                    {p.cost > 0 ? `$${p.cost.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
                                 </td>
                                 <td className="text-right" style={{ fontWeight: 'bold' }}>
                                     {p.stock}

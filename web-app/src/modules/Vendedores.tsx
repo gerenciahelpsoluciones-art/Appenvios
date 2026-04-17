@@ -103,7 +103,7 @@ const Vendedores: React.FC<IProps> = ({ users, budgets, cotizaciones, ventasManu
         ? vendedores
         : vendedores.filter(v => v.id === currentUser.id);
 
-    const formatCurrency = (val: number) => `$${val.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+    const formatCurrency = (val: number) => `$${val.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
     const handleDownloadPDF = () => {
         const reportData = displayedVendedores.map(v => {
@@ -182,7 +182,7 @@ const Vendedores: React.FC<IProps> = ({ users, budgets, cotizaciones, ventasManu
                                             <p>{v.cargo || 'Asesor Comercial'}</p>
                                         </div>
                                         <div className="percent-badge" style={{ backgroundColor: performanceColor + '20', color: performanceColor }}>
-                                            {percent.toFixed(1)}%
+                                            {percent.toFixed(2)}%
                                         </div>
                                     </div>
 

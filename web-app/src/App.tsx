@@ -1743,7 +1743,7 @@ function App() {
                   <span style={{ fontSize: '1.5rem' }}>💰</span>
                 </div>
                 <p style={{ margin: 0, fontSize: '2rem', fontWeight: 'bold', color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  ${wonQuotesMonth.reduce((acc, c) => acc + c.total, 0).toLocaleString()}
+                  ${wonQuotesMonth.reduce((acc, c) => acc + (Number(c.total) || 0), 0).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: 'auto' }}>
                   <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '500' }}>
@@ -1788,7 +1788,7 @@ function App() {
                           {c.estado === 'Ganado' ? '✅ Venta Cerrada' : '📄 Nueva Cotización'} ({c.consecutivo})
                         </div>
                         <div style={{ fontSize: '0.9rem', color: '#475569' }}>
-                          Para: <strong>{c.clienteNombre}</strong> por ${c.total.toLocaleString()}
+                          Para: <strong>{c.clienteNombre}</strong> por ${c.total.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </div>
                       </div>
                     </div>
