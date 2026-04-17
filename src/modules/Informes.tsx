@@ -16,6 +16,7 @@ interface IProps {
     despachos: any[];
     ordenesCompra: any[];
     users: AppUser[];
+    alquileres?: any[];
 }
 
 interface EditItem {
@@ -41,7 +42,8 @@ const InformesModule: React.FC<IProps> = ({
     proveedores,
     despachos,
     ordenesCompra,
-    users
+    users,
+    alquileres = []
 }) => {
     const now = new Date();
     const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
@@ -116,9 +118,10 @@ const InformesModule: React.FC<IProps> = ({
         .filter(v => v.tipoVenta === 'Contrato')
         .reduce((acc, v) => acc + v.monto, 0);
     
-    const revenueByRental = manualSalesFiltered
-        .filter(v => v.tipoVenta === 'Alquiler')
-        .reduce((acc, v) => acc + v.monto, 0);
+    // Total real de alquileres activos desde el módulo de Alquileres
+    const revenueByRental = alquileres
+        .filter((a: any) => a.estado === 'Alquilado')
+        .reduce((acc: number, a: any) => acc + (a.valorMensual || 0), 0);
     
     const revenueByLicense = manualSalesFiltered
         .filter(v => v.tipoVenta === 'Licencia')
@@ -463,7 +466,9 @@ const InformesModule: React.FC<IProps> = ({
                             <div className="stat-card" style={{ background: 'linear-gradient(135deg, #34d399 0%, #059669 100%)' }}>
                                 <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.9)', fontWeight: 600, marginBottom: '0.2rem' }}>Ingresos por Alquileres</div>
                                 <div style={{ fontSize: '0.95rem', color: '#fff', fontWeight: 700, margin: '0.15rem 0' }}>${revenueByRental.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
-                                <div className="stat-trend" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', fontSize: '0.68rem' }}>En el periodo</div>
+                                <div className="stat-trend" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', fontSize: '0.68rem' }}>
+                                    {alquileres.filter((a: any) => a.estado === 'Alquilado').length} equipo(s) alquilado(s)
+                                </div>
                             </div>
                             <div className="stat-card" style={{ background: 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)' }}>
                                 <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.9)', fontWeight: 600, marginBottom: '0.2rem' }}>Ventas Estándar</div>

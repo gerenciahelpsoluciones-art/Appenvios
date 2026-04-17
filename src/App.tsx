@@ -1908,6 +1908,7 @@ function App() {
           despachos={despachos}
           ordenesCompra={ordenesCompra}
           users={users}
+          alquileres={alquileres}
         />;
       case 'admin':
         return <AdminModule
