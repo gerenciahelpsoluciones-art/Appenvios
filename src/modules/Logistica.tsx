@@ -507,12 +507,17 @@ const LogisticaModule: React.FC<IProps> = ({
                                     <th style={{ minWidth: '200px' }}>Conductor</th>
                                     <th className="text-right" style={{ minWidth: '110px' }}>Monto</th>
                                     <th className="text-center" style={{ minWidth: '100px' }}>Pruebas</th>
+                                    <th className="text-center" style={{ minWidth: '110px' }}>OC Cliente</th>
                                     <th className="text-center" style={{ minWidth: '120px' }}>Estado</th>
                                     <th className="text-center" style={{ minWidth: '160px' }}>Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {list.map((d) => (
+                                {list.map((d) => {
+                                    const linkedQuote = cotizaciones.find(q => q.id === d.cotizacionId) || 
+                                                       cotizaciones.find(q => q.consecutivo === d.consecutivoCotizacion);
+                                    const tieneOC = !!(linkedQuote?.ordenCompraCliente || linkedQuote?.ordenCompraUrl);
+                                    return (
                                     <React.Fragment key={d.id}>
                                         <tr className={expandedId === d.id ? 'row-expanded' : ''}>
                                             <td>
@@ -571,6 +576,37 @@ const LogisticaModule: React.FC<IProps> = ({
                                                 </div>
                                             </td>
                                             <td className="text-center">
+                                                {linkedQuote ? (
+                                                    tieneOC ? (
+                                                        <span
+                                                            title={`OC: ${linkedQuote.ordenCompraCliente || 'Archivo adjunto'}`}
+                                                            style={{
+                                                                display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
+                                                                background: '#d1fae5', color: '#065f46', padding: '0.2rem 0.55rem',
+                                                                borderRadius: '12px', fontSize: '0.78rem', fontWeight: 700,
+                                                                border: '1px solid #6ee7b7', cursor: 'default'
+                                                            }}
+                                                        >
+                                                            📋 {linkedQuote.ordenCompraCliente || 'Ver OC'}
+                                                        </span>
+                                                    ) : (
+                                                        <span
+                                                            title="Cotización ganada sin OC registrada"
+                                                            style={{
+                                                                display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
+                                                                background: '#fef3c7', color: '#92400e', padding: '0.2rem 0.55rem',
+                                                                borderRadius: '12px', fontSize: '0.78rem', fontWeight: 600,
+                                                                border: '1px solid #fcd34d', cursor: 'default'
+                                                            }}
+                                                        >
+                                                            ⚠️ Sin OC
+                                                        </span>
+                                                    )
+                                                ) : (
+                                                    <span style={{ color: '#94a3b8', fontSize: '0.78rem' }}>—</span>
+                                                )}
+                                            </td>
+                                            <td className="text-center">
                                                 <span className={`status-badge status-${d.estado.toLowerCase().replace(' ', '-')}`}>
                                                     {d.estado}
                                                 </span>
@@ -588,7 +624,7 @@ const LogisticaModule: React.FC<IProps> = ({
                                         </tr>
                                         {expandedId === d.id && (
                                             <tr className="detail-row">
-                                                <td colSpan={10}>
+                                                <td colSpan={11}>
                                                     <div className="product-details-box animate-fade-in">
                                                         <h4>🔍 Detalles de Entrega: {d.direccion}</h4>
                                                         <table className="inner-table">
@@ -610,7 +646,8 @@ const LogisticaModule: React.FC<IProps> = ({
                                             </tr>
                                         )}
                                     </React.Fragment>
-                                ))}
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>
