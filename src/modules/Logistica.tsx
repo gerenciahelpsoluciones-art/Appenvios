@@ -641,6 +641,110 @@ const LogisticaModule: React.FC<IProps> = ({
                                                                 ))}
                                                             </tbody>
                                                         </table>
+
+                                                        {/* SECCIÓN OC DEL CLIENTE */}
+                                                        {linkedQuote && (
+                                                            <div style={{ 
+                                                                marginTop: '1.25rem', padding: '1.25rem', borderRadius: '12px',
+                                                                background: tieneOC ? '#f0fdf4' : '#fffbeb',
+                                                                border: `1px solid ${tieneOC ? '#b9f6ca' : '#fde68a'}`,
+                                                                boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.02)'
+                                                            }}>
+                                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                                        <span style={{ fontSize: '1.25rem' }}>📋</span>
+                                                                        <h5 style={{ margin: 0, fontSize: '1rem', color: tieneOC ? '#166534' : '#92400e' }}>
+                                                                            Orden de Compra del Cliente
+                                                                        </h5>
+                                                                    </div>
+                                                                    
+                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                                        {linkedQuote.ordenCompraCliente && (
+                                                                            <span style={{ 
+                                                                                background: '#dcfce7', color: '#15803d', padding: '0.35rem 0.85rem', 
+                                                                                borderRadius: '20px', fontWeight: 800, fontSize: '0.85rem', border: '1px solid #b9f6ca' 
+                                                                            }}>
+                                                                                N° {linkedQuote.ordenCompraCliente}
+                                                                            </span>
+                                                                        )}
+                                                                        
+                                                                        {linkedQuote.ordenCompraUrl ? (
+                                                                            <a
+                                                                                href={linkedQuote.ordenCompraUrl}
+                                                                                target="_blank"
+                                                                                rel="noopener noreferrer"
+                                                                                style={{
+                                                                                    background: '#2563eb', color: 'white', padding: '0.5rem 1.25rem',
+                                                                                    borderRadius: '8px', fontWeight: 700, fontSize: '0.85rem',
+                                                                                    textDecoration: 'none', boxShadow: '0 4px 6px -1px rgba(37, 99, 235, 0.2)',
+                                                                                    display: 'inline-flex', alignItems: 'center', gap: '0.5rem'
+                                                                                }}
+                                                                            >
+                                                                                📥 ABRIR DOCUMENTO OC
+                                                                            </a>
+                                                                        ) : linkedQuote.ordenCompraCliente ? (
+                                                                            <span style={{ color: '#dc2626', fontWeight: 600, fontSize: '0.85rem', background: '#fee2e2', padding: '0.4rem 0.8rem', borderRadius: '6px' }}>
+                                                                                ⚠️ Falta archivo PDF (No adjunto)
+                                                                            </span>
+                                                                        ) : (
+                                                                            <span style={{ color: '#92400e', fontStyle: 'italic', fontSize: '0.85rem' }}>
+                                                                                ⚠️ No se registró OC al cerrar
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+                                                        {/* Comparación ítems cotizados vs ítems a despachar */}
+                                                        {linkedQuote?.items && linkedQuote.items.length > 0 && (
+                                                            <>
+                                                                <p style={{ margin: '1rem 0 0.5rem', fontSize: '0.82rem', color: '#475569', fontWeight: 600 }}>
+                                                                    Ítems de la cotización (lo que pidió el cliente):
+                                                                </p>
+                                                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', marginBottom: '1rem' }}>
+                                                                    <thead>
+                                                                        <tr style={{ background: 'rgba(0,0,0,0.04)' }}>
+                                                                            <th style={{ padding: '0.4rem 0.6rem', textAlign: 'left', borderBottom: '1px solid rgba(0,0,0,0.1)' }}>Producto cotizado</th>
+                                                                            <th style={{ padding: '0.4rem 0.6rem', textAlign: 'right', borderBottom: '1px solid rgba(0,0,0,0.1)', width: '90px' }}>Cant. cot.</th>
+                                                                            <th style={{ padding: '0.4rem 0.6rem', textAlign: 'right', borderBottom: '1px solid rgba(0,0,0,0.1)', width: '90px' }}>Cant. desp.</th>
+                                                                            <th style={{ padding: '0.4rem 0.6rem', textAlign: 'center', borderBottom: '1px solid rgba(0,0,0,0.1)', width: '80px' }}>Estado</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                        {linkedQuote.items.map((qItem, qIdx) => {
+                                                                            const prod = productos.find(p => p.id === qItem.productoId);
+                                                                            const prodNombre = prod?.nombre || `Producto ID: ${qItem.productoId.substring(0, 8)}`;
+                                                                            const matchDespacho = d.items.find(di =>
+                                                                                di.productoId === qItem.productoId ||
+                                                                                (prod && di.nombreProducto?.toLowerCase().trim() === prod.nombre?.toLowerCase().trim())
+                                                                            );
+                                                                            const cantDesp = matchDespacho?.cantidad;
+                                                                            const coincide = cantDesp !== undefined && cantDesp === qItem.cantidad;
+                                                                            const parcial = cantDesp !== undefined && cantDesp !== qItem.cantidad;
+                                                                            return (
+                                                                                <tr key={qIdx} style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+                                                                                    <td style={{ padding: '0.4rem 0.6rem' }}>{prodNombre}</td>
+                                                                                    <td style={{ padding: '0.4rem 0.6rem', textAlign: 'right', fontWeight: 600 }}>{qItem.cantidad}</td>
+                                                                                    <td style={{ padding: '0.4rem 0.6rem', textAlign: 'right', color: cantDesp !== undefined ? '#1e293b' : '#94a3b8' }}>
+                                                                                        {cantDesp ?? '—'}
+                                                                                    </td>
+                                                                                    <td style={{ padding: '0.4rem 0.6rem', textAlign: 'center' }}>
+                                                                                        {coincide ? (
+                                                                                            <span title="Coincide" style={{ color: '#16a34a', fontWeight: 700, fontSize: '1rem' }}>✅</span>
+                                                                                        ) : parcial ? (
+                                                                                            <span title="Cantidad diferente" style={{ color: '#d97706', fontWeight: 700, fontSize: '1rem' }}>⚠️</span>
+                                                                                        ) : (
+                                                                                            <span title="No incluido en despacho" style={{ color: '#dc2626', fontWeight: 700, fontSize: '1rem' }}>❌</span>
+                                                                                        )}
+                                                                                    </td>
+                                                                                </tr>
+                                                                            );
+                                                                        })}
+                                                                    </tbody>
+                                                                </table>
+                                                            </>
+                                                        )}
                                                     </div>
                                                 </td>
                                             </tr>
