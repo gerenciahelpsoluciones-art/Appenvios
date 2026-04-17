@@ -20,6 +20,7 @@ import LeadsWebModule, { type ClienteWeb } from './modules/LeadsWeb'
 import RegistrosWeb, { type RegistroPendiente } from './modules/RegistrosWeb'
 import AgenteInformesModule from './modules/AgenteInformes'
 import RemisionesModule from './modules/Remisiones'
+import ComisionesModule from './modules/Comisiones'
 import { supabase } from './lib/supabaseClient'
 import RegistrationForm from './modules/RegistrationForm';
 import { logoBase64 } from './assets/logoBase64'
@@ -1665,10 +1666,11 @@ function App() {
     { id: 'facturacion', label: 'Facturación', icon: '💲' },
     { id: 'ventas-manuales', label: 'Ventas Manuales', icon: '💰' },
     { id: 'remisiones', label: 'Remisiones', icon: '📄' },
+    { id: 'comisiones', label: 'Comisiones', icon: '💸' },
     { id: 'agente-informes', label: 'Agente de Informes', icon: '🤖' },
   ].filter(item => {
     if (item.id === 'productos') return true; // Everyone can see/edit products
-    if ((item.id === 'facturacion' || item.id === 'ventas-manuales' || item.id === 'leads-web' || item.id === 'registros-web' || item.id === 'vendedores' || item.id === 'informes' || item.id === 'remisiones') && currentUser?.rol === 'Admin') return true;
+    if ((item.id === 'facturacion' || item.id === 'ventas-manuales' || item.id === 'leads-web' || item.id === 'registros-web' || item.id === 'vendedores' || item.id === 'informes' || item.id === 'remisiones' || item.id === 'comisiones') && currentUser?.rol === 'Admin') return true;
     if (item.id === 'leads-web' && currentUser?.rol === 'Comercial') return true;
     return currentUser?.permisos.includes(item.id);
   });
@@ -1879,6 +1881,12 @@ function App() {
           clientes={clientes} 
           productos={productos} 
           currentUser={currentUser} 
+        />;
+      case 'comisiones':
+        return <ComisionesModule
+          users={users}
+          cotizaciones={cotizaciones}
+          productos={productos}
         />;
       case 'informes':
         const restrictedQuotes = currentUser.rol === 'Admin'
