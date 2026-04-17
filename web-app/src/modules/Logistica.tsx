@@ -610,13 +610,13 @@ const LogisticaModule: React.FC<IProps> = ({
                                                 <span className={`status-badge status-${d.estado.toLowerCase().replace(' ', '-')}`}>
                                                     {d.estado}
                                                 </span>
-                                            </td>
                                             <td className="text-center">
                                                 <div className="action-buttons">
                                                     <button className="btn-status" onClick={() => handleStatusChange(d, 'Preparando')} title="Preparando" disabled={d.estado === 'Preparando'}>📦</button>
                                                     <button className="btn-status" onClick={() => handleStatusChange(d, 'Despachado')} title="Despachado" disabled={d.estado === 'Despachado'}>🚚</button>
                                                     <button className="btn-status" onClick={() => handleStatusChange(d, 'Entrega Parcial')} title="Parcial" disabled={d.estado === 'Entrega Parcial'}>🌗</button>
                                                     <button className="btn-status" onClick={() => handleStatusChange(d, 'Entregado')} title="Entregado" disabled={d.estado === 'Entregado'}>✅</button>
+                                                    <button className="btn-status" onClick={() => setActiveTab('remisiones')} title="Generar Remisión" style={{ color: '#2563eb' }}>📄</button>
                                                     <button className="btn-status" style={{ color: 'var(--error)' }} onClick={() => onDeleteDespacho(d.id)}>🗑️</button>
                                                 </div>
                                             </td>
