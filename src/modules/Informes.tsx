@@ -103,8 +103,8 @@ const InformesModule: React.FC<IProps> = ({
     });
 
     const wonQuotesInRange = filteredQuotes.filter(q => q.estado === 'Ganado');
-    const totalVendido = wonQuotesInRange.reduce((acc, q) => acc + q.total, 0);
-    const totalUtilidad = wonQuotesInRange.reduce((acc, q) => acc + (q.utilidadTotal || 0), 0);
+    const totalVendidoQuotes = wonQuotesInRange.reduce((acc, q) => acc + q.total, 0);
+    const utilityQuotes = wonQuotesInRange.reduce((acc, q) => acc + (q.utilidadTotal || 0), 0);
 
     // Revenue by category from manual sales (using appliedFilters)
     const manualSalesFiltered = (ventasManuales || []).filter(v => {
@@ -113,6 +113,12 @@ const InformesModule: React.FC<IProps> = ({
         const clientMatch = appliedFilters.clienteId ? v.clienteId === appliedFilters.clienteId : true;
         return dateMatch && advisorMatch && clientMatch;
     });
+
+    const totalVendidoManual = manualSalesFiltered.reduce((acc, v) => acc + v.monto, 0);
+    const totalVendido = totalVendidoQuotes + totalVendidoManual;
+
+    const utilityManual = manualSalesFiltered.reduce((acc, v) => acc + (v.monto - (v.costo || 0)), 0);
+    const totalUtilidad = utilityQuotes + utilityManual;
 
     const revenueByContract = manualSalesFiltered
         .filter(v => v.tipoVenta === 'Contrato')
@@ -135,11 +141,8 @@ const InformesModule: React.FC<IProps> = ({
         .filter(v => v.tipoVenta === 'Venta')
         .reduce((acc, v) => acc + v.monto, 0);
 
-    // Total manual sales in period
-    const totalManualSales = manualSalesFiltered.reduce((acc, v) => acc + v.monto, 0);
-
     // Monthly performance for execution cards (now based on appliedFilters for consistency)
-    const monthlySales = totalVendido + totalManualSales;
+    const monthlySales = totalVendido;
 
     const revenueForMargin = monthlySales - revenueByContract;
     const profitMarginPercent = revenueForMargin > 0 ? (totalUtilidad / revenueForMargin) * 100 : 0;

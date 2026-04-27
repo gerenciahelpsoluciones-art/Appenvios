@@ -32,9 +32,14 @@ const VentasManualesModule: React.FC<IProps> = ({
     const [selectedProductoId, setSelectedProductoId] = useState('');
     const [selectedUsuarioId, setSelectedUsuarioId] = useState(currentUser.id);
     const [monto, setMonto] = useState(0);
+    const [costo, setCosto] = useState(0);
     const [tipoVenta, setTipoVenta] = useState<'Venta' | 'Contrato' | 'Alquiler' | 'Licencia' | 'Licitacion'>('Venta');
     const [descripcion, setDescripcion] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
+    
+    // Import state
+    const [isImporting, setIsImporting] = useState(false);
+    const [importPreview, setImportPreview] = useState<any[]>([]);
 
     // Summary Calculations
     const currentMonthStr = new Date().toISOString().substring(0, 7);
@@ -91,6 +96,7 @@ const VentasManualesModule: React.FC<IProps> = ({
                 usuarioId: usuario.id,
                 usuarioNombre: usuario.nombre,
                 monto,
+                costo,
                 tipoVenta: tipoVenta,
                 descripcion
             });
@@ -106,6 +112,7 @@ const VentasManualesModule: React.FC<IProps> = ({
                 usuarioId: usuario.id,
                 usuarioNombre: usuario.nombre,
                 monto: monto,
+                costo,
                 tipoVenta: tipoVenta,
                 descripcion: descripcion
             };
@@ -120,6 +127,7 @@ const VentasManualesModule: React.FC<IProps> = ({
         setSelectedProductoId(v.productoId || '');
         setSelectedUsuarioId(v.usuarioId);
         setMonto(v.monto);
+        setCosto(v.costo || 0);
         setTipoVenta(v.tipoVenta || 'Venta');
         setDescripcion(v.descripcion);
         setIsAdding(true);
@@ -133,8 +141,58 @@ const VentasManualesModule: React.FC<IProps> = ({
         setSelectedProductoId('');
         setSelectedUsuarioId(currentUser.id);
         setMonto(0);
+        setCosto(0);
         setTipoVenta('Venta');
         setDescripcion('');
+    };
+
+    const handleImportCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const text = event.target?.result as string;
+            const lines = text.split('\n').filter(line => line.trim());
+            const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+            
+            // Expected headers: fecha, nit, monto, costo, descripcion, [tipo]
+            const result: any[] = [];
+            
+            for (let i = 1; i < lines.length; i++) {
+                const values = lines[i].split(',').map(v => v.trim());
+                if (values.length < 4) continue;
+
+                const row: any = {};
+                headers.forEach((header, index) => {
+                    row[header] = values[index];
+                });
+
+                // Find matching client by NIT
+                const cliente = clientes.find(c => c.nit.replace(/\D/g, '') === (row.nit || '').replace(/\D/g, ''));
+                
+                if (cliente) {
+                    result.push({
+                        id: crypto.randomUUID(),
+                        fecha: row.fecha || new Date().toISOString().split('T')[0],
+                        clienteId: cliente.id,
+                        clienteNombre: cliente.nombre,
+                        usuarioId: currentUser.id,
+                        usuarioNombre: currentUser.nombre,
+                        monto: Number(row.monto) || 0,
+                        costo: Number(row.costo) || 0,
+                        tipoVenta: row.tipo || 'Venta',
+                        descripcion: row.descripcion || 'Importación Siigo'
+                    });
+                } else {
+                    console.warn(`Cliente con NIT ${row.nit} no encontrado.`);
+                }
+            }
+            
+            setImportPreview(result);
+            setIsImporting(true);
+        };
+        reader.readAsText(file);
     };
 
     const filteredVentas = useMemo(() => {
@@ -161,6 +219,10 @@ const VentasManualesModule: React.FC<IProps> = ({
                     <p>Gestión de ingresos directos y facturación recurrente</p>
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <label className="btn-secondary" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                        📂 Importar Siigo (CSV)
+                        <input type="file" accept=".csv" onChange={handleImportCSV} style={{ display: 'none' }} />
+                    </label>
                     <button className="btn-secondary" onClick={() => setIsCloning(true)}>🔄 Facturación Recurrente</button>
                     <button className="btn-primary" onClick={() => setIsAdding(true)}>+ Registrar Ingreso</button>
                 </div>
@@ -247,6 +309,16 @@ const VentasManualesModule: React.FC<IProps> = ({
                                     onChange={e => setMonto(Number(e.target.value))}
                                     placeholder="0"
                                     style={{ fontWeight: 'bold', fontSize: '1.1rem' }}
+                                />
+                            </div>
+                            <div className="form-group flex-1">
+                                <label>Costo Total (Opcional)</label>
+                                <input
+                                    type="number"
+                                    className="input-field"
+                                    value={costo}
+                                    onChange={e => setCosto(Number(e.target.value))}
+                                    placeholder="0"
                                 />
                             </div>
                         </div>
@@ -438,6 +510,50 @@ const VentasManualesModule: React.FC<IProps> = ({
                 </div>
             )}
 
+            {isImporting && (
+                <div className="card form-card animate-fade-in" style={{ marginBottom: '2rem', borderTop: '4px solid #10b981' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                        <h3>Previsualización de Importación ({importPreview.length} registros)</h3>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <button className="btn-secondary" onClick={() => { setIsImporting(false); setImportPreview([]); }}>Cancelar</button>
+                            <button className="btn-primary" style={{ background: '#10b981' }} onClick={() => {
+                                onAddBulk(importPreview);
+                                setIsImporting(false);
+                                setImportPreview([]);
+                            }}>Confirmar Carga</button>
+                        </div>
+                    </div>
+                    <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                        <table className="data-table" style={{ fontSize: '0.85rem' }}>
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Cliente</th>
+                                    <th>Monto</th>
+                                    <th>Costo</th>
+                                    <th>Utilidad</th>
+                                    <th>Descripción</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {importPreview.map((v, idx) => (
+                                    <tr key={idx}>
+                                        <td>{v.fecha}</td>
+                                        <td>{v.clienteNombre}</td>
+                                        <td>${v.monto.toLocaleString()}</td>
+                                        <td>${v.costo.toLocaleString()}</td>
+                                        <td style={{ color: (v.monto - v.costo) >= 0 ? 'green' : 'red' }}>
+                                            ${(v.monto - v.costo).toLocaleString()}
+                                        </td>
+                                        <td>{v.descripcion}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+
             <div className="card table-card">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', padding: '0.5rem' }}>
                     <h3 style={{ margin: 0 }}>Historial de Operaciones</h3>
@@ -464,6 +580,8 @@ const VentasManualesModule: React.FC<IProps> = ({
                                 <th>Responsable</th>
                                 <th>Descripción</th>
                                 <th className="text-right">Monto</th>
+                                <th className="text-right">Costo</th>
+                                <th className="text-right">Utilidad</th>
                                 <th className="text-center">Acciones</th>
                             </tr>
                         </thead>
@@ -483,6 +601,12 @@ const VentasManualesModule: React.FC<IProps> = ({
                                     <td style={{ maxWidth: '300px', fontSize: '0.85rem' }}>{v.descripcion}</td>
                                     <td className="text-right" style={{ fontWeight: 'bold', color: 'var(--primary-blue)' }}>
                                         ${v.monto.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                                    </td>
+                                    <td className="text-right" style={{ color: '#64748b' }}>
+                                        ${(v.costo || 0).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                                    </td>
+                                    <td className="text-right" style={{ fontWeight: 'bold', color: (v.monto - (v.costo || 0)) >= 0 ? '#10b981' : '#ef4444' }}>
+                                        ${(v.monto - (v.costo || 0)).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
                                     </td>
                                     <td className="text-center">
                                         <div style={{ display: 'flex', gap: '0.25rem', justifyContent: 'center' }}>
