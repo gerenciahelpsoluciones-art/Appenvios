@@ -302,6 +302,7 @@ export interface VentaManual {
   moneda?: 'COP' | 'USD';
   tipoVenta?: 'Venta' | 'Contrato' | 'Alquiler' | 'Licencia' | 'Licitacion';
   descripcion: string;
+  costo?: number;
 }
 
 function App() {
@@ -533,7 +534,8 @@ function App() {
           clienteNombre: v.cliente_nombre,
           usuarioId: v.usuario_id,
           usuarioNombre: v.usuario_nombre,
-          tipoVenta: v.tipo_venta || 'Venta'
+          tipoVenta: v.tipo_venta || 'Venta',
+          costo: v.costo || 0
         })));
       }
 
@@ -1549,7 +1551,8 @@ function App() {
       monto: v.monto,
       moneda: v.moneda || 'COP',
       tipo_venta: v.tipoVenta || 'Venta',
-      descripcion: v.descripcion
+      descripcion: v.descripcion,
+      costo: v.costo || 0
     };
     const { data, error } = await supabase.from('ventas_manuales').insert([payload]).select();
     if (error) {
@@ -1644,6 +1647,16 @@ function App() {
       alert('Error actualizando estado del Registro: ' + error.message);
     } else {
       setRegistros(prev => prev.map(r => r.id === id ? { ...r, estado: newStatus } : r));
+    }
+  };
+
+  const onDeleteRegistro = async (id: string) => {
+    const { error } = await supabase.from('registros_pendientes').delete().eq('id', id);
+    if (error) {
+      alert('Error eliminando el Registro: ' + error.message);
+    } else {
+      setRegistros(prev => prev.filter(r => r.id !== id));
+      alert('Registro eliminado correctamente.');
     }
   };
 
@@ -1763,7 +1776,7 @@ function App() {
       case 'leads-web':
         return <LeadsWebModule leads={clientesWeb} onUpdateLead={updateLeadWeb} currentUser={currentUser} />;
       case 'registros-web':
-        return <RegistrosWeb registros={registros} onUpdateStatus={onUpdateRegistroStatus} currentUser={currentUser} />;
+        return <RegistrosWeb registros={registros} onUpdateStatus={onUpdateRegistroStatus} onDelete={onDeleteRegistro} currentUser={currentUser} />;
       case 'clientes':
         return <ClientesModule clientes={filteredClientes} onAdd={addCliente} onUpdate={updateCliente} onDelete={deleteCliente} userRole={currentUser?.rol || ''} />;
       case 'cotizaciones':
@@ -1872,7 +1885,7 @@ function App() {
           users={users}
           currentUser={currentUser}
           onAdd={addVentaManual}
-          onAddBulk={addVentasManuales}
+          onAddBulk={addVentaManualBulk}
           onUpdate={updateVentaManual}
           onDelete={deleteVentaManual}
         />;

@@ -45,10 +45,11 @@ export interface RegistroPendiente {
 interface RegistrosWebProps {
   registros: RegistroPendiente[];
   onUpdateStatus: (id: string, newStatus: RegistroPendiente['estado']) => Promise<void>;
+  onDelete?: (id: string) => Promise<void>;
   currentUser?: AppUser | null;
 }
 
-const RegistrosWeb: React.FC<RegistrosWebProps> = ({ registros, onUpdateStatus, currentUser }) => {
+const RegistrosWeb: React.FC<RegistrosWebProps> = ({ registros, onUpdateStatus, onDelete, currentUser }) => {
   const [selectedRegistro, setSelectedRegistro] = useState<RegistroPendiente | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'ALL' | 'CLIENTE' | 'PROVEEDOR'>('ALL');
@@ -162,12 +163,23 @@ const RegistrosWeb: React.FC<RegistrosWebProps> = ({ registros, onUpdateStatus, 
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button 
-                      onClick={() => setSelectedRegistro(reg)}
-                      className="px-4 py-2 bg-white border border-zinc-200 text-zinc-700 rounded-xl text-xs font-bold hover:bg-zinc-900 hover:text-white hover:border-zinc-900 transition-all shadow-sm flex items-center gap-2 ml-auto"
-                    >
-                      <ExternalLink size={14} /> Revisar
-                    </button>
+                    <div className="flex items-center justify-end gap-2">
+                      <button 
+                        onClick={() => setSelectedRegistro(reg)}
+                        className="px-4 py-2 bg-white border border-zinc-200 text-zinc-700 rounded-xl text-xs font-bold hover:bg-zinc-900 hover:text-white hover:border-zinc-900 transition-all shadow-sm flex items-center gap-2"
+                      >
+                        <ExternalLink size={14} /> Revisar
+                      </button>
+                      {currentUser?.rol === 'Admin' && onDelete && (
+                        <button 
+                          onClick={() => { if (window.confirm('¿Está seguro de eliminar este registro permanentemente?')) onDelete(reg.id) }}
+                          className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl transition-colors"
+                          title="Eliminar Registro"
+                        >
+                          🗑️
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -331,6 +343,20 @@ const RegistrosWeb: React.FC<RegistrosWebProps> = ({ registros, onUpdateStatus, 
                   >
                     <XCircle size={20} /> RECHAZAR
                   </button>
+
+                  {currentUser?.rol === 'Admin' && onDelete && (
+                    <button 
+                      onClick={() => {
+                        if (window.confirm('¿Está seguro de eliminar este registro permanentemente?')) {
+                          onDelete(selectedRegistro.id);
+                          setSelectedRegistro(null);
+                        }
+                      }}
+                      className="w-full py-3 rounded-2xl font-bold text-xs text-rose-500 hover:bg-rose-50 transition-all flex items-center justify-center gap-2 mt-4"
+                    >
+                      🗑️ ELIMINAR PERMANENTEMENTE
+                    </button>
+                  )}
                 </div>
               </div>
 

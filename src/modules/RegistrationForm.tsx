@@ -141,7 +141,11 @@ export default function RegistrationForm() {
       setSubmitted(true);
     } catch (err: any) {
       console.error("Error al registrar:", err);
-      alert("Hubo un error al procesar su solicitud. Por favor intente de nuevo. " + err.message);
+      if (err.message.includes('Bucket not found')) {
+        alert("Error: El contenedor de archivos (Bucket) 'documentos_registro' no existe en Supabase. Por favor, créalo o contacta al administrador.");
+      } else {
+        alert("Hubo un error al procesar su solicitud. Por favor intente de nuevo. " + err.message);
+      }
     } finally {
       setLoading(false);
     }
