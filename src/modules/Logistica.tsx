@@ -81,6 +81,7 @@ const LogisticaModule: React.FC<IProps> = ({
     const [selectedClientId, setSelectedClientId] = useState('');
     const [manualItems, setManualItems] = useState<DevolucionItem[]>([]);
     const [selProdId, setSelProdId] = useState('');
+    const [productSearch, setProductSearch] = useState('');
     const [selCant, setSelCant] = useState(1);
     const [obs, setObs] = useState('');
 
@@ -1194,13 +1195,20 @@ const LogisticaModule: React.FC<IProps> = ({
                             setSelectedClientId('');
                             setRecogidaTipoOrigen('Proveedor');
                             setSelProdId('');
+                            setProductSearch('');
                             setSelCant(1);
                         }}>
                             + Recogida Manual
                         </button>
                     )}
                     {activeTab === 'devoluciones' && (
-                        <button className="btn btn-primary" onClick={() => { setIsAddManualOpen(true); setManualItems([]); setSelectedProvId(''); setObs(''); }}>
+                        <button className="btn btn-primary" onClick={() => { 
+                            setIsAddManualOpen(true); 
+                            setManualItems([]); 
+                            setSelectedProvId(''); 
+                            setProductSearch('');
+                            setObs(''); 
+                        }}>
                             + Nueva Devolución Manual
                         </button>
                     )}
@@ -1276,14 +1284,31 @@ const LogisticaModule: React.FC<IProps> = ({
                                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
                                     <div className="form-group" style={{ flex: 3 }}>
                                         <label>Producto</label>
-                                        <select
-                                            className="input-field"
-                                            value={selProdId}
-                                            onChange={e => setSelProdId(e.target.value)}
-                                        >
-                                            <option value="">-- Seleccionar Producto --</option>
-                                            {productos.map(p => <option key={p.id} value={p.id}>[{p.numPart}] {p.nombre}</option>)}
-                                        </select>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                                            <input 
+                                                type="text"
+                                                className="input-field"
+                                                placeholder="🔍 Filtrar por nombre o N° parte..."
+                                                value={productSearch}
+                                                onChange={e => setProductSearch(e.target.value)}
+                                                style={{ fontSize: '0.85rem', padding: '0.4rem' }}
+                                            />
+                                            <select
+                                                className="input-field"
+                                                value={selProdId}
+                                                onChange={e => setSelProdId(e.target.value)}
+                                            >
+                                                <option value="">-- Seleccionar Producto --</option>
+                                                {productos
+                                                    .filter(p => 
+                                                        p.nombre.toLowerCase().includes(productSearch.toLowerCase()) || 
+                                                        p.numPart.toLowerCase().includes(productSearch.toLowerCase())
+                                                    )
+                                                    .slice(0, 100)
+                                                    .map(p => <option key={p.id} value={p.id}>[{p.numPart}] {p.nombre}</option>)
+                                                }
+                                            </select>
+                                        </div>
                                     </div>
                                     <div className="form-group" style={{ flex: 1 }}>
                                         <label>Cant</label>
