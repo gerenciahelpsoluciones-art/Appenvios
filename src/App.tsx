@@ -1856,6 +1856,7 @@ function App() {
           onDeleteDevolucion={deleteDevolucion}
           reparaciones={reparaciones}
           onUpdateReparacion={updateReparacion}
+          onDeleteOC={deleteOrdenCompra}
           users={users}
           cotizaciones={cotizaciones}
         />;

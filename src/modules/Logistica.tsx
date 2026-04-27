@@ -26,6 +26,7 @@ interface IProps {
     onUpdateDespacho: (d: Despacho) => void;
     onDeleteDespacho: (id: string) => void;
     onUpdateOC: (oc: OrdenCompra) => void;
+    onDeleteOC: (id: string) => void;
     onAddOC: (oc: OrdenCompra) => Promise<OrdenCompra | null>;
     onAddDevolucion: (dev: Devolucion) => any;
     onUpdateDevolucion: (dev: Devolucion) => any;
@@ -49,6 +50,7 @@ const LogisticaModule: React.FC<IProps> = ({
     onUpdateDespacho,
     onDeleteDespacho,
     onUpdateOC,
+    onDeleteOC,
     onAddOC,
     onAddDevolucion,
     onUpdateDevolucion,
@@ -864,6 +866,20 @@ const LogisticaModule: React.FC<IProps> = ({
                                                 <div className="action-buttons">
                                                     <button className="btn-status" onClick={() => handleOCStatusChange(oc, 'Recogido')} title="Recogido" disabled={oc.estado === 'Recogido'}>🚚</button>
                                                     <button className="btn-status" onClick={() => handleOCStatusChange(oc, 'En Bodega')} title="En Bodega" disabled={oc.estado === 'En Bodega'}>🏢</button>
+                                                    {currentUser?.rol === 'Admin' && (
+                                                        <button 
+                                                            className="btn-status" 
+                                                            onClick={() => {
+                                                                if (window.confirm('¿Está seguro de eliminar esta recogida?')) {
+                                                                    onDeleteOC(oc.id);
+                                                                }
+                                                            }} 
+                                                            title="Eliminar Recogida"
+                                                            style={{ color: '#ef4444' }}
+                                                        >
+                                                            🗑️
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>
