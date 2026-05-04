@@ -26,7 +26,7 @@ const FacturacionModule: React.FC<IProps> = ({ despachos, cotizaciones, clientes
     // Filtering logic
     const entregados = despachos.filter(d => d.estado === 'Entregado');
     const pendientes = entregados.filter(d => !d.facturado);
-    const historial = entregados.filter(d => {
+    const historial = despachos.filter(d => {
         if (!d.facturado) return false;
         // Usar fechaFacturado (fecha real de facturación) si existe,
         // sino usar fechaSolicitud como fallback para registros anteriores.
@@ -185,6 +185,9 @@ const FacturacionModule: React.FC<IProps> = ({ despachos, cotizaciones, clientes
                     <tbody>
                         {filteredList.map(d => {
                             const cot = findCotizacion(d.cotizacionId);
+                            // Usar el subtotal de la cotización si existe, de lo contrario calcularlo (neto)
+                            const montoNeto = cot?.subtotal ?? (d.total / 1.19);
+                            
                             return (
                                 <tr key={d.id}>
                                     <td style={{ opacity: activeTab === 'historial' ? 0.75 : 1 }}>
@@ -202,7 +205,6 @@ const FacturacionModule: React.FC<IProps> = ({ despachos, cotizaciones, clientes
                                             gap: '0.5rem',
                                             padding: '0.25rem 0'
                                         }}>
-                                            {/* Sección Cotización */}
                                             <div className="evidence-group" style={{
                                                 background: activeTab === 'historial' ? '#f1f5f9' : '#f8fafc',
                                                 padding: '0.4rem',
@@ -244,7 +246,6 @@ const FacturacionModule: React.FC<IProps> = ({ despachos, cotizaciones, clientes
                                                 )}
                                             </div>
 
-                                            {/* Sección O.C. Cliente */}
                                             <div className="evidence-group" style={{
                                                 background: activeTab === 'historial' ? '#f1f5f9' : '#f8fafc',
                                                 padding: '0.4rem',
@@ -274,7 +275,6 @@ const FacturacionModule: React.FC<IProps> = ({ despachos, cotizaciones, clientes
                                                 ) : null}
                                             </div>
 
-                                            {/* Sección Logística */}
                                             <div className="evidence-group" style={{
                                                 background: activeTab === 'historial' ? '#f1f5f9' : '#f8fafc',
                                                 padding: '0.4rem',
@@ -305,8 +305,11 @@ const FacturacionModule: React.FC<IProps> = ({ despachos, cotizaciones, clientes
                                     </td>
                                     <td className="text-right">
                                         <strong style={{ fontSize: '1.1rem', color: '#0f172a' }}>
-                                            ${d.total.toLocaleString()}
+                                            ${(activeTab === 'historial' ? montoNeto : d.total).toLocaleString()}
                                         </strong>
+                                        {activeTab === 'historial' && (
+                                            <div style={{ fontSize: '0.7rem', color: '#64748b' }}>Antes de IVA</div>
+                                        )}
                                     </td>
                                     <td className="text-center" style={{ verticalAlign: 'middle' }}>
                                         {activeTab === 'pendientes' ? (
@@ -327,6 +330,23 @@ const FacturacionModule: React.FC<IProps> = ({ despachos, cotizaciones, clientes
                                 </tr>
                             );
                         })}
+
+                        {activeTab === 'historial' && filteredList.length > 0 && (
+                            <tr style={{ background: '#f8fafc', borderTop: '2px solid #e2e8f0' }}>
+                                <td colSpan={3} style={{ textAlign: 'right', fontWeight: 700, padding: '1rem', color: '#64748b' }}>
+                                    TOTAL NETO EN RANGO (Antes de IVA):
+                                </td>
+                                <td className="text-right" style={{ padding: '1rem' }}>
+                                    <strong style={{ fontSize: '1.2rem', color: '#0369a1' }}>
+                                        ${filteredList.reduce((acc, d) => {
+                                            const cot = findCotizacion(d.cotizacionId);
+                                            return acc + (cot?.subtotal ?? (d.total / 1.19));
+                                        }, 0).toLocaleString()}
+                                    </strong>
+                                </td>
+                                <td></td>
+                            </tr>
+                        )}
 
                         {filteredList.length === 0 && (
                             <tr>
