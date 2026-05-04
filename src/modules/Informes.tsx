@@ -131,12 +131,19 @@ const InformesModule: React.FC<IProps> = ({
         let dispatchUtility = 0;
 
         if (cot) {
+            const availableQuoteItems = [...cot.items];
             (d.items || []).forEach((dItem: any) => {
-                const qItem = cot.items.find(qi => 
-                    (qi.productoId && qi.productoId === dItem.productoId) || 
-                    (qi.id === dItem.productoId) ||
-                    (qi.nombre === dItem.nombre)
+                const qItemIndex = availableQuoteItems.findIndex(qi => 
+                    (qi.productoId && dItem.productoId && qi.productoId === dItem.productoId) || 
+                    (qi.id && dItem.productoId && qi.id === dItem.productoId)
                 );
+                
+                let qItem = null;
+                if (qItemIndex !== -1) {
+                    qItem = availableQuoteItems[qItemIndex];
+                    availableQuoteItems.splice(qItemIndex, 1);
+                }
+                
                 if (qItem) {
                     const costPrice = Number(qItem.costoUnitario || 0);
                     const marginPercent = Number(qItem.utilidad || 0);
@@ -209,12 +216,19 @@ const InformesModule: React.FC<IProps> = ({
         let dispatchUtility = 0;
 
         if (cot) {
+            const availableQuoteItems = [...cot.items];
             (d.items || []).forEach((dItem: any) => {
-                const qItem = cot.items.find(qi => 
-                    (qi.productoId && qi.productoId === dItem.productoId) || 
-                    (qi.id === dItem.productoId) ||
-                    (qi.nombre === dItem.nombre)
+                const qItemIndex = availableQuoteItems.findIndex(qi => 
+                    (qi.productoId && dItem.productoId && qi.productoId === dItem.productoId) || 
+                    (qi.id && dItem.productoId && qi.id === dItem.productoId)
                 );
+                
+                let qItem = null;
+                if (qItemIndex !== -1) {
+                    qItem = availableQuoteItems[qItemIndex];
+                    availableQuoteItems.splice(qItemIndex, 1);
+                }
+                
                 if (qItem) {
                     const costPrice = Number(qItem.costoUnitario || 0);
                     const marginPercent = Number(qItem.utilidad || 0);
@@ -254,12 +268,19 @@ const InformesModule: React.FC<IProps> = ({
         let dispatchUtility = 0;
 
         if (cot) {
+            const availableQuoteItems = [...cot.items];
             (d.items || []).forEach((dItem: any) => {
-                const qItem = cot.items.find(qi => 
-                    (qi.productoId && qi.productoId === dItem.productoId) || 
-                    (qi.id === dItem.productoId) ||
-                    (qi.nombre === dItem.nombre)
+                const qItemIndex = availableQuoteItems.findIndex(qi => 
+                    (qi.productoId && dItem.productoId && qi.productoId === dItem.productoId) || 
+                    (qi.id && dItem.productoId && qi.id === dItem.productoId)
                 );
+                
+                let qItem = null;
+                if (qItemIndex !== -1) {
+                    qItem = availableQuoteItems[qItemIndex];
+                    availableQuoteItems.splice(qItemIndex, 1);
+                }
+                
                 if (qItem) {
                     const costPrice = Number(qItem.costoUnitario || 0);
                     const marginPercent = Number(qItem.utilidad || 0);
