@@ -27,6 +27,8 @@ const ACTION_LABELS: Record<string, string> = {
   AGENT_RESUMED:      'Agente Reactivado',
   SEO_ALERT:          'Alerta SEO',
   UPTIME_ALERT:       'Alerta Uptime',
+  TELEGRAM_MSG:       'Mensaje Telegram',
+  QUOTE_EXTRACTED:    'Extracción Cotización',
 };
 
 const formatDateTime = (iso: string) => {

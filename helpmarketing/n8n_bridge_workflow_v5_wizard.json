@@ -1,0 +1,110 @@
+{
+  "name": "HelpMarketing - Telegram BRIDGE (V5 Conversational Wizard)",
+  "nodes": [
+    {
+      "parameters": {
+        "event": "inserted",
+        "schema": "public",
+        "table": "mkt_telegram_inbound",
+        "options": {}
+      },
+      "id": "trigger",
+      "name": "Supabase Trigger",
+      "type": "n8n-nodes-base.supabaseTrigger",
+      "typeVersion": 1,
+      "position": [-400, 240]
+    },
+    {
+      "parameters": {
+        "tableId": "mkt_telegram_sessions",
+        "filters": {
+          "conditions": [
+            { "keyName": "telegram_id", "operator": "equal", "keyValue": "={{$json.telegram_id}}" }
+          ]
+        }
+      },
+      "id": "get-session",
+      "name": "Get Active Session",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [-150, 240]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "conditions": [
+                  { "leftValue": "={{$node[\"Get Active Session\"].json.id ? true : false}}", "operator": "equal", "rightValue": true }
+                ]
+              },
+              "renameTo": "Continuar Mago"
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  { "leftValue": "={{$node[\"Get Active Session\"].json.id ? true : false}}", "operator": "equal", "rightValue": false }
+                ]
+              },
+              "renameTo": "Nuevo Mensaje"
+            }
+          ]
+        }
+      },
+      "id": "session-router",
+      "name": "Session Router",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [100, 240]
+    },
+    {
+      "parameters": {
+        "model": "gemini-1.5-flash",
+        "prompt": "={{$node[\"Supabase Trigger\"].json.raw_message.message.text || 'Mensaje de Voz'}}",
+        "systemMessage": "Analiza si el usuario quiere empezar una cotización ('iniciar_mago') o si es un mensaje directo. Responde JSON.",
+        "options": { "responseFormat": "json_object" }
+      },
+      "id": "new-message-handler",
+      "name": "New Message Handler",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [350, 350]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$node[\"Supabase Trigger\"].json.raw_message.message.chat.id}}",
+        "text": "=🤖 *INICIANDO ASISTENTE DE COTIZACIÓN*\n\nEntendido. Vamos paso a paso.\n\n*¿Para qué cliente es esta cotización?* (Puedes decirme el nombre por texto o voz)",
+        "additionalFields": { "parse_mode": "Markdown" }
+      },
+      "id": "ask-client",
+      "name": "Ask Client",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [600, 350]
+    },
+    {
+      "parameters": {
+        "tableId": "mkt_telegram_sessions",
+        "fieldsToInsert": {
+          "fields": [
+            { "field": "telegram_id", "value": "={{$node[\"Supabase Trigger\"].json.telegram_id}}" },
+            { "field": "last_action", "value": "awaiting_client" }
+          ]
+        }
+      },
+      "id": "create-session",
+      "name": "Create Session",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [850, 350]
+    }
+  ],
+  "connections": {
+    "Supabase Trigger": { "main": [[{ "node": "get-session", "type": "main", "index": 0 }]] },
+    "get-session": { "main": [[{ "node": "session-router", "type": "main", "index": 0 }]] },
+    "session-router": { "main": [[{ "node": "new-message-handler", "type": "main", "index": 1 }]] },
+    "new-message-handler": { "main": [[{ "node": "ask-client", "type": "main", "index": 0 }]] },
+    "ask-client": { "main": [[{ "node": "create-session", "type": "main", "index": 0 }]] }
+  }
+}

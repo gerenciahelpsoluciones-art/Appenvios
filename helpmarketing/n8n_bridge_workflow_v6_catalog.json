@@ -1,0 +1,95 @@
+{
+  "name": "HelpMarketing - Telegram BRIDGE (V6 Catalog & Multi-Step)",
+  "nodes": [
+    {
+      "parameters": {
+        "event": "inserted",
+        "schema": "public",
+        "table": "mkt_telegram_inbound",
+        "options": {}
+      },
+      "id": "trigger",
+      "name": "Supabase Trigger",
+      "type": "n8n-nodes-base.supabaseTrigger",
+      "typeVersion": 1,
+      "position": [-500, 240]
+    },
+    {
+      "parameters": {
+        "tableId": "mkt_telegram_sessions",
+        "filters": {
+          "conditions": [
+            { "keyName": "telegram_id", "operator": "equal", "keyValue": "={{$json.telegram_id}}" }
+          ]
+        }
+      },
+      "id": "check-session",
+      "name": "Check Session",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [-250, 240]
+    },
+    {
+      "parameters": {
+        "tableId": "productos",
+        "filters": {
+          "conditions": [
+            { "keyName": "nombre", "operator": "ilike", "keyValue": "={{$node[\"Supabase Trigger\"].json.raw_message.message.text}}" }
+          ]
+        }
+      },
+      "id": "search-product",
+      "name": "Search Catalog",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [0, 240]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.length > 0}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "found-product",
+      "name": "Producto Existe?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [250, 240]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$node[\"Supabase Trigger\"].json.raw_message.message.chat.id}}",
+        "text": "=⚠️ *PRODUCTO NO ENCONTRADO*\n\nNo tengo '{{$node[\"Supabase Trigger\"].json.raw_message.message.text}}' en el catálogo.\n\n*¿Quieres crearlo ahora mismo?* (Responde 'Sí' para iniciar el registro o envíame el nombre de otro producto)",
+        "additionalFields": { "parse_mode": "Markdown" }
+      },
+      "id": "not-found-reply",
+      "name": "Offer Creation",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [500, 350]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$node[\"Supabase Trigger\"].json.raw_message.message.chat.id}}",
+        "text": "=✅ *PRODUCTO ENCONTRADO*\n\n*Item:* {{$json[0].nombre}}\n*Precio Base:* ${{$json[0].precio.toLocaleString()}}\n\nHe añadido este item. ¿Quieres incluir algo más o pasamos a definir la validez de la oferta?",
+        "additionalFields": { "parse_mode": "Markdown" }
+      },
+      "id": "found-reply",
+      "name": "Confirm Addition",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [500, 130]
+    }
+  ],
+  "connections": {
+    "Supabase Trigger": { "main": [[{ "node": "check-session", "type": "main", "index": 0 }]] },
+    "check-session": { "main": [[{ "node": "search-product", "type": "main", "index": 0 }]] },
+    "search-product": { "main": [[{ "node": "found-product", "type": "main", "index": 0 }]] },
+    "found-product": { "main": [[{ "node": "found-reply", "type": "main", "index": 0 }], [{ "node": "not-found-reply", "type": "main", "index": 0 }]] }
+  }
+}

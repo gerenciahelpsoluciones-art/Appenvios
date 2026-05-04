@@ -8,6 +8,7 @@ import {
   getRecentLogs,
   subscribeToAgentStatus,
 } from '../../services/agentOrchestrator';
+import { TelegramManager } from './TelegramManager';
 import type { AgentAction, AgentLog } from '../../types/agent.types';
 
 // ─── Tipos locales ────────────────────────────────────────────────────────────
@@ -63,6 +64,7 @@ export function AgentController() {
   const [keywords, setKeywords]     = useState<string[]>([]);
   const [newKeyword, setNewKeyword] = useState('');
   const [savingConfig, setSavingConfig] = useState(false);
+  const [activeSubTab, setActiveSubTab] = useState<'control' | 'telegram'>('control');
 
   // ── Cargar estado inicial ──
   useEffect(() => {
@@ -208,7 +210,37 @@ export function AgentController() {
         </div>
       </div>
 
-      {/* Grid: Acciones rápidas + Últimos logs */}
+      {/* Selector de Sub-pestañas */}
+      <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.5rem' }}>
+        <button 
+          onClick={() => setActiveSubTab('control')}
+          style={{
+            background: 'none', border: 'none', padding: '0.5rem 1rem', cursor: 'pointer',
+            color: activeSubTab === 'control' ? 'hsl(var(--primary))' : 'hsl(var(--text-muted))',
+            fontWeight: activeSubTab === 'control' ? 700 : 400,
+            borderBottom: activeSubTab === 'control' ? '2px solid hsl(var(--primary))' : 'none',
+            transition: 'all 0.2s'
+          }}
+        >
+          🎮 Control General
+        </button>
+        <button 
+          onClick={() => setActiveSubTab('telegram')}
+          style={{
+            background: 'none', border: 'none', padding: '0.5rem 1rem', cursor: 'pointer',
+            color: activeSubTab === 'telegram' ? 'hsl(var(--primary))' : 'hsl(var(--text-muted))',
+            fontWeight: activeSubTab === 'telegram' ? 700 : 400,
+            borderBottom: activeSubTab === 'telegram' ? '2px solid hsl(var(--primary))' : 'none',
+            transition: 'all 0.2s'
+          }}
+        >
+          🤖 Bot de Telegram
+        </button>
+      </div>
+
+      {activeSubTab === 'control' ? (
+        <>
+          {/* Grid: Acciones rápidas + Últimos logs */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
 
         {/* Acciones rápidas */}
@@ -425,7 +457,10 @@ export function AgentController() {
         <p style={{ marginTop: '1rem', fontSize: '0.75rem', color: 'hsl(var(--text-muted))' }}>
           Los workflows se ejecutan en n8n. El agente lee <code>mkt_agent_paused</code> antes de cada ejecución.
         </p>
-      </div>
+        </>
+      ) : (
+        <TelegramManager />
+      )}
 
     </div>
   );

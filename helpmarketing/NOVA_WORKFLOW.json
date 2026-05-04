@@ -1,0 +1,135 @@
+{
+  "name": "NOVA - CRM Bridge (Final Polling)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "seconds",
+              "secondsInterval": 30
+            }
+          ]
+        }
+      },
+      "id": "1",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [400, 300]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "table": "mkt_telegram_inbound",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "key": "processed",
+              "operator": "equal",
+              "value": false
+            }
+          ]
+        }
+      },
+      "id": "2",
+      "name": "Leer Mensajes",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [600, 300]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "3",
+      "name": "Split In Batches",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 1,
+      "position": [800, 300]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "table": "mkt_telegram_sessions",
+        "id": "={{$json.payload.message.from.id}}"
+      },
+      "id": "4",
+      "name": "Cargar Sesion",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1000, 300],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "model": "gemini-1.5-flash",
+        "prompt": "={{$node[\"Leer Mensajes\"].json.payload.message.text}}",
+        "systemInstruction": "Eres NOVA, la asistente de HelpMarketing. Tu objetivo es ayudar a crear cotizaciones y productos por voz/texto de forma amable y eficiente."
+      },
+      "id": "5",
+      "name": "NOVA AI",
+      "type": "n8n-nodes-base.googleGemini",
+      "typeVersion": 1,
+      "position": [1200, 300]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "table": "mkt_telegram_sessions",
+        "columns": [
+          "telegram_id"
+        ],
+        "valuesToSend": {
+          "values": [
+            {
+              "column": "telegram_id",
+              "value": "={{$node[\"Leer Mensajes\"].json.payload.message.from.id}}"
+            }
+          ]
+        }
+      },
+      "id": "8",
+      "name": "Guardar Sesion",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1400, 450]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "table": "mkt_telegram_inbound",
+        "id": "={{$node[\"Leer Mensajes\"].json.id}}",
+        "fields": {
+          "processed": true
+        }
+      },
+      "id": "6",
+      "name": "Marcar Procesado",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1600, 300]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$node[\"Leer Mensajes\"].json.payload.message.from.id}}",
+        "text": "={{$node[\"NOVA AI\"].json.reply}}"
+      },
+      "id": "7",
+      "name": "Responder Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [1800, 300]
+    }
+  ],
+  "connections": {
+    "1": { "main": [[{ "node": "2", "type": "main", "index": 0 }]] },
+    "2": { "main": [[{ "node": "3", "type": "main", "index": 0 }]] },
+    "3": { "main": [[{ "node": "4", "type": "main", "index": 0 }]] },
+    "4": { "main": [[{ "node": "5", "type": "main", "index": 0 }]] },
+    "5": { "main": [[{ "node": "6", "type": "main", "index": 0 }, { "node": "8", "type": "main", "index": 0 }]] },
+    "6": { "main": [[{ "node": "7", "type": "main", "index": 0 }]] }
+  }
+}

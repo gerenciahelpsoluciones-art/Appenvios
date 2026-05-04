@@ -1,0 +1,228 @@
+/* =====================================================
+   PL Consulting & Tax SAS — Executive Precision System
+   Stitch Design System: Noto Serif + Work Sans
+   ===================================================== */
+
+/* Google Fonts — Noto Serif (headings) + Work Sans (body) */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,600;0,700;0,800;1,400;1,600&family=Work+Sans:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── CSS Variables (design tokens) ─────────────────── */
+:root {
+  --navy:       #0B1B3D;
+  --navy-dark:  #0F172A;
+  --gold:       #C5A059;
+  --gold-light: #E9C176;
+  --gold-tint:  #EDE0C4;
+  --gray-bg:    #F7F9FB;
+  --surface:    #FFFFFF;
+  --text:       #191C1E;
+  --muted:      #45464E;
+  --slate:      #75777F;
+  --stroke:     #C5C6CF;
+}
+
+/* ── Base layer ─────────────────────────────────────── */
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html {
+    scroll-behavior: smooth;
+    font-size: 16px;
+  }
+
+  body {
+    font-family: 'Work Sans', 'DM Sans', system-ui, sans-serif;
+    color: var(--text);
+    background-color: var(--gray-bg);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.6;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Noto Serif', Georgia, serif;
+    color: var(--navy);
+    line-height: 1.1;
+    font-feature-settings: "kern", "liga";
+  }
+
+  h1 { font-size: clamp(2.2rem, 5vw, 3.75rem); font-weight: 700; }
+  h2 { font-size: clamp(1.7rem, 3vw, 2.5rem);  font-weight: 700; }
+  h3 { font-size: 1.5rem; font-weight: 600; }
+  h4 { font-size: 1.25rem; font-weight: 600; }
+
+  a { transition: color 0.2s; }
+}
+
+/* ── Component layer ────────────────────────────────── */
+@layer components {
+
+  /* ── Buttons (Sharp corners = authority) ── */
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: var(--gold);
+    color: #ffffff;
+    font-family: 'Work Sans', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.75rem 1.5rem;
+    border: 2px solid var(--gold);
+    border-radius: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s;
+  }
+  .btn-primary:hover {
+    background-color: var(--gold-light);
+    border-color: var(--gold-light);
+  }
+
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: var(--navy);
+    color: #ffffff;
+    font-family: 'Work Sans', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.75rem 1.5rem;
+    border: 2px solid var(--navy);
+    border-radius: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  .btn-secondary:hover { background-color: var(--navy-dark); }
+
+  .btn-outline {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: transparent;
+    color: #ffffff;
+    font-family: 'Work Sans', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.75rem 1.5rem;
+    border: 2px solid #ffffff;
+    border-radius: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+  }
+  .btn-outline:hover {
+    background-color: #ffffff;
+    color: var(--navy);
+  }
+
+  .btn-outline-gold {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: transparent;
+    color: var(--gold);
+    font-family: 'Work Sans', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.75rem 1.5rem;
+    border: 2px solid var(--gold);
+    border-radius: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+  }
+  .btn-outline-gold:hover {
+    background-color: var(--gold);
+    color: #ffffff;
+  }
+
+  /* ── Section label (overline) ── */
+  .section-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-family: 'Work Sans', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--gold);
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+  }
+  .section-label::before {
+    content: '';
+    display: block;
+    width: 2rem;
+    height: 1px;
+    background-color: var(--gold);
+  }
+
+  /* ── Gold divider line ── */
+  .gold-rule {
+    display: block;
+    width: 4rem;
+    height: 2px;
+    background-color: var(--gold);
+  }
+
+  /* ── Stats ── */
+  .stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 0 1.5rem;
+  }
+  .stat-number {
+    font-family: 'Noto Serif', serif;
+    font-weight: 700;
+    font-size: 1.875rem;
+    color: var(--gold);
+  }
+  .stat-label {
+    font-family: 'Work Sans', sans-serif;
+    font-size: 0.65rem;
+    color: rgba(255,255,255,0.6);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-top: 0.25rem;
+  }
+}
+
+/* ── Utility layer ──────────────────────────────────── */
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+
+  /* Logo styles */
+  .logo-monogram {
+    font-family: 'Noto Serif', serif;
+    font-weight: 800;
+    font-style: italic;
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+  .logo-name {
+    font-family: 'Work Sans', sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    line-height: 1;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+  }
+  .logo-tagline {
+    font-family: 'Work Sans', sans-serif;
+    font-weight: 300;
+    letter-spacing: 0.22em;
+    font-size: 0.5rem;
+    text-transform: uppercase;
+  }
+}

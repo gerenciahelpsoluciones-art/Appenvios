@@ -1,31 +1,17 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const API_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY;
-if (!API_KEY || API_KEY === "YOUR_ANTHROPIC_API_KEY") {
-  console.error("ANTHROPIC API KEY FALTANTE EN .env — configura VITE_ANTHROPIC_API_KEY");
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+if (!API_KEY) {
+  console.error("GEMINI API KEY FALTANTE EN .env — configura VITE_GEMINI_API_KEY");
 }
 
-const client = new Anthropic({
-  apiKey: API_KEY,
-  dangerouslyAllowBrowser: true,
-});
+const genAI = new GoogleGenerativeAI(API_KEY || "");
+const MODEL_NAME = "gemini-1.5-flash";
 
-const MODEL = "claude-opus-4-6";
-
-const askClaude = async (prompt: string): Promise<string> => {
-  const response = await client.messages.create({
-    model: MODEL,
-    max_tokens: 1024,
-    thinking: { type: "adaptive" },
-    messages: [{ role: "user", content: prompt }],
-  });
-
-  // Extraer el bloque de texto de la respuesta
-  const textBlock = response.content.find((b) => b.type === "text");
-  if (!textBlock || textBlock.type !== "text") {
-    throw new Error("Claude no devolvió bloque de texto");
-  }
-  return textBlock.text;
+const askGemini = async (prompt: string): Promise<string> => {
+  const model = genAI.getGenerativeModel({ model: MODEL_NAME });
+  const result = await model.generateContent(prompt);
+  return result.response.text();
 };
 
 export const generateMarketingContent = async (prompt: string, platform: string) => {
@@ -74,13 +60,13 @@ export const generateMarketingContent = async (prompt: string, platform: string)
       }
     `;
 
-    const text = await askClaude(fullPrompt);
+    const text = await askGemini(fullPrompt);
     const firstBrace = text.indexOf("{");
     const lastBrace = text.lastIndexOf("}");
     if (firstBrace === -1 || lastBrace === -1) throw new Error("JSON no encontrado en la respuesta");
     return JSON.parse(text.substring(firstBrace, lastBrace + 1));
   } catch (error) {
-    console.error("Claude API Error (generateMarketingContent):", error);
+    console.error("Gemini API Error (generateMarketingContent):", error);
     throw error;
   }
 };
@@ -105,7 +91,7 @@ export const analyzeCompetitor = async (competitorName: string, website: string)
       }
     `;
 
-    const text = await askClaude(fullPrompt);
+    const text = await askGemini(fullPrompt);
     const firstBrace = text.indexOf("{");
     const lastBrace = text.lastIndexOf("}");
     if (firstBrace === -1 || lastBrace === -1) throw new Error("Format error");
@@ -146,7 +132,7 @@ export const optimizeGoogleBusiness = async (currentInfo: string) => {
       }
     `;
 
-    const text = await askClaude(fullPrompt);
+    const text = await askGemini(fullPrompt);
     const firstBrace = text.indexOf("{");
     const lastBrace = text.lastIndexOf("}");
     if (firstBrace === -1 || lastBrace === -1) throw new Error("Format error");
@@ -183,7 +169,7 @@ export const analyzeRentalService = async (equipmentType: string, quantity: numb
       }
     `;
 
-    const text = await askClaude(fullPrompt);
+    const text = await askGemini(fullPrompt);
     const firstBrace = text.indexOf("{");
     const lastBrace = text.lastIndexOf("}");
     if (firstBrace === -1 || lastBrace === -1) throw new Error("Format error");
@@ -250,7 +236,7 @@ export const getTrendingAdvice = async () => {
       ]
     `;
 
-    const text = await askClaude(fullPrompt);
+    const text = await askGemini(fullPrompt);
     const firstBracket = text.indexOf("[");
     const lastBracket = text.lastIndexOf("]");
     if (firstBracket === -1 || lastBracket === -1) throw new Error("Format error");
@@ -294,7 +280,7 @@ export const analyzeSeo = async (url: string) => {
       }
     `;
 
-    const text = await askClaude(fullPrompt);
+    const text = await askGemini(fullPrompt);
     const firstBrace = text.indexOf("{");
     const lastBrace = text.lastIndexOf("}");
     if (firstBrace === -1 || lastBrace === -1) throw new Error("Format error");
@@ -330,7 +316,7 @@ export const huntLeads = async (sector: string, location: string) => {
       ]
     `;
 
-    const text = await askClaude(fullPrompt);
+    const text = await askGemini(fullPrompt);
     const firstBracket = text.indexOf("[");
     const lastBracket = text.lastIndexOf("]");
     if (firstBracket === -1 || lastBracket === -1) throw new Error("Format error");
@@ -362,7 +348,7 @@ export const suggestReply = async (comment: string, platform: string) => {
       }
     `;
 
-    const text = await askClaude(fullPrompt);
+    const text = await askGemini(fullPrompt);
     const firstBrace = text.indexOf("{");
     const lastBrace = text.lastIndexOf("}");
     if (firstBrace === -1 || lastBrace === -1) throw new Error("Format error");
@@ -407,7 +393,7 @@ export const generateImagePrompt = async (postCopy: string, platform: string) =>
       }
     `;
 
-    const text = await askClaude(fullPrompt);
+    const text = await askGemini(fullPrompt);
     const firstBrace = text.indexOf("{");
     const lastBrace = text.lastIndexOf("}");
     if (firstBrace === -1 || lastBrace === -1) throw new Error("Format error");

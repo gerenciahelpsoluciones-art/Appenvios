@@ -1,0 +1,136 @@
+{
+  "name": "HelpMarketing - Telegram BRIDGE (V3 Auto-Client)",
+  "nodes": [
+    {
+      "parameters": {
+        "event": "inserted",
+        "schema": "public",
+        "table": "mkt_telegram_inbound",
+        "options": {}
+      },
+      "id": "supabase-trigger",
+      "name": "Supabase Trigger",
+      "type": "n8n-nodes-base.supabaseTrigger",
+      "typeVersion": 1,
+      "position": [-200, 240]
+    },
+    {
+      "parameters": {
+        "model": "gemini-1.5-flash",
+        "prompt": "={{$json.raw_message.message.text}}",
+        "systemMessage": "Eres el Cerebro de Help Soluciones. Detecta tipo (cotizacion/remision), cliente, items y observaciones. Responde SOLO JSON.",
+        "options": {
+          "responseFormat": "json_object"
+        }
+      },
+      "id": "gemini-extract",
+      "name": "Gemini Extract",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [20, 240]
+    },
+    {
+      "parameters": {
+        "tableId": "clientes_web",
+        "filters": {
+          "conditions": [
+            { "keyName": "nombre", "operator": "ilike", "keyValue": "={{'%' + $node[\"Gemini Extract\"].json.output.cliente + '%'}}" }
+          ]
+        },
+        "limit": 1
+      },
+      "id": "find-client",
+      "name": "Find Client",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [240, 240]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": { "caseSensitive": false },
+                "conditions": [
+                  { "id": "tipo-is-remision", "leftValue": "={{$node[\"Gemini Extract\"].json.output.tipo}}", "operator": "equal", "rightValue": "remision" }
+                ],
+                "combinator": "and"
+              },
+              "renameTo": "Remisión"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": false },
+                "conditions": [
+                  { "id": "tipo-is-quote", "leftValue": "={{$node[\"Gemini Extract\"].json.output.tipo}}", "operator": "equal", "rightValue": "cotizacion" }
+                ],
+                "combinator": "and"
+              },
+              "renameTo": "Cotización"
+            }
+          ]
+        }
+      },
+      "id": "router",
+      "name": "Router (Tipo)",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [460, 240]
+    },
+    {
+      "parameters": {
+        "tableId": "cotizaciones",
+        "fieldsToInsert": {
+          "fields": [
+            { "field": "cliente_id", "value": "={{$node[\"Find Client\"].json.id || null}}" },
+            { "field": "comprador_nombre", "value": "={{$node[\"Find Client\"].json.nombre || $node[\"Gemini Extract\"].json.output.cliente}}" },
+            { "field": "observaciones", "value": "={{$node[\"Gemini Extract\"].json.output.observaciones}}" }
+          ]
+        }
+      },
+      "id": "create-quote",
+      "name": "Create Quote",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [680, 140]
+    },
+    {
+      "parameters": {
+        "tableId": "mkt_remisiones",
+        "fieldsToInsert": {
+          "fields": [
+            { "field": "numero", "value": "={{'REM-' + $now.toFormat('yyyyMMddHHmmss')}}" },
+            { "field": "cliente_id", "value": "={{$node[\"Find Client\"].json.id || null}}" },
+            { "field": "observaciones", "value": "={{$node[\"Gemini Extract\"].json.output.observaciones}}" }
+          ]
+        }
+      },
+      "id": "create-remission",
+      "name": "Create Remission",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [680, 340]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$node[\"Supabase Trigger\"].json.raw_message.message.chat.id}}",
+        "text": "=✅ *{{$node[\"Gemini Extract\"].json.output.tipo.toUpperCase()}} PROCESADA*\n\n*Cliente:* {{$node[\"Find Client\"].json.nombre || $node[\"Gemini Extract\"].json.output.cliente}} {{ $node[\"Find Client\"].json.id ? '(Asociado automáticamente)' : '(No encontrado en CRM)' }}\n*Detalle:* Se han registrado {{$node[\"Gemini Extract\"].json.output.items.length}} items.\n\nRevisa el CRM para finalizar el documento.",
+        "additionalFields": { "parse_mode": "Markdown" }
+      },
+      "id": "telegram-reply",
+      "name": "Telegram Reply",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [920, 240]
+    }
+  ],
+  "connections": {
+    "Supabase Trigger": { "main": [[{ "node": "Gemini Extract", "type": "main", "index": 0 }]] },
+    "Gemini Extract": { "main": [[{ "node": "find-client", "type": "main", "index": 0 }]] },
+    "find-client": { "main": [[{ "node": "router", "type": "main", "index": 0 }]] },
+    "router": { "main": [[{ "node": "create-quote", "type": "main", "index": 0 }], [{ "node": "create-remission", "type": "main", "index": 0 }]] },
+    "create-quote": { "main": [[{ "node": "telegram-reply", "type": "main", "index": 0 }]] },
+    "create-remission": { "main": [[{ "node": "telegram-reply", "type": "main", "index": 0 }]] }
+  }
+}

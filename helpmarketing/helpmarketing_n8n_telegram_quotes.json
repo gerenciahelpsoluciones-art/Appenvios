@@ -1,0 +1,95 @@
+{
+  "name": "HelpMarketing - Telegram Quote Bot (V2 Complete)",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": ["message"]
+      },
+      "id": "telegram-trigger",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1,
+      "position": [200, 240]
+    },
+    {
+      "parameters": {
+        "model": "gemini-1.5-flash",
+        "prompt": "={{$json.message.text}}",
+        "systemMessage": "Eres el Cerebro de Extracción de Cotizaciones para Help Soluciones.\nExtrae: Cliente, Items (descripcion, cantidad, precio_sugerido), Observaciones.\nResponde SOLO JSON.",
+        "options": {
+          "responseFormat": "json_object"
+        }
+      },
+      "id": "gemini-extract",
+      "name": "Gemini Extract",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [420, 240]
+    },
+    {
+      "parameters": {
+        "tableId": "cotizaciones",
+        "fieldsToInsert": {
+          "fields": [
+            { "field": "comprador_nombre", "value": "={{$node[\"Gemini Extract\"].json.output.cliente}}" },
+            { "field": "estado", "value": "borrador" },
+            { "field": "validez_oferta", "value": 3 }
+          ]
+        }
+      },
+      "id": "create-quote-header",
+      "name": "Create Quote Header",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [640, 240]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "={{$node[\"Gemini Extract\"].json.output.items}}",
+        "options": {}
+      },
+      "id": "split-items",
+      "name": "Split Items",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [860, 240]
+    },
+    {
+      "parameters": {
+        "tableId": "cotizacion_detalles",
+        "fieldsToInsert": {
+          "fields": [
+            { "field": "cotizacion_id", "value": "={{$node[\"Create Quote Header\"].json.id}}" },
+            { "field": "descripcion", "value": "={{$json.descripcion}}" },
+            { "field": "cantidad", "value": "={{$json.cantidad}}" },
+            { "field": "precio_unitario", "value": "={{$json.precio_sugerido || 0}}" }
+          ]
+        }
+      },
+      "id": "insert-details",
+      "name": "Insert Details",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1080, 240]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$node[\"Telegram Trigger\"].json.message.chat.id}}",
+        "text": "=✅ *Cotización Creada con éxito!*\n\n*Cliente:* {{$node[\"Gemini Extract\"].json.output.cliente}}\n*Items:* {{$node[\"Gemini Extract\"].json.output.items.length}}\n\nYa puedes descargar el PDF desde el Dashboard del CRM.",
+        "additionalFields": { "parse_mode": "Markdown" }
+      },
+      "id": "telegram-reply",
+      "name": "Telegram Reply",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [1300, 240]
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": { "main": [[{ "node": "Gemini Extract", "type": "main", "index": 0 }]] },
+    "Gemini Extract": { "main": [[{ "node": "create-quote-header", "type": "main", "index": 0 }]] },
+    "create-quote-header": { "main": [[{ "node": "split-items", "type": "main", "index": 0 }]] },
+    "split-items": { "main": [[{ "node": "insert-details", "type": "main", "index": 0 }]] },
+    "insert-details": { "main": [[{ "node": "telegram-reply", "type": "main", "index": 0 }]] }
+  }
+}

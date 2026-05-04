@@ -8,7 +8,9 @@ export type AgentAction =
   | 'GENERATE_CONTENT'
   | 'WEEKLY_REPORT'
   | 'SEO_ALERT'
-  | 'UPTIME_ALERT';
+  | 'UPTIME_ALERT'
+  | 'TELEGRAM_MSG'
+  | 'QUOTE_EXTRACTED';
 
 export type AgentTaskStatus = 'pending' | 'running' | 'done' | 'failed';
 export type AgentLogStatus  = 'success' | 'error' | 'warning' | 'info';

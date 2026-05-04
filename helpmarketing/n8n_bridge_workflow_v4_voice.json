@@ -1,0 +1,155 @@
+{
+  "name": "HelpMarketing - Telegram BRIDGE (V4 Voice & Products)",
+  "nodes": [
+    {
+      "parameters": {
+        "event": "inserted",
+        "schema": "public",
+        "table": "mkt_telegram_inbound",
+        "options": {}
+      },
+      "id": "supabase-trigger",
+      "name": "Supabase Trigger",
+      "type": "n8n-nodes-base.supabaseTrigger",
+      "typeVersion": 1,
+      "position": [-300, 240]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.raw_message.message.voice ? true : false}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "is-voice",
+      "name": "Es Voz?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [-50, 240]
+    },
+    {
+      "parameters": {
+        "model": "gemini-1.5-flash",
+        "prompt": "={{$json.raw_message.message.text}}",
+        "systemMessage": "Eres el Cerebro de Help Soluciones. Detecta tipo (cotizacion/remision/crear_producto) y extrae los datos correspondientes. Responde SOLO JSON.",
+        "options": {
+          "responseFormat": "json_object"
+        }
+      },
+      "id": "gemini-text",
+      "name": "Gemini (Texto)",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [200, 140]
+    },
+    {
+      "parameters": {
+        "operation": "getFile",
+        "fileId": "={{$node[\"Supabase Trigger\"].json.raw_message.message.voice.file_id}}"
+      },
+      "id": "get-file-info",
+      "name": "Telegram Get File",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [200, 360]
+    },
+    {
+      "parameters": {
+        "url": "={{'https://api.telegram.org/file/bot' + $credentials.telegramApi.token + '/' + $json.result.file_path}}",
+        "responseFormat": "file",
+        "options": {}
+      },
+      "id": "download-audio",
+      "name": "Download Audio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [420, 360]
+    },
+    {
+      "parameters": {
+        "model": "gemini-1.5-flash",
+        "prompt": "Escucha este audio y extrae la información para el CRM. Si es un producto nuevo, extrae nombre, descripción y precio. Si es una cotización/remisión, extrae cliente e ítems. Responde SOLO JSON.",
+        "options": {
+          "responseFormat": "json_object"
+        }
+      },
+      "id": "gemini-voice",
+      "name": "Gemini (Escuchar Voz)",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [640, 360]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "conditions": [
+                  { "leftValue": "={{$json.output.tipo}}", "operator": "equal", "rightValue": "crear_producto" }
+                ]
+              },
+              "renameTo": "Crear Producto"
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  { "leftValue": "={{$json.output.tipo}}", "operator": "in", "rightValue": "cotizacion,remision" }
+                ]
+              },
+              "renameTo": "Documento"
+            }
+          ]
+        }
+      },
+      "id": "router-intent",
+      "name": "Router Intent",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [900, 240]
+    },
+    {
+      "parameters": {
+        "tableId": "productos",
+        "fieldsToInsert": {
+          "fields": [
+            { "field": "nombre", "value": "={{$json.output.nombre}}" },
+            { "field": "descripcion", "value": "={{$json.output.descripcion}}" },
+            { "field": "precio", "value": "={{$json.output.precio}}" }
+          ]
+        }
+      },
+      "id": "create-product",
+      "name": "Create Product",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1150, 140]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$node[\"Supabase Trigger\"].json.raw_message.message.chat.id}}",
+        "text": "=📦 *¡NUEVO PRODUCTO CREADO!*\n\n*Nombre:* {{$node[\"Router Intent\"].json.output.nombre}}\n*Precio:* ${{$node[\"Router Intent\"].json.output.precio.toLocaleString()}}\n\nEl producto ha sido añadido exitosamente al inventario.",
+        "additionalFields": { "parse_mode": "Markdown" }
+      },
+      "id": "reply-product",
+      "name": "Reply Product",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [1400, 140]
+    }
+  ],
+  "connections": {
+    "Supabase Trigger": { "main": [[{ "node": "is-voice", "type": "main", "index": 0 }]] },
+    "is-voice": { "main": [[{ "node": "gemini-text", "type": "main", "index": 0 }], [{ "node": "get-file-info", "type": "main", "index": 0 }]] },
+    "gemini-text": { "main": [[{ "node": "router-intent", "type": "main", "index": 0 }]] },
+    "get-file-info": { "main": [[{ "node": "download-audio", "type": "main", "index": 0 }]] },
+    "download-audio": { "main": [[{ "node": "gemini-voice", "type": "main", "index": 0 }]] },
+    "gemini-voice": { "main": [[{ "node": "router-intent", "type": "main", "index": 0 }]] },
+    "router-intent": { "main": [[{ "node": "create-product", "type": "main", "index": 0 }]] },
+    "create-product": { "main": [[{ "node": "reply-product", "type": "main", "index": 0 }]] }
+  }
+}
