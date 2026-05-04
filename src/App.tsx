@@ -1889,7 +1889,7 @@ function App() {
           users={users}
           currentUser={currentUser}
           onAdd={addVentaManual}
-          onAddBulk={addVentaManualBulk}
+          onAddBulk={addVentasManuales}
           onUpdate={updateVentaManual}
           onDelete={deleteVentaManual}
         />;
