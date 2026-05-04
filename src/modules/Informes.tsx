@@ -140,17 +140,33 @@ const InformesModule: React.FC<IProps> = ({
 
     const totalUtilidad = despachosFacturadosEnRango.reduce((acc, d) => {
         const cot = cotizaciones.find(c => c.id === d.cotizacionId);
-        if (!cot) return acc;
-
         let dispatchUtility = 0;
-        d.items.forEach((dItem: any) => {
-            const qItem = cot.items.find(qi => qi.productoId === dItem.productoId || qi.id === dItem.productoId);
-            if (qItem) {
-                const salePrice = Number(qItem.precioVenta || 0) || (Number(qItem.costoUnitario || 0) / (1 - (Number(qItem.utilidad || 0) / 100)));
-                const costPrice = Number(qItem.costoUnitario || 0);
-                dispatchUtility += (salePrice - costPrice) * dItem.cantidad;
-            }
-        });
+
+        if (cot) {
+            d.items.forEach((dItem: any) => {
+                const qItem = cot.items.find(qi => 
+                    (qi.productoId && qi.productoId === dItem.productoId) || 
+                    (qi.id === dItem.productoId) ||
+                    (qi.nombre === dItem.nombre)
+                );
+                if (qItem) {
+                    const costPrice = Number(qItem.costoUnitario || 0);
+                    const marginPercent = Number(qItem.utilidad || 0);
+                    let salePrice = Number(qItem.precioVenta || 0);
+                    
+                    if (salePrice <= 0 && marginPercent < 100) {
+                        salePrice = costPrice / (1 - (marginPercent / 100));
+                    } else if (salePrice <= 0) {
+                        salePrice = costPrice;
+                    }
+                    dispatchUtility += (salePrice - costPrice) * dItem.cantidad;
+                } else {
+                    dispatchUtility += ((dItem.precioVenta || 0) - (dItem.costoUnitario || 0)) * dItem.cantidad;
+                }
+            });
+        } else {
+            dispatchUtility = (d.total ?? 0) * 0.15;
+        }
         return acc + dispatchUtility;
     }, 0);
 
@@ -205,12 +221,27 @@ const InformesModule: React.FC<IProps> = ({
 
         if (cot) {
             d.items.forEach((dItem: any) => {
-                const qItem = cot.items.find(qi => qi.productoId === dItem.productoId || qi.id === dItem.productoId);
+                const qItem = cot.items.find(qi => 
+                    (qi.productoId && qi.productoId === dItem.productoId) || 
+                    (qi.id === dItem.productoId) ||
+                    (qi.nombre === dItem.nombre)
+                );
                 if (qItem) {
-                    const salePrice = Number(qItem.precioVenta || 0) || (Number(qItem.costoUnitario || 0) / (1 - (Number(qItem.utilidad || 0) / 100)));
                     const costPrice = Number(qItem.costoUnitario || 0);
+                    const marginPercent = Number(qItem.utilidad || 0);
+                    let salePrice = Number(qItem.precioVenta || 0);
+                    
+                    if (salePrice <= 0 && marginPercent < 100) {
+                        salePrice = costPrice / (1 - (marginPercent / 100));
+                    } else if (salePrice <= 0) {
+                        salePrice = costPrice;
+                    }
+
                     dispatchTotal += salePrice * dItem.cantidad;
                     dispatchUtility += (salePrice - costPrice) * dItem.cantidad;
+                } else {
+                    dispatchTotal += (dItem.precioVenta || 0) * dItem.cantidad;
+                    dispatchUtility += ((dItem.precioVenta || 0) - (dItem.costoUnitario || 0)) * dItem.cantidad;
                 }
             });
         } else {
@@ -235,12 +266,27 @@ const InformesModule: React.FC<IProps> = ({
 
         if (cot) {
             d.items.forEach((dItem: any) => {
-                const qItem = cot.items.find(qi => qi.productoId === dItem.productoId || qi.id === dItem.productoId);
+                const qItem = cot.items.find(qi => 
+                    (qi.productoId && qi.productoId === dItem.productoId) || 
+                    (qi.id === dItem.productoId) ||
+                    (qi.nombre === dItem.nombre)
+                );
                 if (qItem) {
-                    const salePrice = Number(qItem.precioVenta || 0) || (Number(qItem.costoUnitario || 0) / (1 - (Number(qItem.utilidad || 0) / 100)));
                     const costPrice = Number(qItem.costoUnitario || 0);
+                    const marginPercent = Number(qItem.utilidad || 0);
+                    let salePrice = Number(qItem.precioVenta || 0);
+                    
+                    if (salePrice <= 0 && marginPercent < 100) {
+                        salePrice = costPrice / (1 - (marginPercent / 100));
+                    } else if (salePrice <= 0) {
+                        salePrice = costPrice;
+                    }
+
                     dispatchTotal += salePrice * dItem.cantidad;
                     dispatchUtility += (salePrice - costPrice) * dItem.cantidad;
+                } else {
+                    dispatchTotal += (dItem.precioVenta || 0) * dItem.cantidad;
+                    dispatchUtility += ((dItem.precioVenta || 0) - (dItem.costoUnitario || 0)) * dItem.cantidad;
                 }
             });
         } else {
@@ -550,8 +596,8 @@ const InformesModule: React.FC<IProps> = ({
                     </div>
                     <div className="stat-card profit-summary-card">
                         <div className="stat-label" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.75rem' }}>Utilidad en Rango</div>
-                        <div className="stat-value" style={{ fontSize: '1.2rem', color: '#fff' }}>${totalUtilidad.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
-                        <div className="stat-trend" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff' }}>Margen Bruto</div>
+                        <div className="stat-value" style={{ fontSize: '1.2rem', color: '#fff' }}>${combinedProfit.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
+                        <div className="stat-trend" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff' }}>Incluye V. Manuales</div>
                     </div>
                     <div className="stat-card margin-percent-card" style={{ background: 'linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)' }}>
                         <div className="stat-label" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.75rem' }}>Porcentaje de Utilidad</div>
