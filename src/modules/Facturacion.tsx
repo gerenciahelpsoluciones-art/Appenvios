@@ -28,8 +28,10 @@ const FacturacionModule: React.FC<IProps> = ({ despachos, cotizaciones, clientes
     const pendientes = entregados.filter(d => !d.facturado);
     const historial = entregados.filter(d => {
         if (!d.facturado) return false;
-        // Si estamos en la pestaña de historial, aplicamos el filtro de fecha
-        const dateMatch = d.fechaSolicitud >= fechaInicio && d.fechaSolicitud <= fechaFin;
+        // Usar fechaFacturado (fecha real de facturación) si existe,
+        // sino usar fechaSolicitud como fallback para registros anteriores.
+        const fechaRef = d.fechaFacturado || d.fechaSolicitud;
+        const dateMatch = fechaRef >= fechaInicio && fechaRef <= fechaFin;
         return dateMatch;
     });
 
