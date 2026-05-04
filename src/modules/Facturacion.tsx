@@ -43,7 +43,8 @@ const FacturacionModule: React.FC<IProps> = ({ despachos, cotizaciones, clientes
 
     const handleFacturar = (d: Despacho) => {
         if (window.confirm(`¿Marcar el pedido ${d.consecutivoCotizacion} como FACTURADO?`)) {
-            onUpdateDespacho({ ...d, facturado: true });
+            const fechaHoy = new Date().toISOString().split('T')[0];
+            onUpdateDespacho({ ...d, facturado: true, fechaFacturado: fechaHoy });
         }
     };
 

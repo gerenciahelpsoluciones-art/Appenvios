@@ -236,6 +236,7 @@ export interface Despacho {
   fotoRemision?: string;
   georeferencia?: string;
   facturado?: boolean;
+  fechaFacturado?: string;  // Fecha en que se marcó como facturado en el módulo de Facturación
 }
 
 export interface Reparacion {
@@ -456,7 +457,8 @@ function App() {
           conductorId: d.conductor_id,
           conductorNombre: d.conductor_nombre,
           fotoEntrega: d.foto_entrega,
-          fotoRemision: d.foto_remision
+          fotoRemision: d.foto_remision,
+          fechaFacturado: d.fecha_facturado || undefined,
         })));
       }
 
@@ -836,7 +838,8 @@ function App() {
       foto_entrega: d.fotoEntrega,
       foto_remision: d.fotoRemision,
       georeferencia: d.georeferencia,
-      facturado: d.facturado || false
+      facturado: d.facturado || false,
+      fecha_facturado: d.fechaFacturado || null
     };
 
     const { error } = await supabase.from('despachos').update(payload).eq('id', d.id);

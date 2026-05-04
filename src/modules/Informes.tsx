@@ -102,11 +102,59 @@ const InformesModule: React.FC<IProps> = ({
         return bDate.localeCompare(aDate);
     });
 
-    const wonQuotesInRange = filteredQuotes.filter(q => q.estado === 'Ganado');
-    const totalVendido = wonQuotesInRange.reduce((acc, q) => acc + q.total, 0);
-    const totalUtilidad = wonQuotesInRange.reduce((acc, q) => acc + (q.utilidadTotal || 0), 0);
+    // ── BASE DE CÁLCULO: Despachos FACTURADOS en el rango de fechas ──────────
+    // La fecha que se usa es fechaFacturado (la fecha real en que se marcó como
+    // facturado en el módulo de Facturación), NO la fecha de la cotización.
+    // Esto corrige el problema de cotizaciones ganadas en un mes pero facturadas
+    // en el siguiente.
+    const despachosFacturadosEnRango = despachos.filter(d => {
+        if (!d.facturado) return false;
+        // Usar fechaFacturado si existe; si no, usar fechaSolicitud como fallback
+        // para despachos facturados antes de esta actualización del sistema.
+        const fechaRef = d.fechaFacturado || d.fechaSolicitud;
+        const dateMatch = fechaRef >= appliedFilters.inicio && fechaRef <= appliedFilters.fin;
+        const advisorMatch = appliedFilters.asesorId ? d.usuarioId === appliedFilters.asesorId : true;
+        const clientMatch = appliedFilters.clienteId ? d.clienteId === appliedFilters.clienteId : true;
+        return dateMatch && advisorMatch && clientMatch;
+    });
 
-    // Revenue by category from manual sales (using appliedFilters)
+    // Cruzar con cotizaciones para obtener valores de venta y utilidad
+    const totalVendido = despachosFacturadosEnRango.reduce((acc, d) => {
+        const cot = cotizaciones.find(c => c.id === d.cotizacionId);
+        return acc + (cot?.total ?? d.total ?? 0);
+    }, 0);
+
+    const totalUtilidad = despachosFacturadosEnRango.reduce((acc, d) => {
+        const cot = cotizaciones.find(c => c.id === d.cotizacionId);
+        return acc + (cot?.utilidadTotal ?? 0);
+    }, 0);
+
+    // Mantener wonQuotesInRange solo para la tabla de cotizaciones listadas
+    // (no afecta los totales del rango, solo muestra el listado filtrado por fecha de cotización)
+    const wonQuotesInRange = filteredQuotes.filter(q => q.estado === 'Ganado');
+
+    // Profit by client — ahora basado en facturados
+    const profitByClient = despachosFacturadosEnRango.reduce((acc: Record<string, { nombre: string, total: number, profit: number }>, d) => {
+        const cot = cotizaciones.find(c => c.id === d.cotizacionId);
+        const clienteId = d.clienteId;
+        const clienteNombre = d.clienteNombre;
+        if (!acc[clienteId]) acc[clienteId] = { nombre: clienteNombre, total: 0, profit: 0 };
+        acc[clienteId].total += cot?.total ?? d.total ?? 0;
+        acc[clienteId].profit += cot?.utilidadTotal ?? 0;
+        return acc;
+    }, {});
+
+    // Profit by month — ahora basado en fechaFacturado
+    const profitByMonth = despachosFacturadosEnRango.reduce((acc: Record<string, { total: number, profit: number }>, d) => {
+        const fechaRef = d.fechaFacturado || d.fechaSolicitud;
+        const month = fechaRef.substring(0, 7); // YYYY-MM
+        const cot = cotizaciones.find(c => c.id === d.cotizacionId);
+        if (!acc[month]) acc[month] = { total: 0, profit: 0 };
+        acc[month].total += cot?.total ?? d.total ?? 0;
+        acc[month].profit += cot?.utilidadTotal ?? 0;
+        return acc;
+    }, {});
+
     const manualSalesFiltered = (ventasManuales || []).filter(v => {
         const dateMatch = v.fecha >= appliedFilters.inicio && v.fecha <= appliedFilters.fin;
         const advisorMatch = appliedFilters.asesorId ? v.usuarioId === appliedFilters.asesorId : true;
@@ -399,21 +447,6 @@ const InformesModule: React.FC<IProps> = ({
         closeEditModal();
     };
 
-    // --- Profit Analysis Grouping ---
-    const profitByClient = wonQuotesInRange.reduce((acc: Record<string, { nombre: string, total: number, profit: number }>, q) => {
-        if (!acc[q.clienteId]) acc[q.clienteId] = { nombre: q.clienteNombre, total: 0, profit: 0 };
-        acc[q.clienteId].total += q.total;
-        acc[q.clienteId].profit += (q.utilidadTotal || 0);
-        return acc;
-    }, {});
-
-    const profitByMonth = wonQuotesInRange.reduce((acc: Record<string, { total: number, profit: number }>, q) => {
-        const month = q.fecha.substring(0, 7); // YYYY-MM
-        if (!acc[month]) acc[month] = { total: 0, profit: 0 };
-        acc[month].total += q.total;
-        acc[month].profit += (q.utilidadTotal || 0);
-        return acc;
-    }, {});
 
 
     return (
@@ -434,9 +467,9 @@ const InformesModule: React.FC<IProps> = ({
                         </div>
                     )}
                     <div className="stat-card sales-card">
-                        <div className="stat-label" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.75rem' }}>Ventas Logradas (Total)</div>
+                        <div className="stat-label" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.75rem' }}>Ventas Facturadas (Total)</div>
                         <div className="stat-value" style={{ fontSize: '1.2rem', color: '#fff' }}>${monthlySales.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
-                        <div className="stat-trend" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff' }}>Ejecutado</div>
+                        <div className="stat-trend" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff' }}>{despachosFacturadosEnRango.length} despacho(s) facturado(s)</div>
                     </div>
                     <div className="stat-card percent-card">
                         <div className="stat-label" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.75rem' }}>% Ejecución</div>
