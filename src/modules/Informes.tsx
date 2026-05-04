@@ -123,9 +123,13 @@ const InformesModule: React.FC<IProps> = ({
     });
 
     // Cruzar con cotizaciones para obtener valores de venta y utilidad REALES por ítem despachado
-    const totalVendido = despachosFacturadosEnRango.reduce((acc, d) => {
+    let totalVendidoNeto = 0;
+    let totalIVACalculado = 0;
+
+    despachosFacturadosEnRango.forEach(d => {
         const cot = cotizaciones.find(c => c.id === d.cotizacionId);
-        let dispatchTotal = 0;
+        let dispatchSubtotal = 0;
+        let dispatchIVA = 0;
 
         if (cot) {
             d.items.forEach((dItem: any) => {
@@ -138,26 +142,35 @@ const InformesModule: React.FC<IProps> = ({
                     const costPrice = Number(qItem.costoUnitario || 0);
                     const marginPercent = Number(qItem.utilidad || 0);
                     let salePrice = Number(qItem.precioVenta || 0);
+                    const itemIVA = Number(qItem.iva || 19);
                     
                     if (salePrice <= 0 && marginPercent < 100) {
                         salePrice = costPrice / (1 - (marginPercent / 100));
                     } else if (salePrice <= 0) {
                         salePrice = costPrice;
                     }
-                    dispatchTotal += salePrice * dItem.cantidad;
+                    
+                    const subtotalItem = salePrice * dItem.cantidad;
+                    dispatchSubtotal += subtotalItem;
+                    dispatchIVA += subtotalItem * (itemIVA / 100);
                 } else {
-                    // Si no se encuentra en cotización, usar el precio registrado en el despacho
-                    dispatchTotal += (dItem.precioVenta || 0) * dItem.cantidad;
+                    const subtotalItem = (dItem.precioVenta || 0) * dItem.cantidad;
+                    dispatchSubtotal += subtotalItem;
+                    dispatchIVA += subtotalItem * 0.19; // Fallback 19%
                 }
             });
         } else {
-            // Si no hay cotización, asumimos que d.total es el subtotal o lo convertimos
-            dispatchTotal = d.total ?? 0;
-            // Si el total parece incluir IVA (comparado con la suma de items), podríamos ajustarlo
-            // Por ahora lo dejamos como está para no introducir errores de redondeo arbitrarios
+            // Si no hay cotización, d.total suele ser el Bruto con IVA. Convertimos a Neto.
+            const gross = d.total ?? 0;
+            dispatchSubtotal = gross / 1.19;
+            dispatchIVA = gross - dispatchSubtotal;
         }
-        return acc + dispatchTotal;
-    }, 0);
+        totalVendidoNeto += dispatchSubtotal;
+        totalIVACalculado += dispatchIVA;
+    });
+
+    const totalVendido = totalVendidoNeto; // Alias para compatibilidad
+    const totalBruto = totalVendidoNeto + totalIVACalculado;
 
     const totalUtilidad = despachosFacturadosEnRango.reduce((acc, d) => {
         const cot = cotizaciones.find(c => c.id === d.cotizacionId);
@@ -325,6 +338,7 @@ const InformesModule: React.FC<IProps> = ({
     // Monthly performance for execution cards (now based on appliedFilters for consistency)
     const monthlySales = totalVendido + totalManualSales;
     const combinedProfit = totalUtilidad + totalManualProfit;
+    const totalBrutoConManuales = totalBruto + totalManualSales; // Asumiendo manuales son brutos
 
     const profitMarginPercent = monthlySales > 0 ? (combinedProfit / monthlySales) * 100 : 0;
 
@@ -603,10 +617,15 @@ const InformesModule: React.FC<IProps> = ({
                             <div className="stat-trend" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff' }}>Meta asignada</div>
                         </div>
                     )}
-                    <div className="stat-card sales-card">
-                        <div className="stat-label" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.75rem' }}>Ventas Facturadas (Total)</div>
+                    <div className="stat-card sales-card" style={{ background: 'linear-gradient(135deg, #4f46e5 0%, #3730a3 100%)' }}>
+                        <div className="stat-label" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.75rem' }}>Ventas Netas (Subtotal)</div>
                         <div className="stat-value" style={{ fontSize: '1.2rem', color: '#fff' }}>${monthlySales.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
-                        <div className="stat-trend" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff' }}>{despachosFacturadosEnRango.length} despacho(s) facturado(s)</div>
+                        <div className="stat-trend" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff' }}>Sin impuestos</div>
+                    </div>
+                    <div className="stat-card sales-card" style={{ background: 'linear-gradient(135deg, #6366f1 0%, #4338ca 100%)' }}>
+                        <div className="stat-label" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.75rem' }}>Total Facturado (Con IVA)</div>
+                        <div className="stat-value" style={{ fontSize: '1.2rem', color: '#fff' }}>${totalBrutoConManuales.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
+                        <div className="stat-trend" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff' }}>Para cruce con Siigo</div>
                     </div>
                     <div className="stat-card percent-card">
                         <div className="stat-label" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.75rem' }}>% Ejecución</div>
