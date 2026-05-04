@@ -389,7 +389,6 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, pr
                     summary[sellerKey] = { id: sellerKey, name: sellerName, utility: 0, commission: 0, salesCount: 0 };
                 }
                 summary[sellerKey].utility += Math.round(utility * 100) / 100;
-                summary[sellerKey].commission += calculateCommission(utility);
                 summary[sellerKey].salesCount += 1;
             });
 
@@ -416,7 +415,6 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, pr
                 }
 
                 summary[sellerKey].utility -= returnUtility;
-                summary[sellerKey].commission -= calculateCommission(returnUtility);
             });
         } else {
             if (!Array.isArray(despachos)) return [];
@@ -441,8 +439,18 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, pr
                             );
                             
                             if (qItem) {
-                                const salePrice = Number(qItem.precioVenta || 0);
+                                // Safeguard: Si precioVenta no existe, intentar reconstruirlo desde margen y costo
+                                let salePrice = Number(qItem.precioVenta || 0);
                                 const costPrice = Number(qItem.costoUnitario || 0);
+                                const marginPercent = Number(qItem.utilidad || 0);
+
+                                if (salePrice <= 0 && marginPercent < 100 && marginPercent > 0) {
+                                    salePrice = costPrice / (1 - (marginPercent / 100));
+                                } else if (salePrice <= 0 && marginPercent === 100) {
+                                    // Si el margen es 100% y no hay precio, algo anda mal, pero asumimos costo 0
+                                    salePrice = costPrice; 
+                                }
+
                                 const itemUtility = (salePrice - costPrice) * dItem.cantidad;
                                 dispatchUtility += Math.round(itemUtility * 100) / 100;
                             }
@@ -452,12 +460,15 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, pr
                     }
 
                     summary[sellerName].utility += dispatchUtility;
-                    summary[sellerName].commission += calculateCommission(dispatchUtility);
                     summary[sellerName].salesCount += 1;
                 });
         }
 
-        return Object.values(summary);
+        // Calcular comisiones sobre los totales acumulados para evitar errores de redondeo por transacción
+        return Object.values(summary).map(s => ({
+            ...s,
+            commission: calculateCommission(s.utility)
+        }));
     };
 
     const saveAlias = (id: string, currentName: string) => {
