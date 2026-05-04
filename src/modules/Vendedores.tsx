@@ -50,12 +50,24 @@ const Vendedores: React.FC<IProps> = ({ users, budgets, cotizaciones, ventasManu
     };
 
     const getSalesForPeriod = (userId: string, start: string, end: string) => {
-        const quoteSales = cotizaciones
-            .filter(c => {
-                if (!c.fecha || c.estado !== 'Ganado' || c.usuarioId !== userId) return false;
-                return c.fecha >= start && c.fecha <= end;
+        // Venta por Cotizaciones: Ahora basada en DESPACHOS FACTURADOS en el periodo
+        // y atribuidos al asesor que creó la cotización original.
+        const quoteSales = (despachos || [])
+            .filter(d => {
+                if (!d.facturado) return false;
+                
+                // Fecha de referencia para el reporte: fechaFacturado (o fallback)
+                const fechaRef = d.fechaFacturado || d.fechaSolicitud;
+                if (fechaRef < start || fechaRef > end) return false;
+
+                // Buscar el asesor original de la cotización
+                const cot = cotizaciones.find(c => c.id === d.cotizacionId);
+                return cot?.usuarioId === userId;
             })
-            .reduce((acc, c) => acc + c.total, 0);
+            .reduce((acc, d) => {
+                const cot = cotizaciones.find(c => c.id === d.cotizacionId);
+                return acc + (cot?.total ?? d.total ?? 0);
+            }, 0);
 
         const manualSales = (ventasManuales || []).filter(v => {
             if (!v.fecha || v.usuarioId !== userId) return false;
