@@ -432,12 +432,19 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, pr
 
                     let dispatchUtility = 0;
                     if (quote) {
+                        const availableQuoteItems = [...quote.items];
+                        
                         d.items.forEach(dItem => {
-                            const qItem = quote.items.find(qi => 
+                            const qItemIndex = availableQuoteItems.findIndex(qi => 
                                 (qi.productoId && dItem.productoId && qi.productoId === dItem.productoId) || 
-                                (qi.id && dItem.productoId && qi.id === dItem.productoId) ||
-                                (qi.nombre && dItem.nombre && qi.nombre === dItem.nombre)
+                                (qi.id && dItem.productoId && qi.id === dItem.productoId)
                             );
+                            
+                            let qItem = null;
+                            if (qItemIndex !== -1) {
+                                qItem = availableQuoteItems[qItemIndex];
+                                availableQuoteItems.splice(qItemIndex, 1);
+                            }
                             
                             if (qItem) {
                                 // Safeguard: Si precioVenta no existe, intentar reconstruirlo desde margen y costo
@@ -700,17 +707,22 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, pr
                                     return filtered.flatMap(d => {
                                         const quote = cotizaciones.find(q => q.id === d.cotizacionId || q.consecutivo === d.consecutivoCotizacion);
                                         const seller = quote?.ejecutivo || 'N/A';
+                                        const availableQuoteItems = quote ? [...quote.items] : [];
                                         
                                         return d.items.map((dItem, idx) => {
-                                            const qItem = quote?.items.find(qi => 
+                                            const qItemIndex = availableQuoteItems.findIndex(qi => 
                                                 (qi.productoId && dItem.productoId && qi.productoId === dItem.productoId) || 
-                                                (qi.id && dItem.productoId && qi.id === dItem.productoId) || 
-                                                (qi.nombre && dItem.nombre && qi.nombre === dItem.nombre)
+                                                (qi.id && dItem.productoId && qi.id === dItem.productoId)
                                             );
                                             
+                                            let qItem = null;
+                                            if (qItemIndex !== -1) {
+                                                qItem = availableQuoteItems[qItemIndex];
+                                                availableQuoteItems.splice(qItemIndex, 1);
+                                            }
+                                            
                                             const productName = productos.find(p => p.id === (qItem?.productoId || dItem.productoId))?.nombre 
-                                                                || dItem.nombre 
-                                                                || qItem?.nombre 
+                                                                || dItem.nombreProducto 
                                                                 || 'Producto General / Sin Nombre';
                                             
                                             let salePrice = Number(qItem?.precioVenta || dItem.precioVenta || 0);

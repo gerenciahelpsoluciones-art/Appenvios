@@ -8,13 +8,21 @@ export const calculateDespachoNeto = (d: Despacho, cotizaciones: Cotizacion[]) =
         return d.total / 1.19;
     }
 
+    const availableQuoteItems = cot ? [...cot.items] : [];
+
     d.items.forEach((dItem: any) => {
         let itemNeto = 0;
-        const qItem = cot?.items.find(qi => 
+        
+        const qItemIndex = availableQuoteItems.findIndex(qi => 
             (qi.productoId && dItem.productoId && qi.productoId === dItem.productoId) || 
-            (qi.id && dItem.productoId && qi.id === dItem.productoId) || 
-            (qi.nombre && dItem.nombre && qi.nombre === dItem.nombre)
+            (qi.id && dItem.productoId && qi.id === dItem.productoId)
         );
+
+        let qItem = null;
+        if (qItemIndex !== -1) {
+            qItem = availableQuoteItems[qItemIndex];
+            availableQuoteItems.splice(qItemIndex, 1);
+        }
 
         if (qItem) {
             const costPrice = Number(qItem.costoUnitario || 0);
