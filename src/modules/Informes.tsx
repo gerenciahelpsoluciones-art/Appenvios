@@ -125,16 +125,37 @@ const InformesModule: React.FC<IProps> = ({
     // Cruzar con cotizaciones para obtener valores de venta y utilidad REALES por ítem despachado
     const totalVendido = despachosFacturadosEnRango.reduce((acc, d) => {
         const cot = cotizaciones.find(c => c.id === d.cotizacionId);
-        if (!cot) return acc + (d.total ?? 0);
-
         let dispatchTotal = 0;
-        d.items.forEach((dItem: any) => {
-            const qItem = cot.items.find(qi => qi.productoId === dItem.productoId || qi.id === dItem.productoId);
-            if (qItem) {
-                const salePrice = Number(qItem.precioVenta || 0) || (Number(qItem.costoUnitario || 0) / (1 - (Number(qItem.utilidad || 0) / 100)));
-                dispatchTotal += salePrice * dItem.cantidad;
-            }
-        });
+
+        if (cot) {
+            d.items.forEach((dItem: any) => {
+                const qItem = cot.items.find(qi => 
+                    (qi.productoId && qi.productoId === dItem.productoId) || 
+                    (qi.id === dItem.productoId) ||
+                    (qi.nombre === dItem.nombre)
+                );
+                if (qItem) {
+                    const costPrice = Number(qItem.costoUnitario || 0);
+                    const marginPercent = Number(qItem.utilidad || 0);
+                    let salePrice = Number(qItem.precioVenta || 0);
+                    
+                    if (salePrice <= 0 && marginPercent < 100) {
+                        salePrice = costPrice / (1 - (marginPercent / 100));
+                    } else if (salePrice <= 0) {
+                        salePrice = costPrice;
+                    }
+                    dispatchTotal += salePrice * dItem.cantidad;
+                } else {
+                    // Si no se encuentra en cotización, usar el precio registrado en el despacho
+                    dispatchTotal += (dItem.precioVenta || 0) * dItem.cantidad;
+                }
+            });
+        } else {
+            // Si no hay cotización, asumimos que d.total es el subtotal o lo convertimos
+            dispatchTotal = d.total ?? 0;
+            // Si el total parece incluir IVA (comparado con la suma de items), podríamos ajustarlo
+            // Por ahora lo dejamos como está para no introducir errores de redondeo arbitrarios
+        }
         return acc + dispatchTotal;
     }, 0);
 
