@@ -122,15 +122,36 @@ const InformesModule: React.FC<IProps> = ({
         return dateMatch && advisorMatch && clientMatch;
     });
 
-    // Cruzar con cotizaciones para obtener valores de venta y utilidad
+    // Cruzar con cotizaciones para obtener valores de venta y utilidad REALES por ítem despachado
     const totalVendido = despachosFacturadosEnRango.reduce((acc, d) => {
         const cot = cotizaciones.find(c => c.id === d.cotizacionId);
-        return acc + (cot?.total ?? d.total ?? 0);
+        if (!cot) return acc + (d.total ?? 0);
+
+        let dispatchTotal = 0;
+        d.items.forEach((dItem: any) => {
+            const qItem = cot.items.find(qi => qi.productoId === dItem.productoId || qi.id === dItem.productoId);
+            if (qItem) {
+                const salePrice = Number(qItem.precioVenta || 0) || (Number(qItem.costoUnitario || 0) / (1 - (Number(qItem.utilidad || 0) / 100)));
+                dispatchTotal += salePrice * dItem.cantidad;
+            }
+        });
+        return acc + dispatchTotal;
     }, 0);
 
     const totalUtilidad = despachosFacturadosEnRango.reduce((acc, d) => {
         const cot = cotizaciones.find(c => c.id === d.cotizacionId);
-        return acc + (cot?.utilidadTotal ?? 0);
+        if (!cot) return acc;
+
+        let dispatchUtility = 0;
+        d.items.forEach((dItem: any) => {
+            const qItem = cot.items.find(qi => qi.productoId === dItem.productoId || qi.id === dItem.productoId);
+            if (qItem) {
+                const salePrice = Number(qItem.precioVenta || 0) || (Number(qItem.costoUnitario || 0) / (1 - (Number(qItem.utilidad || 0) / 100)));
+                const costPrice = Number(qItem.costoUnitario || 0);
+                dispatchUtility += (salePrice - costPrice) * dItem.cantidad;
+            }
+        });
+        return acc + dispatchUtility;
     }, 0);
 
     const manualSalesFiltered = (ventasManuales || []).filter(v => {
@@ -172,25 +193,63 @@ const InformesModule: React.FC<IProps> = ({
     // (no afecta los totales del rango, solo muestra el listado filtrado por fecha de cotización)
     const wonQuotesInRange = filteredQuotes.filter(q => q.estado === 'Ganado');
 
-    // Profit by client — ahora basado en facturados
+    // Profit by client — ahora basado en facturados REALES
     const profitByClient = despachosFacturadosEnRango.reduce((acc: Record<string, { nombre: string, total: number, profit: number }>, d) => {
         const cot = cotizaciones.find(c => c.id === d.cotizacionId);
         const clienteId = d.clienteId;
         const clienteNombre = d.clienteNombre;
         if (!acc[clienteId]) acc[clienteId] = { nombre: clienteNombre, total: 0, profit: 0 };
-        acc[clienteId].total += cot?.total ?? d.total ?? 0;
-        acc[clienteId].profit += cot?.utilidadTotal ?? 0;
+        
+        let dispatchTotal = 0;
+        let dispatchUtility = 0;
+
+        if (cot) {
+            d.items.forEach((dItem: any) => {
+                const qItem = cot.items.find(qi => qi.productoId === dItem.productoId || qi.id === dItem.productoId);
+                if (qItem) {
+                    const salePrice = Number(qItem.precioVenta || 0) || (Number(qItem.costoUnitario || 0) / (1 - (Number(qItem.utilidad || 0) / 100)));
+                    const costPrice = Number(qItem.costoUnitario || 0);
+                    dispatchTotal += salePrice * dItem.cantidad;
+                    dispatchUtility += (salePrice - costPrice) * dItem.cantidad;
+                }
+            });
+        } else {
+            dispatchTotal = d.total ?? 0;
+            dispatchUtility = dispatchTotal * 0.15;
+        }
+
+        acc[clienteId].total += dispatchTotal;
+        acc[clienteId].profit += dispatchUtility;
         return acc;
     }, {});
 
-    // Profit by month — ahora basado en fechaFacturado
+    // Profit by month — ahora basado en fechaFacturado REAL
     const profitByMonth = despachosFacturadosEnRango.reduce((acc: Record<string, { total: number, profit: number }>, d) => {
         const fechaRef = d.fechaFacturado || d.fechaSolicitud;
         const month = fechaRef.substring(0, 7); // YYYY-MM
         const cot = cotizaciones.find(c => c.id === d.cotizacionId);
         if (!acc[month]) acc[month] = { total: 0, profit: 0 };
-        acc[month].total += cot?.total ?? d.total ?? 0;
-        acc[month].profit += cot?.utilidadTotal ?? 0;
+        
+        let dispatchTotal = 0;
+        let dispatchUtility = 0;
+
+        if (cot) {
+            d.items.forEach((dItem: any) => {
+                const qItem = cot.items.find(qi => qi.productoId === dItem.productoId || qi.id === dItem.productoId);
+                if (qItem) {
+                    const salePrice = Number(qItem.precioVenta || 0) || (Number(qItem.costoUnitario || 0) / (1 - (Number(qItem.utilidad || 0) / 100)));
+                    const costPrice = Number(qItem.costoUnitario || 0);
+                    dispatchTotal += salePrice * dItem.cantidad;
+                    dispatchUtility += (salePrice - costPrice) * dItem.cantidad;
+                }
+            });
+        } else {
+            dispatchTotal = d.total ?? 0;
+            dispatchUtility = dispatchTotal * 0.15;
+        }
+
+        acc[month].total += dispatchTotal;
+        acc[month].profit += dispatchUtility;
         return acc;
     }, {});
 
