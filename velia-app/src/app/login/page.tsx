@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 
 export default function Login() {
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -17,22 +17,51 @@ export default function Login() {
     setError("");
 
     try {
-      // Bypass para demo con admin/admin o con el email del placeholder
-      if ((email === "admin" || email === "admin@veliapremium.com") && password === "admin") {
+      // 1. Bypass para demo
+      if (identifier === "admin" && password === "admin") {
         document.cookie = "velia_demo=true; path=/; max-age=3600";
         router.push("/");
         return;
       }
 
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      // 2. Resolver Usuario a Email
+      const res = await fetch("/api/auth/get-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ usuario: identifier })
       });
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("API Error Response:", errorText);
+        throw new Error(`Error del servidor (${res.status}): ${errorText.substring(0, 50)}`);
+      }
 
-      if (error) throw error;
+      const { email, error: fetchError } = await res.json();
+      
+      if (fetchError || !email) {
+        // Si no se encuentra como usuario, intentamos tratar el identificador como email directamente
+        // por si acaso alguien prefiere usar el correo
+        const finalEmail = identifier.includes("@") ? identifier : null;
+        if (!finalEmail) throw new Error("Usuario no encontrado");
+
+        const { error: authError } = await supabase.auth.signInWithPassword({
+          email: finalEmail,
+          password: password + "_veliapremium",
+        });
+        if (authError) throw authError;
+      } else {
+        // 3. Autenticar con el email resuelto
+        const { error: authError } = await supabase.auth.signInWithPassword({
+          email,
+          password: password + "_veliapremium",
+        });
+        if (authError) throw authError;
+      }
 
       router.push("/");
     } catch (err: any) {
+      console.error("Login Error:", err);
       setError(err.message || "Error al iniciar sesión");
     } finally {
       setLoading(false);
@@ -57,14 +86,14 @@ export default function Login() {
 
         <form onSubmit={handleLogin}>
           <div className="form-group">
-            <label className="form-label">Correo Electrónico</label>
+            <label className="form-label">Nombre de Usuario</label>
             <input
               type="text"
               className="form-input"
-              placeholder="admin@veliapremium.com"
+              placeholder="Ej: carlos_ventas"
               required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
               style={{ background: "rgba(255,255,255,0.03)" }}
             />
           </div>

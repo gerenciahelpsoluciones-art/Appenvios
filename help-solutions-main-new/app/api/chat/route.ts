@@ -4,11 +4,15 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 // CONFIGURACIÓN VERIFICADA Y FUNCIONAL (28 Mar 2026)
 // Clave Gemini: Probada con gemini-2.5-flash ✅
 // Clave Supabase: Probada con INSERT+GET ✅
-const GEMINI_KEY = "AIzaSyBwt6bAiIHn01JKj-l8Uq6Vj9xPpwIvuUw";
-const SB_URL = "https://matyjysinegbibdwzhoq.supabase.co";
-const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1hdHlqeXNpbmVnYmliZHd6aG9xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1MzczNTYsImV4cCI6MjA4NzExMzM1Nn0.sujolHHtMEsNs7EPlLYchAZRCLyMz7ek62x5eQ0h0kY";
+const GEMINI_KEY = process.env.GEMINI_API_KEY;
+const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://matyjysinegbibdwzhoq.supabase.co";
+const SB_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-const genAI = new GoogleGenerativeAI(GEMINI_KEY);
+if (!GEMINI_KEY) {
+  console.error("GEMINI_API_KEY no configurada en variables de entorno");
+}
+
+const genAI = new GoogleGenerativeAI(GEMINI_KEY || "");
 
 export async function POST(req: Request) {
   try {
@@ -16,7 +20,7 @@ export async function POST(req: Request) {
     const lastMessage = messages[messages.length - 1].content;
     const historyText = messages.map((m: any) => `${m.role}: ${m.content}`).join("\n");
 
-    // 1. GENERAR RESPUESTA (gemini-2.5-flash - único modelo disponible para esta cuenta)
+    // 1. GENERAR RESPUESTA (Modelo verificado: gemini-2.5-flash)
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     const systemPrompt = `Eres Helpi, asistente experto de Help Soluciones Informáticas. 
 Atiende solicitudes de soporte TI, infraestructura y cotizaciones de forma profesional y amable.
@@ -27,8 +31,6 @@ Contactos internos: Juan Perez (Soporte), Deicy Rodriguez (Ventas).`;
     const responseText = result.response.text();
 
     // 2. EXTRACCIÓN Y GUARDADO EN CRM
-    // Columnas reales de la tabla: nombre, empresa, email, telefono, requerimiento
-    // (NO tiene columna "fuente" - verificado 28 Mar 2026)
     if (lastMessage.length > 5) {
       try {
         const extractor = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
@@ -51,8 +53,8 @@ ${historyText}
             const sbResponse = await fetch(`${SB_URL}/rest/v1/clientes_web`, {
               method: 'POST',
               headers: {
-                'apikey': SB_KEY,
-                'Authorization': `Bearer ${SB_KEY}`,
+                'apikey': SB_KEY || '',
+                'Authorization': `Bearer ${SB_KEY || ''}`,
                 'Content-Type': 'application/json',
                 'Prefer': 'return=minimal'
               },

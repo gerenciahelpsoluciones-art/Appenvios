@@ -898,7 +898,9 @@ const InformesModule: React.FC<IProps> = ({
                         </table>
                     </div>
                 </div>
-            <div className="card" style={{ marginTop: '1.5rem' }}>
+            </div>
+
+        <div className="card" style={{ marginTop: '1.5rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                     <h3 style={{ margin: 0 }}>📦 Detalle de Facturación (Producto por Producto)</h3>
                     <span className="text-muted" style={{ fontSize: '0.85rem' }}>Utilidad exacta por cada ítem facturado</span>

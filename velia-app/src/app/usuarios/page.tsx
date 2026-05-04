@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 interface Profile {
   id: string;
   nombre: string;
+  usuario: string;
   email: string;
   rol: "admin" | "vendedor";
   estado: "activo" | "inactivo";
@@ -18,6 +19,7 @@ export default function Users() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newUser, setNewUser] = useState({
     nombre: "",
+    usuario: "",
     email: "",
     password: "",
     rol: "vendedor" as "admin" | "vendedor",
@@ -34,10 +36,10 @@ export default function Users() {
     if (error) {
       console.error("Error fetching profiles:", error);
       // Fallback data for demo if table doesn't exist yet
-      if (error.code === "42P01") {
+      if (error.code === "42P01" || error.code === "42703") {
         setProfiles([
-          { id: "1", nombre: "Admin VELIA", email: "admin@velia.com", rol: "admin", estado: "activo", created_at: new Date().toISOString() },
-          { id: "2", nombre: "Vendedor Test", email: "vendedor@velia.com", rol: "vendedor", estado: "activo", created_at: new Date().toISOString() },
+          { id: "1", nombre: "Admin VELIA", usuario: "admin", email: "admin@velia.com", rol: "admin", estado: "activo", created_at: new Date().toISOString() },
+          { id: "2", nombre: "Vendedor Test", usuario: "vendedor1", email: "vendedor@velia.com", rol: "vendedor", estado: "activo", created_at: new Date().toISOString() },
         ]);
       }
     } else {
@@ -68,11 +70,12 @@ export default function Users() {
       if (!result.success) throw new Error(result.error);
       
       setIsModalOpen(false);
-      setNewUser({ nombre: "", email: "", password: "", rol: "vendedor" });
+      setNewUser({ nombre: "", usuario: "", email: "", password: "", rol: "vendedor" });
       fetchProfiles();
       alert("Usuario creado exitosamente. Ya puede iniciar sesión.");
     } catch (err: any) {
-      setError(err.message);
+      console.error("User creation error:", err);
+      setError(err.message || "Error desconocido al crear usuario");
     } finally {
       setLoading(false);
     }
@@ -131,6 +134,7 @@ export default function Users() {
             <thead>
               <tr>
                 <th>Nombre</th>
+                <th>Usuario</th>
                 <th>Email</th>
                 <th>Rol</th>
                 <th>Estado</th>
@@ -147,6 +151,7 @@ export default function Users() {
                 profiles.map(p => (
                   <tr key={p.id}>
                     <td style={{ fontWeight: "600" }}>{p.nombre}</td>
+                    <td style={{ fontWeight: "600", color: "var(--velia-rose-gold)" }}>@{p.usuario}</td>
                     <td style={{ opacity: 0.7 }}>{p.email}</td>
                     <td>
                       <span style={{ 
@@ -203,6 +208,18 @@ export default function Users() {
               <div className="modal-body">
                 {error && <div style={{ background: "rgba(248,113,113,0.1)", color: "#f87171", padding: "0.75rem", borderRadius: "10px", marginBottom: "1rem", fontSize: "0.85rem" }}>{error}</div>}
                 
+                <div className="form-group">
+                  <label className="form-label">Nombre de Usuario (Para entrar)</label>
+                  <input 
+                    type="text" 
+                    className="form-input" 
+                    placeholder="Ej: carlo123"
+                    required
+                    value={newUser.usuario}
+                    onChange={e => setNewUser({...newUser, usuario: e.target.value.toLowerCase().replace(/\s/g, "")})}
+                  />
+                </div>
+
                 <div className="form-group">
                   <label className="form-label">Nombre Completo</label>
                   <input 

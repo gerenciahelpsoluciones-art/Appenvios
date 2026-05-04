@@ -1,22 +1,18 @@
-import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export async function POST(request: Request) {
-  const { email, password, nombre, rol } = await request.json();
-
-  const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://matyjysinegbibdwzhoq.supabase.co',
-    process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-  );
+  const { email, password, nombre, usuario, rol } = await request.json();
 
   try {
     // 1. Crear el usuario en Auth (con confirmación automática)
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
-      password,
+      password: password + "_veliapremium",
       email_confirm: true,
       user_metadata: { 
         full_name: nombre,
+        usuario: usuario,
         app: "velia"
       }
     });
@@ -27,6 +23,7 @@ export async function POST(request: Request) {
     const { error: profileError } = await supabaseAdmin.from("velia_perfiles").insert([{
       id: authData.user.id,
       nombre,
+      usuario,
       email,
       rol,
       estado: "activo"

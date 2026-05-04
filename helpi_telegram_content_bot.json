@@ -1,0 +1,392 @@
+{
+  "name": "Helpi - Bot Generador de Contenido Telegram",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": ["message", "callback_query"],
+        "additionalFields": {}
+      },
+      "id": "node-tg-trigger",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [180, 300],
+      "webhookId": "helpi-content-bot-webhook",
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "HelpiAppenviosBot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "conditions": [
+            {
+              "id": "check-is-message",
+              "leftValue": "={{ $json.message }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "exists", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-route-type",
+      "name": "Mensaje o Callback",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [400, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const msg = $json.message;\nconst text = (msg?.text || '').trim();\nconst chatId = msg?.chat?.id;\n\nconst isStart = /^\\/start|^\\/help|^\\/menu/i.test(text);\n\nlet platform = 'LinkedIn';\nconst plats = [\n  ['instagram', 'Instagram'],\n  ['facebook', 'Facebook'],\n  ['whatsapp', 'WhatsApp'],\n  ['tiktok', 'TikTok'],\n  ['twitter', 'Twitter/X'],\n  ['linkedin', 'LinkedIn']\n];\nfor (const [k, v] of plats) {\n  if (text.toLowerCase().includes(k)) { platform = v; break; }\n}\n\nreturn [{ json: { chatId, text, platform, isStart } }];"
+      },
+      "id": "node-parse-msg",
+      "name": "Parsear Mensaje",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [620, 180]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "conditions": [
+            {
+              "id": "check-start",
+              "leftValue": "={{ $json.isStart }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-is-start",
+      "name": "¿Es /start?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [840, 180]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $json.chatId }}",
+        "text": "🤖 <b>¡Hola Carlos! Soy Helpi, tu agente de marketing.</b>\n\nPuedo generar contenido para redes sociales de <b>Help Soluciones Informáticas</b>.\n\n<b>¿Cómo usarme?</b>\nEscríbeme qué quieres publicar y en qué red:\n\n• <i>\"Crea un post de LinkedIn sobre mantenimiento de servidores\"</i>\n• <i>\"Post de Instagram para nuestro servicio de CCTV\"</i>\n• <i>\"Contenido de Facebook sobre ciberseguridad empresarial\"</i>\n• <i>\"Post de WhatsApp para promocionar redes y cableado\"</i>\n\n<b>Plataformas disponibles:</b>\nLinkedIn | Instagram | Facebook | WhatsApp | TikTok\n\n¡Listo! Dime qué necesitas 🚀",
+        "additionalFields": { "parse_mode": "HTML" }
+      },
+      "id": "node-send-welcome",
+      "name": "Enviar Bienvenida",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1060, 80],
+      "credentials": {
+        "telegramApi": { "id": "1", "name": "HelpiAppenviosBot" }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendChatAction",
+        "chatId": "={{ $json.chatId }}",
+        "action": "typing"
+      },
+      "id": "node-typing",
+      "name": "Enviando...",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1060, 280],
+      "credentials": {
+        "telegramApi": { "id": "1", "name": "HelpiAppenviosBot" }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [{ "name": "key", "value": "AIzaSyC1Yqn6cUB2H7UYVehkkeNfsHm0xISSuy4" }]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": {
+          "contents": [
+            {
+              "parts": [
+                {
+                  "text": "={{ 'Eres un experto en marketing digital B2B de tecnología en Colombia. Genera contenido para redes sociales de Help Soluciones Informáticas (helpsoluciones.com.co), empresa de soporte TI, mantenimiento de servidores, cableado estructurado, CCTV, ciberseguridad y networking en Bogotá.\\n\\nPlataforma: ' + $json.platform + '\\nSolicitud del cliente: ' + $json.text + '\\n\\nInstrucciones:\\n- Tono: profesional pero cercano\\n- Incluye un call to action con el número +57 311 352 2760 o helpsoluciones.com.co\\n- Adapta el formato y longitud a la plataforma\\n- Para LinkedIn: contenido más formal y extenso\\n- Para Instagram/TikTok: corto, visual, con emojis\\n- Para Facebook/WhatsApp: intermedio, conversacional\\n\\nResponde SOLO con este JSON sin markdown ni backticks:\\n{\\n  \"title\": \"Título llamativo del post (max 70 chars)\",\\n  \"copy\": \"Texto completo del post listo para publicar\",\\n  \"hashtags\": [\"hashtag1\", \"hashtag2\", \"hashtag3\", \"hashtag4\", \"hashtag5\"],\\n  \"call_to_action\": \"Acción específica para el usuario\"\\n}' }}"
+                }
+              ]
+            }
+          ],
+          "generationConfig": {
+            "temperature": 0.8,
+            "maxOutputTokens": 1024
+          }
+        },
+        "options": {}
+      },
+      "id": "node-gemini",
+      "name": "Generar con Gemini",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1280, 280]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.candidates?.[0]?.content?.parts?.[0]?.text || '{}';\nlet post;\ntry {\n  const clean = raw.replace(/```json|```/g, '').trim();\n  post = JSON.parse(clean);\n} catch(e) {\n  post = { title: 'Contenido generado', copy: raw, hashtags: [], call_to_action: '' };\n}\n\nconst prevData = $('Parsear Mensaje').first().json;\n\nreturn [{\n  json: {\n    chatId: prevData.chatId,\n    platform: prevData.platform,\n    title: post.title || '',\n    copy: post.copy || '',\n    hashtags: post.hashtags || [],\n    call_to_action: post.call_to_action || ''\n  }\n}];"
+      },
+      "id": "node-parse-gemini",
+      "name": "Parsear Respuesta Gemini",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1500, 280]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://matyjysinegbibdwzhoq.supabase.co/rest/v1/mkt_posts_queue",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "sb_secret_vi6890ktDX5SceFPvzNF_w_B5_ze28O" },
+            { "name": "Authorization", "value": "Bearer sb_secret_vi6890ktDX5SceFPvzNF_w_B5_ze28O" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=representation" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": {
+          "title": "={{ $json.title }}",
+          "copy": "={{ $json.copy }}",
+          "hashtags": "={{ $json.hashtags }}",
+          "platform": "={{ $json.platform.toLowerCase().replace('/', '_') }}",
+          "status": "draft",
+          "image_url": null,
+          "image_prompt": null,
+          "scheduled_at": null
+        },
+        "options": {}
+      },
+      "id": "node-supabase-insert",
+      "name": "Guardar Draft en Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1720, 280]
+    },
+    {
+      "parameters": {
+        "jsCode": "const post = Array.isArray($json) ? $json[0] : $json;\nconst prev = $('Parsear Respuesta Gemini').first().json;\n\nconst postId = post.id;\nconst platform = prev.platform;\nconst title = prev.title;\nconst copy = prev.copy;\nconst hashtags = (prev.hashtags || []).map(h => h.startsWith('#') ? h : '#' + h).join(' ');\nconst cta = prev.call_to_action;\nconst chatId = prev.chatId;\n\nconst platformEmojis = {\n  'LinkedIn': '💼',\n  'Instagram': '📸',\n  'Facebook': '📘',\n  'WhatsApp': '💬',\n  'TikTok': '🎵',\n  'Twitter/X': '🐦'\n};\nconst emoji = platformEmojis[platform] || '📝';\n\nconst preview = `${emoji} <b>Preview - ${platform}</b>\\n\\n<b>${title}</b>\\n\\n${copy}\\n\\n🏷️ ${hashtags}\\n\\n📣 <i>${cta}</i>`;\n\nreturn [{\n  json: {\n    chatId,\n    postId,\n    preview\n  }\n}];"
+      },
+      "id": "node-build-preview",
+      "name": "Construir Preview",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1940, 280]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.preview }}\n\n---\n¿Publicamos este contenido?",
+        "additionalFields": {
+          "parse_mode": "HTML",
+          "reply_markup": "={{ JSON.stringify({ inline_keyboard: [[{ text: '✅ Aprobar y publicar', callback_data: 'approve:' + $json.postId }, { text: '❌ Rechazar', callback_data: 'reject:' + $json.postId }]] }) }}"
+        }
+      },
+      "id": "node-send-preview",
+      "name": "Enviar Preview con Botones",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [2160, 280],
+      "credentials": {
+        "telegramApi": { "id": "1", "name": "HelpiAppenviosBot" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const cb = $json.callback_query;\nconst data = cb?.data || '';\nconst chatId = cb?.message?.chat?.id;\nconst messageId = cb?.message?.message_id;\nconst callbackQueryId = cb?.id;\n\nconst [action, postId] = data.split(':');\n\nreturn [{ json: { action, postId, chatId, messageId, callbackQueryId } }];"
+      },
+      "id": "node-parse-callback",
+      "name": "Parsear Callback",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [620, 420]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "conditions": [
+            {
+              "id": "check-approve",
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "approve",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-route-callback",
+      "name": "¿Aprobar o Rechazar?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [840, 420]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://matyjysinegbibdwzhoq.supabase.co/rest/v1/mkt_posts_queue?id=eq.{{ $json.postId }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "sb_secret_vi6890ktDX5SceFPvzNF_w_B5_ze28O" },
+            { "name": "Authorization", "value": "Bearer sb_secret_vi6890ktDX5SceFPvzNF_w_B5_ze28O" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=representation" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": {
+          "status": "approved"
+        },
+        "options": {}
+      },
+      "id": "node-approve-supabase",
+      "name": "Aprobar en Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1060, 340]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://matyjysinegbibdwzhoq.supabase.co/rest/v1/mkt_posts_queue?id=eq.{{ $json.postId }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "sb_secret_vi6890ktDX5SceFPvzNF_w_B5_ze28O" },
+            { "name": "Authorization", "value": "Bearer sb_secret_vi6890ktDX5SceFPvzNF_w_B5_ze28O" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": {
+          "status": "failed"
+        },
+        "options": {}
+      },
+      "id": "node-reject-supabase",
+      "name": "Rechazar en Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1060, 520]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $('Parsear Callback').first().json.chatId }}",
+        "text": "✅ <b>¡Post aprobado!</b>\n\nEl contenido fue guardado y marcado como aprobado. Puedes verlo en el panel de Help Marketing en la pestaña <b>Cola de Posts</b>.\n\n¿Quieres generar más contenido?",
+        "additionalFields": { "parse_mode": "HTML" }
+      },
+      "id": "node-notify-approved",
+      "name": "Confirmar Aprobado",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1280, 340],
+      "credentials": {
+        "telegramApi": { "id": "1", "name": "HelpiAppenviosBot" }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $('Parsear Callback').first().json.chatId }}",
+        "text": "❌ <b>Post rechazado.</b>\n\nEl borrador fue descartado. Si quieres intentar de nuevo, dime el tema y la plataforma.",
+        "additionalFields": { "parse_mode": "HTML" }
+      },
+      "id": "node-notify-rejected",
+      "name": "Confirmar Rechazado",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1280, 520],
+      "credentials": {
+        "telegramApi": { "id": "1", "name": "HelpiAppenviosBot" }
+      }
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [[{ "node": "Mensaje o Callback", "type": "main", "index": 0 }]]
+    },
+    "Mensaje o Callback": {
+      "main": [
+        [{ "node": "Parsear Mensaje", "type": "main", "index": 0 }],
+        [{ "node": "Parsear Callback", "type": "main", "index": 0 }]
+      ]
+    },
+    "Parsear Mensaje": {
+      "main": [[{ "node": "¿Es /start?", "type": "main", "index": 0 }]]
+    },
+    "¿Es /start?": {
+      "main": [
+        [{ "node": "Enviar Bienvenida", "type": "main", "index": 0 }],
+        [{ "node": "Enviando...", "type": "main", "index": 0 }]
+      ]
+    },
+    "Enviando...": {
+      "main": [[{ "node": "Generar con Gemini", "type": "main", "index": 0 }]]
+    },
+    "Generar con Gemini": {
+      "main": [[{ "node": "Parsear Respuesta Gemini", "type": "main", "index": 0 }]]
+    },
+    "Parsear Respuesta Gemini": {
+      "main": [[{ "node": "Guardar Draft en Supabase", "type": "main", "index": 0 }]]
+    },
+    "Guardar Draft en Supabase": {
+      "main": [[{ "node": "Construir Preview", "type": "main", "index": 0 }]]
+    },
+    "Construir Preview": {
+      "main": [[{ "node": "Enviar Preview con Botones", "type": "main", "index": 0 }]]
+    },
+    "Parsear Callback": {
+      "main": [[{ "node": "¿Aprobar o Rechazar?", "type": "main", "index": 0 }]]
+    },
+    "¿Aprobar o Rechazar?": {
+      "main": [
+        [{ "node": "Aprobar en Supabase", "type": "main", "index": 0 }],
+        [{ "node": "Rechazar en Supabase", "type": "main", "index": 0 }]
+      ]
+    },
+    "Aprobar en Supabase": {
+      "main": [[{ "node": "Confirmar Aprobado", "type": "main", "index": 0 }]]
+    },
+    "Rechazar en Supabase": {
+      "main": [[{ "node": "Confirmar Rechazado", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "id": "helpi-telegram-content-bot"
+}

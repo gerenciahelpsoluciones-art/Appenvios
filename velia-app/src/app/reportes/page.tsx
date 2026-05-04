@@ -8,7 +8,7 @@ interface SaleData {
   id: string;
   total: number;
   fecha: string;
-  detalles_venta: {
+  velia_detalles_venta: {
     nombre_producto: string;
     cantidad: number;
   }[];
@@ -16,6 +16,7 @@ interface SaleData {
 
 export default function Reports() {
   const [sales, setSales] = useState<SaleData[]>([]);
+  const [expenses, setExpenses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState("30"); // days
 
@@ -30,11 +31,20 @@ export default function Reports() {
 
     const { data, error } = await supabase
       .from("velia_ventas")
-      .select("*, detalles_venta(nombre_producto, cantidad)")
+      .select("*, velia_detalles_venta(nombre_producto, cantidad)")
       .gte("fecha", startDate.toISOString())
       .order("fecha", { ascending: true });
 
     if (data) setSales(data as any);
+
+    // Fetch Expenses
+    const { data: expData } = await supabase
+      .from("velia_gastos")
+      .select("*")
+      .gte("fecha", startDate.toISOString());
+    
+    if (expData) setExpenses(expData);
+
     setLoading(false);
   };
 
@@ -50,7 +60,7 @@ export default function Reports() {
 
   // Top Products
   const productCount = sales.reduce((acc: any, sale) => {
-    sale.detalles_venta.forEach(item => {
+    (sale.velia_detalles_venta || []).forEach((item: any) => {
       acc[item.nombre_producto] = (acc[item.nombre_producto] || 0) + item.cantidad;
     });
     return acc;
@@ -65,7 +75,7 @@ export default function Reports() {
       ID: s.id,
       Fecha: new Date(s.fecha).toLocaleString(),
       Total: s.total,
-      Productos: s.detalles_venta.map(d => `${d.nombre_producto} (x${d.cantidad})`).join(", ")
+      Productos: (s.velia_detalles_venta || []).map((d: any) => `${d.nombre_producto} (x${d.cantidad})`).join(", ")
     })));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Ventas");
@@ -156,11 +166,28 @@ export default function Reports() {
             )}
           </ul>
 
-          <div style={{ marginTop: "2rem", padding: "1.5rem", background: "rgba(6, 78, 59, 0.03)", borderRadius: "12px" }}>
-            <p style={{ fontSize: "0.85rem", opacity: 0.6, marginBottom: "0.5rem" }}>Venta Total del Período</p>
-            <p className="font-playfair" style={{ fontSize: "1.8rem", fontWeight: "700", color: "var(--velia-emerald)" }}>
-              ${chartData.reduce((a, b) => a + b.total, 0).toLocaleString("es-CO")}
-            </p>
+          <div style={{ marginTop: "2rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
+            <div style={{ padding: "1.2rem", background: "rgba(6, 78, 59, 0.03)", borderRadius: "12px" }}>
+              <p style={{ fontSize: "0.8rem", opacity: 0.6, marginBottom: "0.25rem" }}>Ingresos Brutos</p>
+              <p className="font-playfair" style={{ fontSize: "1.5rem", fontWeight: "700", color: "var(--velia-emerald)" }}>
+                ${chartData.reduce((a, b) => a + b.total, 0).toLocaleString("es-CO")}
+              </p>
+            </div>
+            
+            <div style={{ padding: "1.2rem", background: "rgba(239, 68, 68, 0.03)", borderRadius: "12px" }}>
+              <p style={{ fontSize: "0.8rem", opacity: 0.6, marginBottom: "0.25rem" }}>Gastos Operativos</p>
+              <p className="font-playfair" style={{ fontSize: "1.5rem", fontWeight: "700", color: "var(--velia-danger)" }}>
+                -${expenses.reduce((acc, g) => acc + g.monto, 0).toLocaleString("es-CO")}
+              </p>
+            </div>
+
+            <div style={{ padding: "1.2rem", background: "var(--velia-emerald-gradient)", borderRadius: "12px", color: "white" }}>
+              <p style={{ fontSize: "0.8rem", opacity: 0.8, marginBottom: "0.25rem" }}>Utilidad Neta Est.</p>
+              <p className="font-playfair" style={{ fontSize: "1.8rem", fontWeight: "700" }}>
+                ${(chartData.reduce((a, b) => a + b.total, 0) - expenses.reduce((acc, g) => acc + g.monto, 0)).toLocaleString("es-CO")}
+              </p>
+              <p style={{ fontSize: "0.65rem", opacity: 0.7, marginTop: "0.5rem" }}>* Sin deducir costos de adquisición de inventario</p>
+            </div>
           </div>
         </div>
       </section>

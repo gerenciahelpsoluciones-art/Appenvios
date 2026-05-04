@@ -63,13 +63,11 @@ export default function MaintenanceReminders() {
         ) : (
           reminders.map((moto) => {
             const lastService = new Date(moto.last_service_date || moto.created_at)
-            const kmSince = (moto.kilometraje || 0) - (moto.last_service_km || 0)
-            const needsByTime = (new Date().getTime() - lastService.getTime()) > (120 * 24 * 60 * 60 * 1000)
 
             return (
               <div key={moto.id} className="glass-card relative overflow-hidden group hover:border-racing-orange/40 transition-all">
                 <div className="absolute top-0 right-0 p-3">
-                   {needsByTime ? (
+                   {moto.needsByTime ? (
                      <div className="flex items-center gap-1 text-racing-danger bg-racing-danger/10 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-tighter">
                        <Clock size={10} /> Tiempo Vencido
                      </div>
@@ -97,7 +95,7 @@ export default function MaintenanceReminders() {
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-racing-cream/40 flex items-center gap-2"><Gauge size={14}/> Uso Reciente</span>
-                    <span className="font-bold text-racing-orange">+{kmSince} KM</span>
+                    <span className="font-bold text-racing-orange">+{moto.kmSinceService} KM</span>
                   </div>
                 </div>
 

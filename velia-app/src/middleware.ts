@@ -58,8 +58,11 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   const isDemoMode = request.cookies.get('velia_demo')?.value === 'true'
 
-  // Proteger todas las rutas excepto /login y /setup
-  if (!user && !isDemoMode && !request.nextUrl.pathname.startsWith('/login') && !request.nextUrl.pathname.startsWith('/setup')) {
+  // Proteger todas las rutas excepto /login, /setup y /api (necesario para el login ágil)
+  if (!user && !isDemoMode && 
+      !request.nextUrl.pathname.startsWith('/login') && 
+      !request.nextUrl.pathname.startsWith('/setup') &&
+      !request.nextUrl.pathname.startsWith('/api')) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 

@@ -93,8 +93,8 @@ export default function RootLayout({
         <Script id="helpmarketer-tracker" strategy="afterInteractive">
           {`
 (function() {
-  var SUPABASE_URL = '[TU_SUPABASE_URL]';
-  var SUPABASE_KEY = '[TU_SUPABASE_ANON_KEY]';
+  var SUPABASE_URL = '${process.env.NEXT_PUBLIC_SUPABASE_URL || ""}';
+  var SUPABASE_KEY = '${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""}';
 
   function getDevice() {
     return /Mobi|Android/i.test(navigator.userAgent) ? 'Mobile' : 'Desktop';

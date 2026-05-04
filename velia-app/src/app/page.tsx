@@ -18,6 +18,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [todaySales, setTodaySales] = useState(0);
+  const [totalExpenses, setTotalExpenses] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -53,6 +54,12 @@ export default function Home() {
       if (todayData) {
         const total = todayData.reduce((acc, s) => acc + s.total, 0);
         setTodaySales(total);
+      }
+
+      // Fetch Total Expenses
+      const { data: expData } = await supabase.from("velia_gastos").select("monto");
+      if (expData) {
+        setTotalExpenses(expData.reduce((acc, e) => acc + e.monto, 0));
       }
 
       setLoading(false);
@@ -122,13 +129,32 @@ export default function Home() {
 
         <div className="velia-card stat-card">
           <div className="stat-icon info">
-            <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+            <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
           </div>
-          <p className="stat-label">Margen Promedio</p>
-          <p className="stat-value">{products.length ? Math.round(((potentialRevenue - totalValue) / potentialRevenue) * 100) : 0}%</p>
-          <p style={{ fontSize: "0.75rem", opacity: 0.4 }}>Basado en precios actuales</p>
+          <p className="stat-label">Gastos Operativos</p>
+          <p className="stat-value" style={{ color: "var(--velia-danger)" }}>${totalExpenses.toLocaleString('es-CO')}</p>
+          <p style={{ fontSize: "0.75rem", opacity: 0.4 }}>Acumulado total</p>
         </div>
       </section>
+
+      <div style={{ marginBottom: "3rem" }}>
+         <div className="velia-card" style={{ background: "var(--velia-emerald-gradient)", color: "white", padding: "2rem" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+               <div>
+                  <p style={{ fontSize: "0.9rem", opacity: 0.8, marginBottom: "0.5rem" }}>Balance de Utilidad Neta (Estimado)</p>
+                  <h2 className="font-playfair" style={{ fontSize: "2.5rem" }}>
+                    ${(potentialRevenue - totalValue - totalExpenses).toLocaleString('es-CO')}
+                  </h2>
+               </div>
+               <div style={{ textAlign: "right" }}>
+                  <p style={{ fontSize: "0.8rem", opacity: 0.8 }}>Margen de Utilidad sobre Proyección</p>
+                  <p style={{ fontSize: "1.5rem", fontWeight: "700" }}>
+                    {potentialRevenue ? Math.round(((potentialRevenue - totalValue - totalExpenses) / potentialRevenue) * 100) : 0}%
+                  </p>
+               </div>
+            </div>
+         </div>
+      </div>
 
       <section style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2rem" }}>
         <div className="velia-card">

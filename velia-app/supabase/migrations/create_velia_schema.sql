@@ -34,10 +34,11 @@ begin
   -- Solo insertar si el usuario se registró desde la aplicación Velia
   -- Se asocia con el metadato 'app' => 'velia' definido en el SignUp
   if (new.raw_user_meta_data->>'app' = 'velia') then
-    insert into public.velia_perfiles (id, nombre, email, rol)
+    insert into public.velia_perfiles (id, nombre, usuario, email, rol)
     values (
       new.id, 
       coalesce(new.raw_user_meta_data->>'full_name', 'Nuevo Usuario Velia'), 
+      coalesce(new.raw_user_meta_data->>'usuario', split_part(new.email, '@', 1)), 
       new.email, 
       case 
         when new.email = 'admin@velia.com' then 'admin' 

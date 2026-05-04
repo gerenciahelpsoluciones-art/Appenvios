@@ -535,10 +535,10 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, pr
 
     return (
         <div className="module-container" id="comisiones-module">
-            <div className="module-header" style={{ background: '#fee2e2', padding: '1rem', borderRadius: '8px' }}>
+            <div className="module-header" style={{ background: '#ff0000', color: '#ffffff', padding: '1.5rem', borderRadius: '12px', marginBottom: '1.5rem', border: '4px solid #ffffff', boxShadow: '0 4px 20px rgba(255,0,0,0.4)' }}>
                 <div>
-                    <h2>Módulo de Comisiones (Admin) v2.0 TEST</h2>
-                    <p style={{ color: 'var(--text-muted)' }}>Cálculo automático del 10% sobre la utilidad generada.</p>
+                    <h2 style={{ color: '#ffffff', margin: 0, fontSize: '1.8rem' }}>⚠️ VERSIÓN 2.0 - DESPLEGADO CORRECTAMENTE ⚠️</h2>
+                    <p style={{ color: '#ffffff', margin: '0.5rem 0 0', fontWeight: 'bold' }}>Si estás viendo este fondo ROJO, el sistema se ha actualizado con éxito.</p>
                 </div>
                 <div style={{ display: 'flex', gap: '1rem' }}>
                     <button 

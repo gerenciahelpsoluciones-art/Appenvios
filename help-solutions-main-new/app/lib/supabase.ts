@@ -7,4 +7,4 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.error('Faltan variables de entorno de Supabase');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');

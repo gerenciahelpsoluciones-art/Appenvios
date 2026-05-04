@@ -10,7 +10,8 @@ import {
   Plus,
   Bell,
   Search,
-  Receipt
+  Receipt,
+  Wallet
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Dashboard from './modules/Dashboard'
@@ -19,6 +20,9 @@ import Orders from './modules/Orders'
 import NewOrder from './modules/NewOrder'
 import Billing from './modules/Billing'
 import MaintenanceReminders from './modules/MaintenanceReminders'
+import Clients from './modules/Clients'
+import Config from './modules/Config'
+import Expenses from './modules/Expenses'
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard')
@@ -34,6 +38,7 @@ function App() {
     { id: 'dashboard', label: 'The Track', icon: Gauge },
     { id: 'orders', label: 'Órdenes Pits', icon: ClipboardList },
     { id: 'billing', label: 'Facturación', icon: Receipt },
+    { id: 'expenses', label: 'Gastos Taller', icon: Wallet },
     { id: 'reminders', label: 'Recordatorios', icon: Bell },
     { id: 'inventory', label: 'Almacén', icon: Package },
     { id: 'clients', label: 'Clientes', icon: Users },
@@ -130,16 +135,11 @@ function App() {
                   {activeTab === 'dashboard' && <Dashboard />}
                   {activeTab === 'orders' && <Orders />}
                   {activeTab === 'billing' && <Billing />}
+                  {activeTab === 'expenses' && <Expenses />}
                   {activeTab === 'inventory' && <Inventory />}
                   {activeTab === 'reminders' && <MaintenanceReminders />}
-                  {(activeTab === 'clients' || activeTab === 'config') && (
-                    <div className="flex flex-col items-center justify-center h-[60vh] text-racing-cream/20 italic">
-                      <div className="w-20 h-20 border-2 border-dashed border-racing-orange/20 rounded-full flex items-center justify-center mb-4">
-                         <Plus size={32} />
-                      </div>
-                      <p className="font-racing text-xl">Módulo {activeTab} en construcción</p>
-                    </div>
-                  )}
+                  {activeTab === 'clients' && <Clients />}
+                  {activeTab === 'config' && <Config />}
                 </>
               )}
             </motion.div>

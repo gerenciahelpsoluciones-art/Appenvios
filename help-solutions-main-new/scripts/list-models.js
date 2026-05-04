@@ -1,5 +1,5 @@
 const https = require("https");
-const API_KEY = "AIzaSyBwt6bAiIHn01JKj-l8Uq6Vj9xPpwIvuUw";
+const API_KEY = process.env.GEMINI_API_KEY;
 
 function listModels() {
   const url = `https://generativelanguage.googleapis.com/v1/models?key=${API_KEY}`;
