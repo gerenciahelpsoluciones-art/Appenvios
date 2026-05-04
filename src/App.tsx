@@ -160,6 +160,7 @@ export interface CotizacionItem {
   unidad: string;
   cantidad: number;
   costoUnitario: number;
+  precioVenta: number;
   utilidad: number;
   iva: number;
   moneda?: 'COP' | 'USD';
@@ -1903,6 +1904,7 @@ function App() {
         return <ComisionesModule
           users={users}
           cotizaciones={cotizaciones}
+          despachos={despachos}
           productos={productos}
         />;
       case 'informes':

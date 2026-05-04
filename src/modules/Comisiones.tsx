@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import type { AppUser, Cotizacion, SiigoInvoice, SiigoSeller, Producto } from '../types/crm';
+import type { AppUser, Cotizacion, SiigoInvoice, SiigoSeller, Producto, Despacho } from '../types/crm';
 
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 const SUPABASE_PROJECT_URL = import.meta.env.VITE_SUPABASE_URL || 'https://matyjysinegbibdwzhoq.supabase.co';
@@ -9,10 +9,11 @@ const EDGE_FUNCTION_URL = `${SUPABASE_PROJECT_URL}/functions/v1/siigo-proxy`;
 interface IProps {
     users: AppUser[];
     cotizaciones: Cotizacion[];
+    despachos: Despacho[];
     productos: Producto[];
 }
 
-const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, productos }) => {
+const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, productos }) => {
     const [activeTab, setActiveTab] = useState<'siigo' | 'local'>('siigo');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -467,17 +468,40 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, productos }) 
                 summary[sellerKey].commission -= calculateCommission(returnUtility);
             });
         } else {
-            if (!Array.isArray(cotizaciones)) return [];
+            if (!Array.isArray(despachos)) return [];
             
-            cotizaciones
-                .filter(c => c && c.estado === 'Ganado' && c.fecha && c.fecha.startsWith(selectedMonthPrefix))
-                .forEach(c => {
-                    const sellerName = c.ejecutivo || 'Desconocido';
+            // Calculo sobre DESPACHOS facturados (Facturas Locales)
+            despachos
+                .filter(d => d && d.facturado && d.fechaFacturado && d.fechaFacturado.startsWith(selectedMonthPrefix))
+                .forEach(d => {
+                    const quote = cotizaciones.find(q => q.id === d.cotizacionId || q.consecutivo === d.consecutivoCotizacion);
+                    const sellerName = quote?.ejecutivo || 'Desconocido';
+                    
                     if (!summary[sellerName]) {
                         summary[sellerName] = { id: sellerName, name: sellerName, utility: 0, commission: 0, salesCount: 0 };
                     }
-                    summary[sellerName].utility += Number(c.utilidadTotal || 0);
-                    summary[sellerName].commission += calculateCommission(Number(c.utilidadTotal || 0));
+
+                    let dispatchUtility = 0;
+                    if (quote) {
+                        d.items.forEach(dItem => {
+                            const qItem = quote.items.find(qi => 
+                                qi.productoId === dItem.productoId || 
+                                qi.id === dItem.productoId
+                            );
+                            
+                            if (qItem) {
+                                const salePrice = Number(qItem.precioVenta || 0);
+                                const costPrice = Number(qItem.costoUnitario || 0);
+                                const itemUtility = (salePrice - costPrice) * dItem.cantidad;
+                                dispatchUtility += Math.round(itemUtility * 100) / 100;
+                            }
+                        });
+                    } else {
+                        dispatchUtility = Math.round((Number(d.total || 0) * 0.15) * 100) / 100;
+                    }
+
+                    summary[sellerName].utility += dispatchUtility;
+                    summary[sellerName].commission += calculateCommission(dispatchUtility);
                     summary[sellerName].salesCount += 1;
                 });
         }
@@ -627,7 +651,7 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, productos }) 
                     🌐 Facturas Siigo
                 </button>
                 <button onClick={() => setActiveTab('local')} className={`tab-btn ${activeTab === 'local' ? 'active' : ''}`}>
-                    🏠 Cotizaciones CRM (Ganadas)
+                    🏠 Facturas CRM (Despachos)
                 </button>
             </div>
 

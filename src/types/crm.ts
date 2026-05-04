@@ -133,6 +133,7 @@ export interface CotizacionItem {
   unidad: string;
   cantidad: number;
   costoUnitario: number;
+  precioVenta: number;
   utilidad: number;
   iva: number;
   moneda?: 'COP' | 'USD';
@@ -209,6 +210,8 @@ export interface Despacho {
   fotoRemision?: string;
   georeferencia?: string;
   facturado?: boolean;
+  fechaFacturado?: string;
+  fechaDespacho?: string;
 }
 
 export interface Reparacion {
