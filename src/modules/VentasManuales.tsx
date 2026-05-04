@@ -41,19 +41,20 @@ const VentasManualesModule: React.FC<IProps> = ({
     const currentYearStr = new Date().getFullYear().toString();
 
     const stats = useMemo(() => {
-        const monthSales = ventas.filter(v => v.fecha.startsWith(currentMonthStr));
-        const yearSales = ventas.filter(v => v.fecha.startsWith(currentYearStr));
+        const safeVentas = ventas || [];
+        const monthSales = safeVentas.filter(v => v.fecha && v.fecha.startsWith(currentMonthStr));
+        const yearSales = safeVentas.filter(v => v.fecha && v.fecha.startsWith(currentYearStr));
         
         return {
             monthTotal: monthSales.reduce((sum, v) => sum + v.monto, 0),
             monthCount: monthSales.length,
             yearTotal: yearSales.reduce((sum, v) => sum + v.monto, 0),
-            totalActiveSellers: new Set(ventas.map(v => v.usuarioId)).size
+            totalActiveSellers: new Set(safeVentas.map(v => v.usuarioId)).size
         };
     }, [ventas, currentMonthStr, currentYearStr]);
 
     // Group sales by Month/Year for the selector
-    const availableMonths = Array.from(new Set(ventas.map(v => v.fecha.substring(0, 7)))).sort().reverse();
+    const availableMonths = Array.from(new Set((ventas || []).filter(v => v.fecha).map(v => v.fecha.substring(0, 7)))).sort().reverse();
 
     const handleCloneSubmit = () => {
         const selectedSales = ventas.filter(v => salesToClone.includes(v.id));
@@ -138,19 +139,20 @@ const VentasManualesModule: React.FC<IProps> = ({
     };
 
     const filteredVentas = useMemo(() => {
+        const safeVentas = ventas || [];
         let base = currentUser.rol === 'Admin'
-            ? ventas
-            : ventas.filter(v => v.usuarioId === currentUser.id);
+            ? safeVentas
+            : safeVentas.filter(v => v.usuarioId === currentUser.id);
             
         if (searchTerm) {
             const lowSearch = searchTerm.toLowerCase();
             base = base.filter(v => 
-                v.clienteNombre.toLowerCase().includes(lowSearch) || 
-                v.descripcion.toLowerCase().includes(lowSearch) ||
+                (v.clienteNombre && v.clienteNombre.toLowerCase().includes(lowSearch)) || 
+                (v.descripcion && v.descripcion.toLowerCase().includes(lowSearch)) ||
                 (v.productoNombre && v.productoNombre.toLowerCase().includes(lowSearch))
             );
         }
-        return base.sort((a, b) => b.fecha.localeCompare(a.fecha));
+        return [...base].sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
     }, [ventas, currentUser, searchTerm]);
 
     return (
@@ -393,12 +395,12 @@ const VentasManualesModule: React.FC<IProps> = ({
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {ventas
-                                            .filter(v => v.fecha.startsWith(selectedMonth))
+                                        {(ventas || [])
+                                            .filter(v => v.fecha && v.fecha.startsWith(selectedMonth))
                                             .filter(v => 
                                                 !searchTerm || 
-                                                v.clienteNombre.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                                                v.descripcion.toLowerCase().includes(searchTerm.toLowerCase())
+                                                (v.clienteNombre && v.clienteNombre.toLowerCase().includes(searchTerm.toLowerCase())) || 
+                                                (v.descripcion && v.descripcion.toLowerCase().includes(searchTerm.toLowerCase()))
                                             )
                                             .map(v => (
                                             <tr key={v.id} style={{ cursor: 'pointer', backgroundColor: salesToClone.includes(v.id) ? '#f0f9ff' : 'transparent' }} onClick={() => {
