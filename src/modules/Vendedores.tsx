@@ -66,13 +66,13 @@ const Vendedores: React.FC<IProps> = ({ users, budgets, cotizaciones, ventasManu
             })
             .reduce((acc, d) => {
                 const cot = cotizaciones.find(c => c.id === d.cotizacionId);
-                return acc + (cot?.total ?? d.total ?? 0);
+                return acc + (cot?.subtotal ?? (d.total / 1.19) ?? 0);
             }, 0);
 
         const manualSales = (ventasManuales || []).filter(v => {
             if (!v.fecha || v.usuarioId !== userId) return false;
             return v.fecha >= start && v.fecha <= end;
-        }).reduce((acc, v) => acc + v.monto, 0);
+        }).reduce((acc, v) => acc + (v.monto / 1.19), 0);
 
         return quoteSales + manualSales;
     };
