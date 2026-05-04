@@ -2246,7 +2246,7 @@ function App() {
         <div className="logo-container">
           <div className="brand-box">
             <img src={logoBase64} alt="HelpiCRM Logo" style={{ width: '80%', maxWidth: '160px', borderRadius: '8px', objectFit: 'contain', background: 'white', padding: '10px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }} />
-            <span className="logo-text" style={{ marginTop: '0.75rem', fontWeight: '800', letterSpacing: '0.05em' }}>HelpiCRM</span>
+            <span className="logo-text" style={{ marginTop: '0.75rem', fontWeight: '800', letterSpacing: '0.05em' }}>HelpiCRM v2.0</span>
             <div
               title="Click para reconectar"
               onClick={() => window.location.reload()}
