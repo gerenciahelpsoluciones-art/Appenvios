@@ -78,37 +78,27 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, pr
     };
 
     // Super-Scanner: Recursive search for ANY potential seller-related fields
-    const findSeller = (obj: any, currentSellers: any[] = [], depth = 0): any => {
+    const findSeller = (obj: any, depth = 0): any => {
         if (!obj || typeof obj !== 'object' || depth > 5) return null;
         
         const priorityKeys = [
-            'cost_center',
-            'seller', 'seller_id', 'salesman', 'salesman_id', 
-            'sales_responsible', 'vendedor', 'asesor', 'comercial',
-            'user_id', 'usuario', 'created_by', 'user'
+            'seller', 'cost_center', 'salesman', 'sales_responsible', 
+            'vendedor', 'asesor', 'comercial', 'user'
         ];
         
         for (const key of priorityKeys) {
             const val = obj[key];
             if (val !== undefined && val !== null) {
+                // Si es un objeto con nombre e ID, lo devolvemos completo para extraer info luego
+                if (typeof val === 'object' && (val.id || val.code || val.identification)) return val;
+                // Si es un valor simple, lo devolvemos
                 if (typeof val === 'number' || typeof val === 'string') return val;
-                if (typeof val === 'object' && val.id) return val.id;
             }
         }
 
-        if (Array.isArray(currentSellers) && currentSellers.length > 0) {
-            for (const key in obj) {
-                const val = obj[key];
-                if (typeof val === 'number' && val > 10) {
-                    if (currentSellers.some(s => String(s.id) === String(val))) return val;
-                }
-            }
-        }
-
-        const subObjects = ['header', 'metadata', 'customer', 'additional_data', 'document', 'cost_center'];
-        for (const sub of subObjects) {
-            if (obj[sub]) {
-                const found = findSeller(obj[sub], currentSellers, depth + 1);
+        for (const key in obj) {
+            if (obj[key] && typeof obj[key] === 'object' && !Array.isArray(obj[key])) {
+                const found = findSeller(obj[key], depth + 1);
                 if (found) return found;
             }
         }
@@ -130,84 +120,59 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, pr
             addLog('--- Iniciando Sincronización Siigo ---');
             addLog(`Periodo: ${month}/${year}`);
 
-            addLog('Solicitando lista extensa de asesores (Modo Ultra-Compatibilidad: Páginas 1-10)...');
-            let allSellers: any[] = [];
-            for (let page = 1; page <= 10; page++) {
-                try {
-                    const sellersRes = await fetch(`${EDGE_FUNCTION_URL}?action=users&page=${page}&page_size=100`, {
-                        method: 'GET',
-                        headers: { ...getBaseHeaders(), 'x-siigo-token': currentToken }
-                    });
-                    if (sellersRes.ok) {
-                        const sellersData = await sellersRes.json();
-                        const pageResults = sellersData.results || (Array.isArray(sellersData) ? sellersData : []);
+            const fetchAllPages = async (action: string, params: string = '') => {
+                let results: any[] = [];
+                for (let page = 1; page <= 50; page++) {
+                    const separator = params ? '&' : '';
+                    const url = `${EDGE_FUNCTION_URL}?action=${action}${separator}${params}&page=${page}&page_size=100`;
+                    try {
+                        const res = await fetch(url, {
+                            method: 'GET',
+                            headers: { ...getBaseHeaders(), 'x-siigo-token': currentToken }
+                        });
+                        if (!res.ok) break;
+                        const data = await res.json();
+                        const pageResults = data.results || (Array.isArray(data) ? data : []);
                         if (pageResults.length === 0) break;
-                        allSellers = [...allSellers, ...pageResults];
-                        addLog(`   ↪️ Página ${page}: +${pageResults.length} usuarios`);
-                    } else {
-                        break;
-                    }
-                } catch (e) { break; }
-            }
-            setSiigoSellers(allSellers);
-            addLog(`Total vendedores cargados: ${allSellers.length}`);
+                        results = [...results, ...pageResults];
+                        if (pageResults.length < 100) break; 
+                    } catch (e) { break; }
+                }
+                return results;
+            };
 
-            addLog('Solicitando reporte masivo de Centros de Costo...');
-            try {
-                const ccRes = await fetch(`${EDGE_FUNCTION_URL}?action=cost-centers`, {
-                    method: 'GET',
-                    headers: { ...getBaseHeaders(), 'x-siigo-token': currentToken }
-                });
-                const ccData = await ccRes.json();
-                const ccList = ccData.results || (Array.isArray(ccData) ? ccData : []);
-                setSiigoCostCenters(ccList);
-                addLog(`Centros de Costo cargados: ${ccList.length}`);
-            } catch (e) { 
-                addLog('⚠️ No se pudo cargar centros de costo masivamente.');
-            }
+            addLog('Cargando Usuarios y Centros de Costo (Paginado)...');
+            const [allSellers, ccList] = await Promise.all([
+                fetchAllPages('users'),
+                fetchAllPages('cost-centers')
+            ]);
+            
+            setSiigoSellers(allSellers);
+            setSiigoCostCenters(ccList);
+            addLog(`Total vendedores: ${allSellers.length} | Centros de Costo: ${ccList.length}`);
 
             const lastDay = new Date(year, month, 0).getDate();
             const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
             const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+            const dateParams = `created_start=${startDate}&created_end=${endDate}`;
 
-            const invoicesRes = await fetch(`${EDGE_FUNCTION_URL}?action=invoices&created_start=${startDate}&created_end=${endDate}`, {
-                method: 'GET',
-                headers: { ...getBaseHeaders(), 'x-siigo-token': currentToken }
-            });
-            const invoicesData = await invoicesRes.json();
+            addLog('Cargando Facturas de Venta...');
+            const rawInvoices = await fetchAllPages('invoices', dateParams);
+            addLog(`Facturas en resumen: ${rawInvoices.length}`);
 
-            addLog('Solicitando Movimientos de Compra, Soporte y Notas Débito...');
-            const [purchasesRes, billsRes, debitNotesRes] = await Promise.all([
-                fetch(`${EDGE_FUNCTION_URL}?action=purchases&created_start=${startDate}&created_end=${endDate}`, {
-                    method: 'GET',
-                    headers: { ...getBaseHeaders(), 'x-siigo-token': currentToken }
-                }),
-                fetch(`${EDGE_FUNCTION_URL}?action=bills&created_start=${startDate}&created_end=${endDate}`, {
-                    method: 'GET',
-                    headers: { ...getBaseHeaders(), 'x-siigo-token': currentToken }
-                }),
-                fetch(`${EDGE_FUNCTION_URL}?action=debit-notes&created_start=${startDate}&created_end=${endDate}`, {
-                    method: 'GET',
-                    headers: { ...getBaseHeaders(), 'x-siigo-token': currentToken }
-                })
+            addLog('Cargando Movimientos de Compra (Purchases, Bills, Debit Notes)...');
+            const [purchases, bills, debitNotes] = await Promise.all([
+                fetchAllPages('purchases', dateParams),
+                fetchAllPages('bills', dateParams),
+                fetchAllPages('debit-notes', dateParams)
             ]);
-
-            const purchasesData = await purchasesRes.json();
-            const billsData = await billsRes.json();
-            const debitNotesData = await debitNotesRes.json();
             
-            const allProcurement = [
-                ...(purchasesData.results || []),
-                ...(billsData.results || [])
-            ];
-            
-            const allReturnsPurchase = [
-                ...(debitNotesData.results || [])
-            ];
+            const allProcurement = [...purchases, ...bills];
+            const allReturnsPurchase = [...debitNotes];
             
             setSiigoPurchases(allProcurement);
             setSiigoDebitNotes(allReturnsPurchase);
-            addLog(`Documentos de compra/soporte: ${allProcurement.length} | Notas Débito: ${allReturnsPurchase.length}`);
+            addLog(`Documentos compra/soporte: ${allProcurement.length} | Notas Débito: ${allReturnsPurchase.length}`);
 
             const costs: Record<string, number> = {};
             allProcurement.forEach((p: any) => {
@@ -223,13 +188,10 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, pr
                 }
             });
             setProductCosts(costs);
-            addLog(`Mapa de costos creado: ${Object.keys(costs).length} productos con precio de compra.`);
+            addLog(`Mapa de costos creado: ${Object.keys(costs).length} productos.`);
             
-            if (invoicesRes.ok) {
-                const rawInvoices = invoicesData.json?.results || invoicesData.results || [];
-                addLog(`Facturas recibidas (resumen): ${rawInvoices.length}`);
-                
-                addLog('🚀 Iniciando Sincronización Profunda (Obteniendo ítems de cada venta)...');
+            if (rawInvoices.length > 0) {
+                addLog('🚀 Iniciando Sincronización Profunda (Detalle de cada venta)...');
                 const detailedInvoices = [];
                 for (let i = 0; i < rawInvoices.length; i++) {
                     const inv = rawInvoices[i];
@@ -259,12 +221,7 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, pr
                 addLog(`✅ Sincronización profunda completada: ${detailedInvoices.length} facturas detalladas.`);
                 
                 addLog('Solicitando Notas de Crédito (Devoluciones de Venta)...');
-                const creditNotesRes = await fetch(`${EDGE_FUNCTION_URL}?action=credit-notes&created_start=${startDate}&created_end=${endDate}`, {
-                    method: 'GET',
-                    headers: { ...getBaseHeaders(), 'x-siigo-token': currentToken }
-                });
-                const creditNotesData = await creditNotesRes.json();
-                const rawCreditNotes = creditNotesData.results || [];
+                const rawCreditNotes = await fetchAllPages('credit-notes', dateParams);
                 addLog(`Notas de Crédito recibidas: ${rawCreditNotes.length}`);
                 
                 const detailedCreditNotes = [];
@@ -304,15 +261,15 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, pr
 
                     detailedInvoices.forEach((inv: any) => {
                         if (!inv) return;
-                        const sid = findSeller(inv, allSellers);
-                        if (sid) {
-                            const skey = String(sid);
-                            const isKnown = allSellers.some((s: any) => String(s.id) === skey || String(s.identification) === skey) || 
-                                            siigoCostCenters.some((cc: any) => String(cc.id) === skey || String(cc.code) === skey);
-                            
-                            if (!isKnown) {
-                                unknownIds.add(skey);
-                            }
+                        const sellerData = findSeller(inv);
+                        const skey = typeof sellerData === 'object' ? String(sellerData.id || sellerData.code || sellerData.identification || '') : String(sellerData || '');
+                        if (!skey) return;
+
+                        const isKnown = allSellers.some((s: any) => String(s.id) === skey || String(s.identification) === skey) || 
+                                        siigoCostCenters.some((cc: any) => String(cc.id) === skey || String(cc.code) === skey);
+                        
+                        if (!isKnown) {
+                            unknownIds.add(skey);
                         }
                     });
 
@@ -373,7 +330,7 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, pr
                 }
             } else {
                 addLog('❌ Error en respuesta de Siigo.');
-                throw new Error(invoicesData.error || `Error API Siigo (HTTP ${invoicesRes.status})`);
+                throw new Error('Error al obtener facturas.');
             }
         } catch (err: any) {
             addLog(`🚨 ERROR: ${err.message}`);
@@ -395,49 +352,43 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, pr
             if (!Array.isArray(siigoInvoices)) return [];
             
             siigoInvoices.forEach(inv => {
-                if (!inv) return;
-                
-                let sellerId = findSeller(inv, siigoSellers);
-                const sellerKey = String(sellerId || 'unknown');
+                const sellerData = findSeller(inv);
+                if (!sellerData) return;
 
-                const seller = siigoSellers.find(s => 
-                    String(s.id) === sellerKey || 
-                    String(s.identification) === sellerKey ||
-                    String(s.username).toLowerCase() === sellerKey.toLowerCase() ||
-                    `${s.first_name || ''} ${s.last_name || ''}`.trim().toLowerCase().includes(sellerKey.toLowerCase())
-                );
-                const costCenter = siigoCostCenters.find(cc => 
-                    String(cc.id) === sellerKey || 
-                    String(cc.code) === sellerKey
-                );
+                let sellerKey = '';
+                let sellerName = '';
 
-                let sellerName = aliases[sellerKey] || `ID: ${sellerKey}`;
-                if (seller && !aliases[sellerKey]) {
-                    sellerName = `${seller.first_name || ''} ${seller.last_name || ''}`.trim() || seller.username || `Asesor ${seller.id}`;
-                } else if (costCenter && !aliases[sellerKey]) {
-                    sellerName = costCenter.name || `Centro: ${costCenter.code}`;
+                if (typeof sellerData === 'object') {
+                    sellerKey = String(sellerData.id || sellerData.code || sellerData.identification || '');
+                    sellerName = sellerData.name || (sellerData.first_name ? `${sellerData.first_name} ${sellerData.last_name || ''}` : '');
+                } else {
+                    sellerKey = String(sellerData);
                 }
-                
+
+                if (!sellerKey) return;
+
+                if (!sellerName) {
+                    const sellerObj = siigoSellers.find((s: any) => String(s.id) === sellerKey || String(s.identification) === sellerKey);
+                    const ccObj = siigoCostCenters.find((cc: any) => String(cc.id) === sellerKey || String(cc.code) === sellerKey);
+                    sellerName = sellerObj ? `${sellerObj.first_name} ${sellerObj.last_name}` : (ccObj ? ccObj.name : (aliases[sellerKey] || `ID: ${sellerKey}`));
+                }
+
                 let utility = 0;
                 if (inv.items && inv.items.length > 0) {
                     inv.items.forEach((item: any) => {
                         const salePrice = Number(item.price || 0);
                         const quantity = Number(item.quantity || 1);
                         const costPrice = productCosts[item.code] || (Number(item.unit_cost) || (salePrice * 0.7));
-                        const itemUtility = (salePrice - costPrice) * quantity;
-                        utility += Math.round(itemUtility * 100) / 100;
+                        utility += (salePrice - costPrice) * quantity;
                     });
                 } else {
-                    const totalInvoice = Number(inv.total || 0);
-                    const costInvoice = Number(inv.cost || 0);
-                    const rawUtility = (costInvoice > 0) ? (totalInvoice - costInvoice) : (totalInvoice * 0.3);
-                    utility = Math.round(rawUtility * 100) / 100;
+                    utility = (Number(inv.total || 0) - Number(inv.cost || 0)) || (Number(inv.total || 0) * 0.3);
                 }
                 
                 if (!summary[sellerKey]) {
                     summary[sellerKey] = { id: sellerKey, name: sellerName, utility: 0, commission: 0, salesCount: 0 };
                 }
-                summary[sellerKey].utility += utility;
+                summary[sellerKey].utility += Math.round(utility * 100) / 100;
                 summary[sellerKey].commission += calculateCommission(utility);
                 summary[sellerKey].salesCount += 1;
             });
@@ -445,8 +396,8 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, pr
             // Restar Notas de Crédito (Devoluciones de Venta)
             siigoCreditNotes.forEach(cn => {
                 if (!cn) return;
-                let sellerId = findSeller(cn, siigoSellers);
-                const sellerKey = String(sellerId || 'unknown');
+                const sellerData = findSeller(cn);
+                const sellerKey = typeof sellerData === 'object' ? String(sellerData.id || sellerData.code || sellerData.identification || '') : String(sellerData || 'unknown');
                 
                 if (!summary[sellerKey]) return;
 
@@ -616,8 +567,8 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, pr
                                 ))}
                             </div>
                             <p style={{ margin: '0 0 0.5rem 0', fontWeight: 'bold' }}>JSON Crudo (Muestra):</p>
-                            <pre style={{ background: '#0f172a', color: '#f8fafc', padding: '0.75rem', borderRadius: '4px', overflow: 'auto', maxHeight: '150px' }}>
-                                {JSON.stringify({ id: siigoInvoices[0].id, seller: (siigoInvoices[0] as any).seller, metadata: (siigoInvoices[0] as any).metadata }, null, 2)}
+                            <pre style={{ margin: 0 }}>
+                                {JSON.stringify(siigoInvoices[0], (k, v) => k === 'items' ? `[${v.length} ítems]` : v, 2)}
                             </pre>
                         </div>
                     )}
