@@ -109,11 +109,15 @@ const InformesModule: React.FC<IProps> = ({
     // en el siguiente.
     const despachosFacturadosEnRango = despachos.filter(d => {
         if (!d.facturado) return false;
+        
+        // Buscar la cotización asociada para obtener el usuarioId del asesor real
+        const cot = cotizaciones.find(c => c.id === d.cotizacionId);
+        const asesorIdReal = cot?.usuarioId || d.usuarioId;
+
         // Usar fechaFacturado si existe; si no, usar fechaSolicitud como fallback
-        // para despachos facturados antes de esta actualización del sistema.
         const fechaRef = d.fechaFacturado || d.fechaSolicitud;
         const dateMatch = fechaRef >= appliedFilters.inicio && fechaRef <= appliedFilters.fin;
-        const advisorMatch = appliedFilters.asesorId ? d.usuarioId === appliedFilters.asesorId : true;
+        const advisorMatch = appliedFilters.asesorId ? asesorIdReal === appliedFilters.asesorId : true;
         const clientMatch = appliedFilters.clienteId ? d.clienteId === appliedFilters.clienteId : true;
         return dateMatch && advisorMatch && clientMatch;
     });
