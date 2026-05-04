@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import type { Despacho, Cotizacion, Cliente, Producto } from '../App';
 import { generateQuotationPDF } from '../utils/pdfGenerator';
 import { supabase } from '../lib/supabaseClient';
+import { calculateDespachoNeto } from '../utils/financialCalculations';
 
 interface IProps {
     despachos: Despacho[];
@@ -185,8 +186,8 @@ const FacturacionModule: React.FC<IProps> = ({ despachos, cotizaciones, clientes
                     <tbody>
                         {filteredList.map(d => {
                             const cot = findCotizacion(d.cotizacionId);
-                            // Usar el subtotal de la cotización si existe, de lo contrario calcularlo (neto)
-                            const montoNeto = cot?.subtotal ?? (d.total / 1.19);
+                            // Usar la utilidad centralizada para el cálculo del neto
+                            const montoNeto = calculateDespachoNeto(d, cotizaciones);
                             
                             return (
                                 <tr key={d.id}>
@@ -338,10 +339,7 @@ const FacturacionModule: React.FC<IProps> = ({ despachos, cotizaciones, clientes
                                 </td>
                                 <td className="text-right" style={{ padding: '1rem' }}>
                                     <strong style={{ fontSize: '1.2rem', color: '#0369a1' }}>
-                                        ${filteredList.reduce((acc, d) => {
-                                            const cot = findCotizacion(d.cotizacionId);
-                                            return acc + (cot?.subtotal ?? (d.total / 1.19));
-                                        }, 0).toLocaleString()}
+                                        ${filteredList.reduce((acc, d) => acc + calculateDespachoNeto(d, cotizaciones), 0).toLocaleString()}
                                     </strong>
                                 </td>
                                 <td></td>

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import type { Cotizacion, SalesBudget, AppUser, Cliente, Producto, Proveedor, VentaManual } from '../App';
 import { generateQuotationPDF } from '../utils/pdfGenerator';
 import { supabase } from '../lib/supabaseClient';
+import { calculateDespachoNeto } from '../utils/financialCalculations';
 
 interface IProps {
     cotizaciones: Cotizacion[];
@@ -123,55 +124,8 @@ const InformesModule: React.FC<IProps> = ({
     });
 
     // Cruzar con cotizaciones para obtener valores de venta y utilidad REALES por ítem despachado
-    let totalVendidoNeto = 0;
-    let totalIVACalculado = 0;
-
-    despachosFacturadosEnRango.forEach(d => {
-        const cot = cotizaciones.find(c => c.id === d.cotizacionId);
-        let dispatchSubtotal = 0;
-        let dispatchIVA = 0;
-
-        if (cot) {
-            d.items.forEach((dItem: any) => {
-                const qItem = cot.items.find(qi => 
-                    (qi.productoId && qi.productoId === dItem.productoId) || 
-                    (qi.id === dItem.productoId) ||
-                    (qi.nombre === dItem.nombre)
-                );
-                if (qItem) {
-                    const costPrice = Number(qItem.costoUnitario || 0);
-                    const marginPercent = Number(qItem.utilidad || 0);
-                    let salePrice = Number(qItem.precioVenta || 0);
-                    const itemIVA = Number(qItem.iva || 19);
-                    
-                    if (salePrice <= 0 && marginPercent < 100) {
-                        salePrice = costPrice / (1 - (marginPercent / 100));
-                    } else if (salePrice <= 0) {
-                        salePrice = costPrice;
-                    }
-                    
-                    const subtotalItem = salePrice * dItem.cantidad;
-                    dispatchSubtotal += subtotalItem;
-                    dispatchIVA += subtotalItem * (itemIVA / 100);
-                } else {
-                    const subtotalItem = (dItem.precioVenta || 0) * dItem.cantidad;
-                    dispatchSubtotal += subtotalItem;
-                    dispatchIVA += subtotalItem * 0.19; // Fallback 19%
-                }
-            });
-        } else {
-            // Si no hay cotización, d.total suele ser el Bruto con IVA. Convertimos a Neto.
-            const gross = d.total ?? 0;
-            dispatchSubtotal = gross / 1.19;
-            dispatchIVA = gross - dispatchSubtotal;
-        }
-        totalVendidoNeto += dispatchSubtotal;
-        totalIVACalculado += dispatchIVA;
-    });
-
-    const totalVendido = totalVendidoNeto; // Alias para compatibilidad
-    const totalBruto = totalVendidoNeto + totalIVACalculado;
-
+    const totalVendido = despachosFacturadosEnRango.reduce((acc, d) => acc + calculateDespachoNeto(d, cotizaciones), 0);
+    
     const totalUtilidad = despachosFacturadosEnRango.reduce((acc, d) => {
         const cot = cotizaciones.find(c => c.id === d.cotizacionId);
         let dispatchUtility = 0;
@@ -746,9 +700,12 @@ const InformesModule: React.FC<IProps> = ({
             <div className="dashboard-grid" style={{ marginTop: '1.5rem', marginBottom: '1.5rem' }}>
                 <div className="card stat-card">
                     <h4>Total en el Rango</h4>
-                    <p className="stat-value">${(totalVendido + totalManualSales).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</p>
-                    <span className="stat-label">
-                        {appliedFilters.inicio} al {appliedFilters.fin} {appliedFilters.clienteId ? `• ${clientes.find(c => c.id === appliedFilters.clienteId)?.nombre}` : ''} • {filteredQuotes.length} cotizaciones
+                    <p className="stat-value">${(totalVendido + totalManualSales).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                    <div style={{ fontSize: '0.75rem', opacity: 0.8, marginTop: '0.5rem', fontWeight: 600 }}>
+                        Fact. CRM: ${totalVendido.toLocaleString('es-CO', { maximumFractionDigits: 0 })} | Manual: ${totalManualSales.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                    </div>
+                    <span className="stat-label" style={{ marginTop: '0.5rem', display: 'block' }}>
+                        {appliedFilters.inicio} al {appliedFilters.fin} • {despachosFacturadosEnRango.length} facturas CRM
                     </span>
                 </div>
                 <div className="card stat-card" style={{ background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', color: 'white' }}>
