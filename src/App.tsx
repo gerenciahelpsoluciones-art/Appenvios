@@ -1958,7 +1958,12 @@ function App() {
 
         const dashDespachos = currentUser.rol === 'Admin'
           ? despachos
-          : despachos.filter(d => d.usuarioId === currentUser.id);
+          : despachos.filter(d => {
+              const isOwner = d.usuarioId === currentUser.id;
+              const cot = cotizaciones.find(c => c.id === d.cotizacionId);
+              const isQuoteOwner = cot?.usuarioId === currentUser.id;
+              return isOwner || isQuoteOwner;
+          });
 
         const now = new Date();
         const curMonth = now.getMonth();
@@ -2075,6 +2080,27 @@ function App() {
                         </div>
                         <div style={{ fontSize: '0.9rem', color: '#475569' }}>
                           Para: <strong>{c.clienteNombre}</strong> por ${c.total.toLocaleString()}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Facturaciones Recientes */}
+                  {dashDespachos.filter(d => {
+                    if (!d.facturado || !d.fechaFacturado) return false;
+                    const [y, m] = d.fechaFacturado.split('-').map(Number);
+                    return y === curYear && (m - 1) === curMonth;
+                  }).slice(-3).reverse().map(d => (
+                    <div key={d.id} className="timeline-item" style={{ display: 'flex', gap: '1rem', padding: '1rem', background: '#f0fdf4', borderRadius: '8px', borderLeft: `4px solid #22c55e` }}>
+                      <div style={{ minWidth: '80px', fontSize: '0.85rem', color: '#166534', fontWeight: '600' }}>
+                        {d.fechaFacturado}
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 'bold', color: '#14532d', marginBottom: '0.25rem' }}>
+                          💰 Factura Realizada ({d.consecutivoCotizacion})
+                        </div>
+                        <div style={{ fontSize: '0.9rem', color: '#166534' }}>
+                          Para: <strong>{d.clienteNombre}</strong>
                         </div>
                       </div>
                     </div>
