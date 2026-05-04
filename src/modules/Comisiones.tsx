@@ -434,8 +434,9 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, pr
                     if (quote) {
                         d.items.forEach(dItem => {
                             const qItem = quote.items.find(qi => 
-                                qi.productoId === dItem.productoId || 
-                                qi.id === dItem.productoId
+                                (qi.productoId && dItem.productoId && qi.productoId === dItem.productoId) || 
+                                (qi.id && dItem.productoId && qi.id === dItem.productoId) ||
+                                (qi.nombre && dItem.nombre && qi.nombre === dItem.nombre)
                             );
                             
                             if (qItem) {
@@ -702,8 +703,15 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, pr
                                         
                                         return d.items.map((dItem, idx) => {
                                             const qItem = quote?.items.find(qi => 
-                                                qi.productoId === dItem.productoId || qi.id === dItem.productoId || qi.nombre === dItem.nombre
+                                                (qi.productoId && dItem.productoId && qi.productoId === dItem.productoId) || 
+                                                (qi.id && dItem.productoId && qi.id === dItem.productoId) || 
+                                                (qi.nombre && dItem.nombre && qi.nombre === dItem.nombre)
                                             );
+                                            
+                                            const productName = productos.find(p => p.id === (qItem?.productoId || dItem.productoId))?.nombre 
+                                                                || dItem.nombre 
+                                                                || qItem?.nombre 
+                                                                || 'Producto General / Sin Nombre';
                                             
                                             let salePrice = Number(qItem?.precioVenta || dItem.precioVenta || 0);
                                             const costPrice = Number(qItem?.costoUnitario || dItem.costoUnitario || 0);
@@ -723,7 +731,7 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, pr
                                                     <td style={{ fontWeight: 500 }}>{seller}</td>
                                                     <td style={{ fontSize: '0.85rem' }}>{d.clienteNombre}</td>
                                                     <td>
-                                                        <div style={{ fontSize: '0.9rem' }}>{dItem.nombre}</div>
+                                                        <div style={{ fontSize: '0.9rem' }}>{productName}</div>
                                                         <div style={{ fontSize: '0.7rem', color: '#64748b' }}>Cot: {quote?.consecutivo || 'N/A'}</div>
                                                     </td>
                                                     <td className="num">{dItem.cantidad}</td>
