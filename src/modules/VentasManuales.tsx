@@ -26,6 +26,7 @@ const VentasManualesModule: React.FC<IProps> = ({
     // Target period for cloning
     const [targetYear, setTargetYear] = useState(new Date().getFullYear());
     const [targetMonth, setTargetMonth] = useState(new Date().getMonth() + 1);
+    const [selectedUsuarioIdClone, setSelectedUsuarioIdClone] = useState(currentUser.id);
 
     const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0]);
     const [selectedClienteId, setSelectedClienteId] = useState('');
@@ -59,11 +60,14 @@ const VentasManualesModule: React.FC<IProps> = ({
     const handleCloneSubmit = () => {
         const selectedSales = ventas.filter(v => salesToClone.includes(v.id));
         const targetDate = `${targetYear}-${targetMonth.toString().padStart(2, '0')}-01`;
+        const usuario = users.find(u => u.id === selectedUsuarioIdClone);
 
         const clonedItems = selectedSales.map(sale => ({
             ...sale,
             id: crypto.randomUUID(),
             fecha: targetDate,
+            usuarioId: usuario?.id || sale.usuarioId,
+            usuarioNombre: usuario?.nombre || sale.usuarioNombre
         }));
 
         onAddBulk(clonedItems);
@@ -356,6 +360,25 @@ const VentasManualesModule: React.FC<IProps> = ({
                                     {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
                                         <option key={m} value={m}>{new Date(2000, m - 1).toLocaleDateString('es-ES', { month: 'long' })}</option>
                                     ))}
+                                </select>
+                            </div>
+                            <div className="form-group flex-1">
+                                <label>4. Asignar a Vendedor</label>
+                                <select 
+                                    className="input-field" 
+                                    value={selectedUsuarioIdClone} 
+                                    onChange={e => setSelectedUsuarioIdClone(e.target.value)}
+                                    disabled={currentUser.rol !== 'Admin'}
+                                >
+                                    {users
+                                        .filter(u => {
+                                            const rol = (u.rol || '').toLowerCase();
+                                            return rol === 'comercial' || rol === 'admin' || (u.cargo || '').toLowerCase().includes('comercial');
+                                        })
+                                        .map(u => (
+                                            <option key={u.id} value={u.id}>{u.nombre}</option>
+                                        ))
+                                    }
                                 </select>
                             </div>
                         </div>
