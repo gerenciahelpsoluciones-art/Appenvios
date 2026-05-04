@@ -667,6 +667,82 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, pr
                 </table>
             </div>
 
+            {activeTab === 'local' && (
+                <div className="card animate-fade-in" style={{ marginTop: '2rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                        <h3 style={{ margin: 0 }}>🔍 Detalle por Factura CRM (Producto por Producto)</h3>
+                        <span className="badge" style={{ background: '#e0f2fe', color: '#0369a1' }}>Periodo: {month}/{year}</span>
+                    </div>
+                    <div style={{ overflowX: 'auto', maxHeight: '600px' }}>
+                        <table className="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Fecha Fact.</th>
+                                    <th>Asesor</th>
+                                    <th>Cliente</th>
+                                    <th>Producto/Servicio</th>
+                                    <th className="num">Cant.</th>
+                                    <th className="num">Precio Venta</th>
+                                    <th className="num">Costo Unit.</th>
+                                    <th className="num">Utilidad Item</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {(() => {
+                                    const selectedMonthPrefix = `${year}-${String(month).padStart(2, '0')}`;
+                                    const filtered = despachos.filter(d => 
+                                        d && d.facturado && d.fechaFacturado && d.fechaFacturado.startsWith(selectedMonthPrefix)
+                                    );
+
+                                    if (filtered.length === 0) return <tr><td colSpan={8} style={{ textAlign: 'center', padding: '2rem', opacity: 0.5 }}>No hay ítems facturados en el CRM para este periodo.</td></tr>;
+
+                                    return filtered.flatMap(d => {
+                                        const quote = cotizaciones.find(q => q.id === d.cotizacionId || q.consecutivo === d.consecutivoCotizacion);
+                                        const seller = quote?.ejecutivo || 'N/A';
+                                        
+                                        return d.items.map((dItem, idx) => {
+                                            const qItem = quote?.items.find(qi => 
+                                                qi.productoId === dItem.productoId || qi.id === dItem.productoId || qi.nombre === dItem.nombre
+                                            );
+                                            
+                                            let salePrice = Number(qItem?.precioVenta || dItem.precioVenta || 0);
+                                            const costPrice = Number(qItem?.costoUnitario || dItem.costoUnitario || 0);
+                                            const marginPercent = Number(qItem?.utilidad || 0);
+
+                                            if (salePrice <= 0 && marginPercent < 100 && marginPercent > 0) {
+                                                salePrice = costPrice / (1 - (marginPercent / 100));
+                                            } else if (salePrice <= 0 && marginPercent === 100) {
+                                                salePrice = costPrice;
+                                            }
+
+                                            const utility = (salePrice - costPrice) * dItem.cantidad;
+
+                                            return (
+                                                <tr key={`${d.id}-${idx}`}>
+                                                    <td style={{ fontSize: '0.85rem' }}>{d.fechaFacturado}</td>
+                                                    <td style={{ fontWeight: 500 }}>{seller}</td>
+                                                    <td style={{ fontSize: '0.85rem' }}>{d.clienteNombre}</td>
+                                                    <td>
+                                                        <div style={{ fontSize: '0.9rem' }}>{dItem.nombre}</div>
+                                                        <div style={{ fontSize: '0.7rem', color: '#64748b' }}>Cot: {quote?.consecutivo || 'N/A'}</div>
+                                                    </td>
+                                                    <td className="num">{dItem.cantidad}</td>
+                                                    <td className="num">${salePrice.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</td>
+                                                    <td className="num">${costPrice.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</td>
+                                                    <td className="num" style={{ color: 'var(--success)', fontWeight: 'bold' }}>
+                                                        ${utility.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        });
+                                    });
+                                })()}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+
             <style>{`
                 #comisiones-module .inner-tabs { border-bottom: 2px solid var(--border-color); }
                 #comisiones-module .tab-btn { 
