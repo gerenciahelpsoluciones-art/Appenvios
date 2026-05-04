@@ -19,6 +19,7 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, pr
     const [error, setError] = useState<string | null>(null);
     const [month, setMonth] = useState(new Date().getMonth() + 1);
     const [year, setYear] = useState(new Date().getFullYear());
+    const [selectedComercial, setSelectedComercial] = useState<string>('');
     
     // Siigo Data
     const [siigoInvoices, setSiigoInvoices] = useState<any[]>([]);
@@ -344,8 +345,8 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, pr
 
     const calculateCommission = (utility: number) => Math.round(utility * 0.10 * 100) / 100;
 
-    const getSellerSummary = () => {
-        const summary: Record<string, { id: string; name: string, utility: number, commission: number, salesCount: number }> = {};
+    const getFullSellerSummary = () => {
+        const summary: Record<string, { id: string; name: string; utility: number; commission: number; salesCount: number }> = {};
         const selectedMonthPrefix = `${year}-${String(month).padStart(2, '0')}`;
 
         if (activeTab === 'siigo') {
@@ -479,6 +480,14 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, pr
         }));
     };
 
+    const getSellerSummary = () => {
+        let finalSummary = getFullSellerSummary();
+        if (selectedComercial) {
+            finalSummary = finalSummary.filter(s => s.name === selectedComercial);
+        }
+        return finalSummary;
+    };
+
     const saveAlias = (id: string, currentName: string) => {
         const newAlias = prompt(`Asignar nombre para el ID ${id}:`, currentName.startsWith('ID:') ? '' : currentName);
         if (newAlias !== null) {
@@ -598,7 +607,7 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, pr
             )}
 
             <div className="card" style={{ marginBottom: '2rem' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', alignItems: 'center' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '2rem', alignItems: 'center' }}>
                     <div>
                         <label>Mes de Comisión</label>
                         <select className="input-field" value={month} onChange={e => setMonth(Number(e.target.value))}>
@@ -611,6 +620,15 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, pr
                         <label>Año</label>
                         <select className="input-field" value={year} onChange={e => setYear(Number(e.target.value))}>
                             {[2024, 2025, 2026].map(y => <option key={y} value={y}>{y}</option>)}
+                        </select>
+                    </div>
+                    <div>
+                        <label>Asesor Comercial</label>
+                        <select className="input-field" value={selectedComercial} onChange={e => setSelectedComercial(e.target.value)}>
+                            <option value="">Todos los asesores</option>
+                            {getFullSellerSummary().map(s => (
+                                <option key={s.id} value={s.name}>{s.name}</option>
+                            ))}
                         </select>
                     </div>
                 </div>
@@ -700,7 +718,12 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, pr
                                     const selectedMonthPrefix = `${year}-${String(month).padStart(2, '0')}`;
                                     const filtered = despachos.filter(d => 
                                         d && d.facturado && d.fechaFacturado && d.fechaFacturado.startsWith(selectedMonthPrefix)
-                                    );
+                                    ).filter(d => {
+                                        if (!selectedComercial) return true;
+                                        const quote = cotizaciones.find(q => q.id === d.cotizacionId || q.consecutivo === d.consecutivoCotizacion);
+                                        const seller = quote?.ejecutivo || 'Desconocido';
+                                        return seller === selectedComercial;
+                                    });
 
                                     if (filtered.length === 0) return <tr><td colSpan={8} style={{ textAlign: 'center', padding: '2rem', opacity: 0.5 }}>No hay ítems facturados en el CRM para este periodo.</td></tr>;
 
