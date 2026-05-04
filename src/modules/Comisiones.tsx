@@ -537,7 +537,7 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, pr
         <div className="module-container" id="comisiones-module">
             <div className="module-header">
                 <div>
-                    <h2>Módulo de Comisiones (Admin)</h2>
+                    <h2>Módulo de Comisiones (Admin) v2.0</h2>
                     <p style={{ color: 'var(--text-muted)' }}>Cálculo automático del 10% sobre la utilidad generada.</p>
                 </div>
                 <div style={{ display: 'flex', gap: '1rem' }}>
