@@ -133,6 +133,8 @@ const InformesModule: React.FC<IProps> = ({
         return acc + (cot?.utilidadTotal ?? 0);
     }, 0);
 
+    const totalManualProfit = manualSalesFiltered.reduce((acc, v) => acc + (v.monto - (v.costo || 0)), 0);
+
     // Mantener wonQuotesInRange solo para la tabla de cotizaciones listadas
     // (no afecta los totales del rango, solo muestra el listado filtrado por fecha de cotización)
     const wonQuotesInRange = filteredQuotes.filter(q => q.estado === 'Ganado');
@@ -191,9 +193,10 @@ const InformesModule: React.FC<IProps> = ({
     const totalManualSales = manualSalesFiltered.reduce((acc, v) => acc + v.monto, 0);
 
     // Monthly performance for execution cards (now based on appliedFilters for consistency)
-    const monthlySales = totalVendido;
+    const monthlySales = totalVendido + totalManualSales;
+    const combinedProfit = totalUtilidad + totalManualProfit;
 
-    const profitMarginPercent = monthlySales > 0 ? (totalUtilidad / monthlySales) * 100 : 0;
+    const profitMarginPercent = monthlySales > 0 ? (combinedProfit / monthlySales) * 100 : 0;
 
     console.log('Informes Debug:', {
         totalReceivedManual: (ventasManuales || []).length,
@@ -560,7 +563,7 @@ const InformesModule: React.FC<IProps> = ({
                         </select>
                     </div>
                     <div className="input-box" style={{ flex: 2 }}>
-                        <label>Asesor Comercial</label>
+                        <label>Vendedor encargado</label>
                         <select
                             className="input-field"
                             style={{ width: '100%', height: '42px', padding: '0 0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)' }}
@@ -598,14 +601,14 @@ const InformesModule: React.FC<IProps> = ({
             <div className="dashboard-grid" style={{ marginTop: '1.5rem', marginBottom: '1.5rem' }}>
                 <div className="card stat-card">
                     <h4>Total en el Rango</h4>
-                    <p className="stat-value">${totalVendido.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</p>
+                    <p className="stat-value">${(totalVendido + totalManualSales).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</p>
                     <span className="stat-label">
                         {appliedFilters.inicio} al {appliedFilters.fin} {appliedFilters.clienteId ? `• ${clientes.find(c => c.id === appliedFilters.clienteId)?.nombre}` : ''} • {filteredQuotes.length} cotizaciones
                     </span>
                 </div>
                 <div className="card stat-card" style={{ background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', color: 'white' }}>
                     <h4>Utilidad en el Rango</h4>
-                    <p className="stat-value" style={{ color: 'white' }}>${totalUtilidad.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</p>
+                    <p className="stat-value" style={{ color: 'white' }}>${combinedProfit.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</p>
                     <span className="stat-label" style={{ color: 'rgba(255,255,255,0.8)' }}>
                         Margen de ganancia acumulado
                     </span>

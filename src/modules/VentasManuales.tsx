@@ -269,7 +269,7 @@ const VentasManualesModule: React.FC<IProps> = ({
                                 </select>
                             </div>
                             <div className="form-group flex-1">
-                                <label>Asesor comercial encargado</label>
+                                <label>Vendedor encargado</label>
                                 <select
                                     className="input-field"
                                     value={selectedUsuarioId}
@@ -463,7 +463,7 @@ const VentasManualesModule: React.FC<IProps> = ({
                                 <th>Fecha</th>
                                 <th>Cliente</th>
                                 <th>Producto / Detalle</th>
-                                <th>Responsable</th>
+                                <th>Vendedor</th>
                                 <th>Descripción</th>
                                 <th className="text-right">Monto</th>
                                 <th className="text-center">Acciones</th>
