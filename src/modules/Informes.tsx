@@ -133,6 +133,34 @@ const InformesModule: React.FC<IProps> = ({
         return acc + (cot?.utilidadTotal ?? 0);
     }, 0);
 
+    const manualSalesFiltered = (ventasManuales || []).filter(v => {
+        const dateMatch = v.fecha >= appliedFilters.inicio && v.fecha <= appliedFilters.fin;
+        const advisorMatch = appliedFilters.asesorId ? v.usuarioId === appliedFilters.asesorId : true;
+        const clientMatch = appliedFilters.clienteId ? v.clienteId === appliedFilters.clienteId : true;
+        return dateMatch && advisorMatch && clientMatch;
+    });
+
+    const revenueByContract = manualSalesFiltered
+        .filter(v => v.tipoVenta === 'Contrato')
+        .reduce((acc, v) => acc + v.monto, 0);
+    
+    const revenueByRental = alquileres
+        .filter((a: any) => a.estado === 'Alquilado')
+        .reduce((acc: number, a: any) => acc + (a.valorMensual || 0), 0);
+    
+    const revenueByLicense = manualSalesFiltered
+        .filter(v => v.tipoVenta === 'Licencia')
+        .reduce((acc, v) => acc + v.monto, 0);
+    
+    const revenueByTenders = manualSalesFiltered
+        .filter(v => v.tipoVenta === 'Licitacion')
+        .reduce((acc, v) => acc + v.monto, 0);
+    
+    const revenueByStandard = manualSalesFiltered
+        .filter(v => v.tipoVenta === 'Venta')
+        .reduce((acc, v) => acc + v.monto, 0);
+
+    const totalManualSales = manualSalesFiltered.reduce((acc, v) => acc + v.monto, 0);
     const totalManualProfit = manualSalesFiltered.reduce((acc, v) => acc + (v.monto - (v.costo || 0)), 0);
 
     // Mantener wonQuotesInRange solo para la tabla de cotizaciones listadas
@@ -161,36 +189,7 @@ const InformesModule: React.FC<IProps> = ({
         return acc;
     }, {});
 
-    const manualSalesFiltered = (ventasManuales || []).filter(v => {
-        const dateMatch = v.fecha >= appliedFilters.inicio && v.fecha <= appliedFilters.fin;
-        const advisorMatch = appliedFilters.asesorId ? v.usuarioId === appliedFilters.asesorId : true;
-        const clientMatch = appliedFilters.clienteId ? v.clienteId === appliedFilters.clienteId : true;
-        return dateMatch && advisorMatch && clientMatch;
-    });
-
-    const revenueByContract = manualSalesFiltered
-        .filter(v => v.tipoVenta === 'Contrato')
-        .reduce((acc, v) => acc + v.monto, 0);
-    
-    // Total real de alquileres activos desde el módulo de Alquileres
-    const revenueByRental = alquileres
-        .filter((a: any) => a.estado === 'Alquilado')
-        .reduce((acc: number, a: any) => acc + (a.valorMensual || 0), 0);
-    
-    const revenueByLicense = manualSalesFiltered
-        .filter(v => v.tipoVenta === 'Licencia')
-        .reduce((acc, v) => acc + v.monto, 0);
-    
-    const revenueByTenders = manualSalesFiltered
-        .filter(v => v.tipoVenta === 'Licitacion')
-        .reduce((acc, v) => acc + v.monto, 0);
-    
-    const revenueByStandard = manualSalesFiltered
-        .filter(v => v.tipoVenta === 'Venta')
-        .reduce((acc, v) => acc + v.monto, 0);
-
     // Total manual sales in period
-    const totalManualSales = manualSalesFiltered.reduce((acc, v) => acc + v.monto, 0);
 
     // Monthly performance for execution cards (now based on appliedFilters for consistency)
     const monthlySales = totalVendido + totalManualSales;
