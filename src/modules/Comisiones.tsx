@@ -21,7 +21,9 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, productos }) 
     
     // Siigo Data
     const [siigoInvoices, setSiigoInvoices] = useState<any[]>([]);
+    const [siigoCreditNotes, setSiigoCreditNotes] = useState<any[]>([]);
     const [siigoPurchases, setSiigoPurchases] = useState<any[]>([]);
+    const [siigoDebitNotes, setSiigoDebitNotes] = useState<any[]>([]);
     const [siigoSellers, setSiigoSellers] = useState<any[]>([]);
     const [siigoCostCenters, setSiigoCostCenters] = useState<any[]>([]);
     const [productCosts, setProductCosts] = useState<Record<string, number>>({});
@@ -173,8 +175,8 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, productos }) 
             });
             const invoicesData = await invoicesRes.json();
 
-            addLog('Solicitando Facturas de Compra y Documentos Soporte...');
-            const [purchasesRes, billsRes] = await Promise.all([
+            addLog('Solicitando Movimientos de Compra, Soporte y Notas Débito...');
+            const [purchasesRes, billsRes, debitNotesRes] = await Promise.all([
                 fetch(`${EDGE_FUNCTION_URL}?action=purchases&created_start=${startDate}&created_end=${endDate}`, {
                     method: 'GET',
                     headers: { ...getBaseHeaders(), 'x-siigo-token': currentToken }
@@ -182,19 +184,29 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, productos }) 
                 fetch(`${EDGE_FUNCTION_URL}?action=bills&created_start=${startDate}&created_end=${endDate}`, {
                     method: 'GET',
                     headers: { ...getBaseHeaders(), 'x-siigo-token': currentToken }
+                }),
+                fetch(`${EDGE_FUNCTION_URL}?action=debit-notes&created_start=${startDate}&created_end=${endDate}`, {
+                    method: 'GET',
+                    headers: { ...getBaseHeaders(), 'x-siigo-token': currentToken }
                 })
             ]);
 
             const purchasesData = await purchasesRes.json();
             const billsData = await billsRes.json();
+            const debitNotesData = await debitNotesRes.json();
             
             const allProcurement = [
                 ...(purchasesData.results || []),
                 ...(billsData.results || [])
             ];
             
+            const allReturnsPurchase = [
+                ...(debitNotesData.results || [])
+            ];
+            
             setSiigoPurchases(allProcurement);
-            addLog(`Documentos de compra/soporte recibidos: ${allProcurement.length}`);
+            setSiigoDebitNotes(allReturnsPurchase);
+            addLog(`Documentos de compra/soporte: ${allProcurement.length} | Notas Débito: ${allReturnsPurchase.length}`);
 
             const costs: Record<string, number> = {};
             allProcurement.forEach((p: any) => {
@@ -244,7 +256,36 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, productos }) 
                 }
 
                 addLog(`✅ Sincronización profunda completada: ${detailedInvoices.length} facturas detalladas.`);
+                
+                addLog('Solicitando Notas de Crédito (Devoluciones de Venta)...');
+                const creditNotesRes = await fetch(`${EDGE_FUNCTION_URL}?action=credit-notes&created_start=${startDate}&created_end=${endDate}`, {
+                    method: 'GET',
+                    headers: { ...getBaseHeaders(), 'x-siigo-token': currentToken }
+                });
+                const creditNotesData = await creditNotesRes.json();
+                const rawCreditNotes = creditNotesData.results || [];
+                addLog(`Notas de Crédito recibidas: ${rawCreditNotes.length}`);
+                
+                const detailedCreditNotes = [];
+                for (let i = 0; i < rawCreditNotes.length; i++) {
+                    const cn = rawCreditNotes[i];
+                    try {
+                        const cnDetailRes = await fetch(`${EDGE_FUNCTION_URL}?action=credit-note-detail&id=${cn.id}`, {
+                            method: 'GET',
+                            headers: { ...getBaseHeaders(), 'x-siigo-token': currentToken }
+                        });
+                        if (cnDetailRes.ok) {
+                            detailedCreditNotes.push(await cnDetailRes.json());
+                        } else {
+                            detailedCreditNotes.push(cn);
+                        }
+                    } catch (e) {
+                        detailedCreditNotes.push(cn);
+                    }
+                }
+                
                 setSiigoInvoices(detailedInvoices);
+                setSiigoCreditNotes(detailedCreditNotes);
                 
                 setDiagInfo({
                     fetchCount: detailedInvoices.length,
@@ -398,6 +439,32 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, productos }) 
                 summary[sellerKey].utility += utility;
                 summary[sellerKey].commission += calculateCommission(utility);
                 summary[sellerKey].salesCount += 1;
+            });
+
+            // Restar Notas de Crédito (Devoluciones de Venta)
+            siigoCreditNotes.forEach(cn => {
+                if (!cn) return;
+                let sellerId = findSeller(cn, siigoSellers);
+                const sellerKey = String(sellerId || 'unknown');
+                
+                if (!summary[sellerKey]) return;
+
+                let returnUtility = 0;
+                if (cn.items && cn.items.length > 0) {
+                    cn.items.forEach((item: any) => {
+                        const returnPrice = Number(item.price || 0);
+                        const quantity = Number(item.quantity || 1);
+                        const costPrice = productCosts[item.code] || (Number(item.unit_cost) || (returnPrice * 0.7));
+                        const itemReturnUtility = (returnPrice - costPrice) * quantity;
+                        returnUtility += Math.round(itemReturnUtility * 100) / 100;
+                    });
+                } else {
+                    const totalCN = Number(cn.total || 0);
+                    returnUtility = Math.round((totalCN * 0.3) * 100) / 100;
+                }
+
+                summary[sellerKey].utility -= returnUtility;
+                summary[sellerKey].commission -= calculateCommission(returnUtility);
             });
         } else {
             if (!Array.isArray(cotizaciones)) return [];
