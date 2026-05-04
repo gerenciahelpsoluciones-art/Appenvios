@@ -161,7 +161,12 @@ const InformesModule: React.FC<IProps> = ({
         .reduce((acc, v) => acc + v.monto, 0);
 
     const totalManualSales = manualSalesFiltered.reduce((acc, v) => acc + v.monto, 0);
-    const totalManualProfit = manualSalesFiltered.reduce((acc, v) => acc + (v.monto - (v.costo || 0)), 0);
+    const totalManualProfit = manualSalesFiltered.reduce((acc, v) => {
+        if (v.tipoVenta === 'Contrato') {
+            return acc + (v.monto * 0.35);
+        }
+        return acc + (v.monto - (v.costo || 0));
+    }, 0);
 
     // Mantener wonQuotesInRange solo para la tabla de cotizaciones listadas
     // (no afecta los totales del rango, solo muestra el listado filtrado por fecha de cotización)
