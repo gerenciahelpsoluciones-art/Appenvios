@@ -817,6 +817,63 @@ const InformesModule: React.FC<IProps> = ({
                         </table>
                     </div>
                 </div>
+            <div className="card" style={{ marginTop: '1.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <h3 style={{ margin: 0 }}>📦 Detalle de Facturación (Producto por Producto)</h3>
+                    <span className="text-muted" style={{ fontSize: '0.85rem' }}>Utilidad exacta por cada ítem facturado</span>
+                </div>
+                <div style={{ overflowX: 'auto', maxHeight: '500px' }}>
+                    <table className="data-table">
+                        <thead>
+                            <tr>
+                                <th>Fecha Fact.</th>
+                                <th>Cliente</th>
+                                <th>Producto</th>
+                                <th className="text-center">Cant.</th>
+                                <th className="text-right">Precio Venta</th>
+                                <th className="text-right">Costo Unit.</th>
+                                <th className="text-right">Utilidad Unit.</th>
+                                <th className="text-right">Utilidad Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {despachosFacturadosEnRango.length > 0 ? (
+                                despachosFacturadosEnRango.flatMap(d => {
+                                    const cot = cotizaciones.find(c => c.id === d.cotizacionId);
+                                    return d.items.map((dItem: any, idx: number) => {
+                                        const qItem = cot?.items.find(qi => qi.productoId === dItem.productoId || qi.id === dItem.productoId);
+                                        const salePrice = Number(qItem?.precioVenta || 0) || (Number(qItem?.costoUnitario || 0) / (1 - (Number(qItem?.utilidad || 0) / 100)));
+                                        const costPrice = Number(qItem?.costoUnitario || 0);
+                                        const unitProfit = salePrice - costPrice;
+                                        const totalProfit = unitProfit * dItem.cantidad;
+                                        
+                                        return (
+                                            <tr key={`${d.id}-${idx}`}>
+                                                <td style={{ fontSize: '0.85rem' }}>{d.fechaFacturado || d.fechaSolicitud}</td>
+                                                <td>{d.clienteNombre}</td>
+                                                <td>
+                                                    <div style={{ fontSize: '0.9rem', fontWeight: 500 }}>{dItem.nombre || 'Producto'}</div>
+                                                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Cot: {cot?.consecutivo || 'N/A'}</div>
+                                                </td>
+                                                <td className="text-center">{dItem.cantidad}</td>
+                                                <td className="text-right">${salePrice.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</td>
+                                                <td className="text-right">${costPrice.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</td>
+                                                <td className="text-right">${unitProfit.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</td>
+                                                <td className="text-right" style={{ color: 'var(--success)', fontWeight: 'bold' }}>
+                                                    ${totalProfit.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                                                </td>
+                                            </tr>
+                                        );
+                                    });
+                                })
+                            ) : (
+                                <tr>
+                                    <td colSpan={8} className="text-center" style={{ padding: '2rem', color: '#94a3b8' }}>No hay despachos facturados para mostrar en el detalle.</td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <div className="card">
