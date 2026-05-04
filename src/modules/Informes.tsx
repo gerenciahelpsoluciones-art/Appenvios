@@ -131,7 +131,7 @@ const InformesModule: React.FC<IProps> = ({
         let dispatchUtility = 0;
 
         if (cot) {
-            d.items.forEach((dItem: any) => {
+            (d.items || []).forEach((dItem: any) => {
                 const qItem = cot.items.find(qi => 
                     (qi.productoId && qi.productoId === dItem.productoId) || 
                     (qi.id === dItem.productoId) ||
@@ -209,7 +209,7 @@ const InformesModule: React.FC<IProps> = ({
         let dispatchUtility = 0;
 
         if (cot) {
-            d.items.forEach((dItem: any) => {
+            (d.items || []).forEach((dItem: any) => {
                 const qItem = cot.items.find(qi => 
                     (qi.productoId && qi.productoId === dItem.productoId) || 
                     (qi.id === dItem.productoId) ||
@@ -254,7 +254,7 @@ const InformesModule: React.FC<IProps> = ({
         let dispatchUtility = 0;
 
         if (cot) {
-            d.items.forEach((dItem: any) => {
+            (d.items || []).forEach((dItem: any) => {
                 const qItem = cot.items.find(qi => 
                     (qi.productoId && qi.productoId === dItem.productoId) || 
                     (qi.id === dItem.productoId) ||
