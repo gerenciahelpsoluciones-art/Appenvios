@@ -617,15 +617,10 @@ const InformesModule: React.FC<IProps> = ({
                             <div className="stat-trend" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff' }}>Meta asignada</div>
                         </div>
                     )}
-                    <div className="stat-card sales-card" style={{ background: 'linear-gradient(135deg, #4f46e5 0%, #3730a3 100%)' }}>
-                        <div className="stat-label" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.75rem' }}>Ventas Netas (Subtotal)</div>
+                    <div className="stat-card sales-card">
+                        <div className="stat-label" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.75rem' }}>Ventas Facturadas (Total)</div>
                         <div className="stat-value" style={{ fontSize: '1.2rem', color: '#fff' }}>${monthlySales.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
-                        <div className="stat-trend" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff' }}>Sin impuestos</div>
-                    </div>
-                    <div className="stat-card sales-card" style={{ background: 'linear-gradient(135deg, #6366f1 0%, #4338ca 100%)' }}>
-                        <div className="stat-label" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.75rem' }}>Total Facturado (Con IVA)</div>
-                        <div className="stat-value" style={{ fontSize: '1.2rem', color: '#fff' }}>${totalBrutoConManuales.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
-                        <div className="stat-trend" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff' }}>Para cruce con Siigo</div>
+                        <div className="stat-trend" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff' }}>{despachosFacturadosEnRango.length} despacho(s) facturado(s)</div>
                     </div>
                     <div className="stat-card percent-card">
                         <div className="stat-label" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.75rem' }}>% Ejecución</div>
