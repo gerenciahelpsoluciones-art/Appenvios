@@ -194,6 +194,8 @@ const InformesModule: React.FC<IProps> = ({
         return acc + (subtotal - (v.costo || 0));
     }, 0);
 
+    const combinedProfit = totalUtilidad + totalManualProfit;
+
     // Mantener wonQuotesInRange solo para la tabla de cotizaciones listadas
     // (no afecta los totales del rango, solo muestra el listado filtrado por fecha de cotización)
     const wonQuotesInRange = filteredQuotes.filter(q => q.estado === 'Ganado');
