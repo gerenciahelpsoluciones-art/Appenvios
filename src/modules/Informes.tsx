@@ -194,8 +194,6 @@ const InformesModule: React.FC<IProps> = ({
         return acc + (subtotal - (v.costo || 0));
     }, 0);
 
-    const combinedProfit = totalUtilidad + totalManualProfit;
-
     // Mantener wonQuotesInRange solo para la tabla de cotizaciones listadas
     // (no afecta los totales del rango, solo muestra el listado filtrado por fecha de cotización)
     const wonQuotesInRange = filteredQuotes.filter(q => q.estado === 'Ganado');
@@ -295,6 +293,7 @@ const InformesModule: React.FC<IProps> = ({
     // Monthly performance for execution cards (now based on appliedFilters for consistency)
     const monthlySales = totalVendido + totalManualSales;
     const combinedProfit = totalUtilidad + totalManualProfit;
+    const totalBruto = totalVendido * 1.19;
     const totalBrutoConManuales = totalBruto + totalManualSales; // Asumiendo manuales son brutos
 
     const profitMarginPercent = monthlySales > 0 ? (combinedProfit / monthlySales) * 100 : 0;
