@@ -341,7 +341,13 @@ BBVA - Cuenta Corriente No. 390021475`;
                                 placeholder="N° Consecutivo"
                                 value={consecutivo}
                                 onChange={e => setConsecutivo(e.target.value)}
-                                style={{ flex: 1 }}
+                                readOnly={currentUser.rol?.toLowerCase() === 'comercial'}
+                                style={{ 
+                                    flex: 1, 
+                                    backgroundColor: currentUser.rol?.toLowerCase() === 'comercial' ? '#f1f5f9' : 'transparent',
+                                    cursor: currentUser.rol?.toLowerCase() === 'comercial' ? 'not-allowed' : 'text',
+                                    color: currentUser.rol?.toLowerCase() === 'comercial' ? '#64748b' : 'inherit'
+                                }}
                             />
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 0.5 }}>
                                 <label style={{ fontSize: '0.85rem', whiteSpace: 'nowrap', fontWeight: 'bold', color: 'var(--primary-blue)' }}>Validez:</label>
