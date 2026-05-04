@@ -11,9 +11,9 @@ export const calculateDespachoNeto = (d: Despacho, cotizaciones: Cotizacion[]) =
     d.items.forEach((dItem: any) => {
         let itemNeto = 0;
         const qItem = cot?.items.find(qi => 
-            qi.productoId === dItem.productoId || 
-            qi.id === dItem.productoId || 
-            qi.nombre === dItem.nombre
+            (qi.productoId && dItem.productoId && qi.productoId === dItem.productoId) || 
+            (qi.id && dItem.productoId && qi.id === dItem.productoId) || 
+            (qi.nombre && dItem.nombre && qi.nombre === dItem.nombre)
         );
 
         if (qItem) {
