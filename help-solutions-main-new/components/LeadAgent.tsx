@@ -67,7 +67,7 @@ const LeadAgent: React.FC = () => {
   }
 
   return (
-    <div className={`fixed bottom-0 left-0 sm:bottom-10 sm:left-10 z-[99999] w-full sm:w-[400px] bg-background/95 backdrop-blur-md border border-border-accent sm:rounded-2xl rounded-t-2xl shadow-2xl overflow-hidden transition-all duration-300 flex flex-col ${isMinimized ? 'h-[60px]' : 'h-[85vh] sm:h-[500px]'}`}>
+    <div className={`fixed bottom-0 left-0 sm:bottom-10 sm:left-10 z-[99999] w-full sm:w-[400px] bg-background/95 backdrop-blur-md border border-zinc-200 sm:rounded-2xl rounded-t-2xl shadow-2xl overflow-hidden transition-all duration-300 flex flex-col ${isMinimized ? 'h-[60px]' : 'h-[85vh] sm:h-[500px]'}`}>
       {/* Header */}
       <div className="bg-primary p-4 flex justify-between items-center text-white">
         <div className="flex items-center gap-2">
@@ -103,7 +103,7 @@ const LeadAgent: React.FC = () => {
                 <div className={`max-w-[80%] p-3 rounded-2xl text-sm ${
                   m.role === 'user' 
                     ? 'bg-primary text-white rounded-tr-none' 
-                    : 'bg-muted text-foreground rounded-tl-none border border-border-accent shadow-sm'
+                    : 'bg-muted text-foreground rounded-tl-none border border-zinc-200 shadow-sm'
                 }`}>
                   {m.content}
                 </div>
@@ -114,7 +114,7 @@ const LeadAgent: React.FC = () => {
                 <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20">
                   <Bot size={16} className="text-primary" />
                 </div>
-                <div className="bg-muted p-3 rounded-2xl rounded-tl-none border border-border-accent flex gap-1 items-center h-10 px-4">
+                <div className="bg-muted p-3 rounded-2xl rounded-tl-none border border-zinc-200 flex gap-1 items-center h-10 px-4">
                   <span className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-[bounce_1s_infinite_0ms]"></span>
                   <span className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-[bounce_1s_infinite_200ms]"></span>
                   <span className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-[bounce_1s_infinite_400ms]"></span>
@@ -125,14 +125,14 @@ const LeadAgent: React.FC = () => {
           </div>
 
           {/* Input */}
-          <div className="p-4 border-t border-border-accent bg-background/50">
+          <div className="p-4 border-t border-zinc-200 bg-background/50">
             <form className="relative" onSubmit={(e) => { e.preventDefault(); handleSend(); }}>
               <input
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Escribe tu mensaje..."
-                className="w-full bg-muted/50 border border-border-accent rounded-xl py-2 pl-4 pr-10 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-foreground"
+                className="w-full bg-muted/50 border border-zinc-200 rounded-xl py-2 pl-4 pr-10 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-foreground"
               />
               <button
                 type="submit"
