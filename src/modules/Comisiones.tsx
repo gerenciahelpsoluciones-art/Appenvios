@@ -542,6 +542,84 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, pr
                 footStyles: { fillColor: [240, 240, 240], textColor: 0, fontStyle: 'bold' }
             });
 
+            if (activeTab === 'local') {
+                const selectedMonthPrefix = `${year}-${String(month).padStart(2, '0')}`;
+                const filtered = despachos.filter(d => 
+                    d && d.facturado && d.fechaFacturado && d.fechaFacturado.startsWith(selectedMonthPrefix)
+                ).filter(d => {
+                    if (!selectedComercial) return true;
+                    const quote = cotizaciones.find(q => q.id === d.cotizacionId || q.consecutivo === d.consecutivoCotizacion);
+                    const seller = quote?.ejecutivo || 'Desconocido';
+                    return seller === selectedComercial;
+                });
+
+                const detailBodyData = filtered.flatMap(d => {
+                    const quote = cotizaciones.find(q => q.id === d.cotizacionId || q.consecutivo === d.consecutivoCotizacion);
+                    const seller = quote?.ejecutivo || 'N/A';
+                    const availableQuoteItems = quote ? [...quote.items] : [];
+                    
+                    return d.items.map((dItem) => {
+                        const qItemIndex = availableQuoteItems.findIndex(qi => 
+                            (qi.productoId && dItem.productoId && qi.productoId === dItem.productoId) || 
+                            (qi.id && dItem.productoId && qi.id === dItem.productoId)
+                        );
+                        
+                        let qItem = null;
+                        if (qItemIndex !== -1) {
+                            qItem = availableQuoteItems[qItemIndex];
+                            availableQuoteItems.splice(qItemIndex, 1);
+                        }
+                        
+                        const productName = productos.find(p => p.id === (qItem?.productoId || dItem.productoId))?.nombre 
+                                            || dItem.nombreProducto 
+                                            || 'Producto General';
+                        
+                        let salePrice = Number(qItem?.precioVenta || (dItem as any).precioVenta || 0);
+                        const costPrice = Number(qItem?.costoUnitario || (dItem as any).costoUnitario || 0);
+                        const marginPercent = Number(qItem?.utilidad || 0);
+
+                        if (salePrice <= 0 && marginPercent < 100 && marginPercent > 0) {
+                            salePrice = costPrice / (1 - (marginPercent / 100));
+                        } else if (salePrice <= 0 && marginPercent === 100) {
+                            salePrice = costPrice;
+                        }
+
+                        const utility = (salePrice - costPrice) * dItem.cantidad;
+
+                        return [
+                            d.fechaFacturado || '',
+                            seller,
+                            d.clienteNombre || '',
+                            `${productName}\nCot: ${quote?.consecutivo || 'N/A'}`,
+                            String(dItem.cantidad),
+                            `$ ${salePrice.toLocaleString('es-CO', { maximumFractionDigits: 0 })}`,
+                            `$ ${costPrice.toLocaleString('es-CO', { maximumFractionDigits: 0 })}`,
+                            `$ ${utility.toLocaleString('es-CO', { maximumFractionDigits: 0 })}`
+                        ];
+                    });
+                });
+
+                if (detailBodyData.length > 0) {
+                    // @ts-ignore
+                    const finalY = doc.lastAutoTable?.finalY || 100;
+                    doc.setFontSize(14);
+                    doc.text('Detalle por Factura CRM', 14, finalY + 15);
+                    
+                    // @ts-ignore
+                    autoTable(doc, {
+                        startY: finalY + 20,
+                        head: [['Fecha', 'Asesor', 'Cliente', 'Producto', 'Cant.', 'Precio V.', 'Costo U.', 'Utilidad']],
+                        body: detailBodyData,
+                        theme: 'grid',
+                        headStyles: { fillColor: [2, 132, 199], textColor: 255 },
+                        styles: { fontSize: 8, overflow: 'linebreak' },
+                        columnStyles: {
+                            3: { cellWidth: 50 }
+                        }
+                    });
+                }
+            }
+
             doc.save(`Reporte_Comisiones_${activeTab}_${month}_${year}.pdf`);
         } catch (error: any) {
             alert(`Error al generar el PDF: ${error.message}.`);
