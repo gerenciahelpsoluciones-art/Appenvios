@@ -31,6 +31,7 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, alquile
     const [autoConvertir, setAutoConvertir] = useState(true);
     const [isRentalPickerOpen, setIsRentalPickerOpen] = useState(false);
     const [rentalSearchTerm, setRentalSearchTerm] = useState('');
+    const [ocSearchTerm, setOcSearchTerm] = useState('');
 
     // Form for new item
     const [selectedProdId, setSelectedProdId] = useState('');
@@ -76,8 +77,10 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, alquile
         setItems(items.filter(item => item.id !== id));
     };
 
+    const provSelected = proveedores.find(p => p.id === selectedProveedor);
+    const isRegimenSimplificado = provSelected?.regimen === 'Régimen Simplificado';
     const subtotal = items.reduce((acc, item) => acc + (item.cantidad * item.precioUnitario), 0);
-    const iva = items.reduce((acc, item) => item.exentoIva ? acc : acc + ((item.cantidad * item.precioUnitario) * 0.19), 0);
+    const iva = isRegimenSimplificado ? 0 : items.reduce((acc, item) => item.exentoIva ? acc : acc + ((item.cantidad * item.precioUnitario) * 0.19), 0);
     const total = subtotal + iva;
 
     const handleGenerateOC = async () => {
@@ -248,7 +251,7 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, alquile
         doc.text(`${oc.moneda === 'USD' ? 'US$' : '$'}${oc.subtotal.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`, 195, currentY + 2, { align: 'right' });
 
         doc.setFont('helvetica', 'bold');
-        doc.text('IVA (19%):', 135, currentY + 9);
+        doc.text(prov.regimen === 'Régimen Simplificado' ? 'IVA (0%):' : 'IVA (19%):', 135, currentY + 9);
         doc.setFont('helvetica', 'normal');
         doc.text(`${oc.moneda === 'USD' ? 'US$' : '$'}${oc.iva.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`, 195, currentY + 9, { align: 'right' });
 
@@ -574,7 +577,7 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, alquile
 
                         <div style={{ marginTop: '1.5rem', textAlign: 'right' }}>
                             <div className="text-muted" style={{ marginBottom: '0.25rem' }}>Subtotal: {moneda === 'USD' ? 'US$' : '$'}{subtotal.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
-                            <div className="text-muted" style={{ marginBottom: '0.25rem' }}>IVA (19%): {moneda === 'USD' ? 'US$' : '$'}{iva.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
+                            <div className="text-muted" style={{ marginBottom: '0.25rem' }}>{isRegimenSimplificado ? 'IVA (Exento):' : 'IVA (19%):'} {moneda === 'USD' ? 'US$' : '$'}{iva.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
                             <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--primary-blue)' }}>
                                 TOTAL: {moneda === 'USD' ? 'US$' : '$'}{total.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
                             </div>
@@ -591,7 +594,19 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, alquile
             )}
 
             <div className="card table-card" style={{ marginTop: '2rem' }}>
-                <h3>Historial de Ordenes de Compra</h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <h3 style={{ margin: 0 }}>Historial de Ordenes de Compra</h3>
+                    <div className="search-box" style={{ width: '300px' }}>
+                        <input 
+                            type="text" 
+                            className="input-field" 
+                            placeholder="🔍 Buscar por consecutivo o proveedor..." 
+                            value={ocSearchTerm}
+                            onChange={(e) => setOcSearchTerm(e.target.value)}
+                            style={{ marginBottom: 0 }}
+                        />
+                    </div>
+                </div>
                 <div style={{ overflowX: 'auto' }}>
                     <table className="data-table">
                         <thead>
@@ -607,7 +622,12 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, alquile
                             </tr>
                         </thead>
                         <tbody>
-                            {ordenesCompra.map(oc => (
+                            {ordenesCompra
+                                .filter(oc => 
+                                    oc.consecutivo.toLowerCase().includes(ocSearchTerm.toLowerCase()) || 
+                                    oc.nombreProveedor.toLowerCase().includes(ocSearchTerm.toLowerCase())
+                                )
+                                .map(oc => (
                                 <tr key={oc.id}>
                                     <td><strong>{oc.consecutivo}</strong></td>
                                     <td>{oc.fecha}</td>

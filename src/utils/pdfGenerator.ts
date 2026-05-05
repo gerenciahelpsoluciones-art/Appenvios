@@ -76,8 +76,9 @@ export const generateQuotationPDF = (data: PDFData, action: 'save' | 'view' = 's
             const prod = data.productos.find(p => p.id === item.productoId);
             // Use high precision for intermediate calculations
             const ventaUnit = Math.round((item.precioVenta !== undefined ? item.precioVenta : ((item.costoUnitario || 0) / (1 - Math.min(item.utilidad || 0, 99.99) / 100))) * 100) / 100;
+            const isSimplificado = data.cliente.regimen === 'Régimen Simplificado';
             const itemSubtotal = Math.round((ventaUnit * item.cantidad) * 100) / 100;
-            const itemIVA = Math.round((prod?.exentoIva ? 0 : (itemSubtotal * (item.iva || 19) / 100)) * 100) / 100;
+            const itemIVA = Math.round(((prod?.exentoIva || isSimplificado) ? 0 : (itemSubtotal * (item.iva || 19) / 100)) * 100) / 100;
             
             calculatedSubtotal += itemSubtotal;
             calculatedIVA += itemIVA;
@@ -116,7 +117,8 @@ export const generateQuotationPDF = (data: PDFData, action: 'save' | 'view' = 's
         doc.text(`$${calculatedSubtotal.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`, valuesX, finalY + 15, { align: 'right' });
 
         doc.setFont("helvetica", "bold");
-        doc.text(`IVA TOTAL:`, totalsX, finalY + 22);
+        const isSimplificado = data.cliente.regimen === 'Régimen Simplificado';
+        doc.text(isSimplificado ? 'IVA (EXENTO):' : 'IVA TOTAL:', totalsX, finalY + 22);
         doc.setFont("helvetica", "normal");
         doc.text(`$${calculatedIVA.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`, valuesX, finalY + 22, { align: 'right' });
 

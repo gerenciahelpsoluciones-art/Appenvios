@@ -77,6 +77,14 @@ const ClientesModule: React.FC<IProps> = ({ clientes, onAdd, onUpdate, onDelete,
             <input className="input-field" placeholder="Dirección" value={formData.direccion || ''} onChange={e => setFormData({ ...formData, direccion: e.target.value })} />
             <input className="input-field" placeholder="Ciudad" value={formData.ciudad || ''} onChange={e => setFormData({ ...formData, ciudad: e.target.value })} />
             <input className="input-field" placeholder="Coordenadas (Lat, Long)" value={formData.coordenadas || ''} onChange={e => setFormData({ ...formData, coordenadas: e.target.value })} />
+            <select 
+              className="input-field" 
+              value={formData.regimen || 'Régimen Común'} 
+              onChange={e => setFormData({ ...formData, regimen: e.target.value as any })}
+            >
+              <option value="Régimen Común">Régimen Común</option>
+              <option value="Régimen Simplificado">Régimen Simplificado</option>
+            </select>
 
             <div className="contact-section" style={{ gridColumn: 'span 2', background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
               <h4 style={{ margin: '0 0 1rem 0', color: 'var(--primary-blue)' }}>💰 Datos de Tesorería</h4>
@@ -242,6 +250,7 @@ const ClientesModule: React.FC<IProps> = ({ clientes, onAdd, onUpdate, onDelete,
                 <th style={{ minWidth: '150px' }}>Contacto Comercial</th>
                 <th style={{ minWidth: '180px' }}>Contactos Financieros</th>
                 <th style={{ minWidth: '150px' }}>Crédito</th>
+                <th style={{ minWidth: '120px' }}>Régimen</th>
                 <th style={{ minWidth: '120px' }}>Dirección</th>
                 <th className="text-center" style={{ minWidth: '100px' }}>Acciones</th>
               </tr>
@@ -287,14 +296,23 @@ const ClientesModule: React.FC<IProps> = ({ clientes, onAdd, onUpdate, onDelete,
                     </div>
                   </td>
                   <td>
-                    {c.poseeCredito ? (
-                      <span className="doc-badge active" title={`Cupo: $${c.cupoCredito}`}>
-                        💳 ${c.cupoCredito?.toLocaleString()}
-                      </span>
-                    ) : (
-                      <span className="doc-badge" style={{ opacity: 0.3 }}>Sin Crédito</span>
-                    )}
-                  </td>
+                  <div style={{ fontSize: '0.9rem' }}>
+                    <strong>{c.poseeCredito ? 'SÍ' : 'NO'}</strong>
+                    {c.poseeCredito && <div>Cupo: ${c.cupoCredito?.toLocaleString()}</div>}
+                  </div>
+                </td>
+                <td>
+                  <span className={`badge ${c.regimen === 'Régimen Simplificado' ? 'badge-simplificado' : 'badge-comun'}`} style={{
+                    padding: '2px 8px',
+                    borderRadius: '12px',
+                    fontSize: '0.75rem',
+                    fontWeight: 'bold',
+                    background: c.regimen === 'Régimen Simplificado' ? '#fef3c7' : '#e0f2fe',
+                    color: c.regimen === 'Régimen Simplificado' ? '#92400e' : '#0369a1'
+                  }}>
+                    {c.regimen || 'Régimen Común'}
+                  </span>
+                </td>
                   <td>
                     {c.direccion}<br />
                     <small><strong>{c.ciudad || ''}</strong></small><br />

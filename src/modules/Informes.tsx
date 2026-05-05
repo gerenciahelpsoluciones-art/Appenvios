@@ -124,7 +124,7 @@ const InformesModule: React.FC<IProps> = ({
     });
 
     // Cruzar con cotizaciones para obtener valores de venta y utilidad REALES por ítem despachado
-    const totalVendido = despachosFacturadosEnRango.reduce((acc, d) => acc + calculateDespachoNeto(d, cotizaciones), 0);
+    const totalVendido = despachosFacturadosEnRango.reduce((acc, d) => acc + calculateDespachoNeto(d, cotizaciones, clientes), 0);
     
     const totalUtilidad = despachosFacturadosEnRango.reduce((acc, d) => {
         const cot = cotizaciones.find(c => c.id === d.cotizacionId);
@@ -192,9 +192,16 @@ const InformesModule: React.FC<IProps> = ({
         .filter(v => v.tipoVenta === 'Venta')
         .reduce((acc, v) => acc + v.monto, 0);
 
-    const totalManualSales = manualSalesFiltered.reduce((acc, v) => acc + (v.monto / 1.19), 0);
+    const totalManualSales = manualSalesFiltered.reduce((acc, v) => {
+        const client = clientes.find(c => c.id === v.clienteId);
+        const isSimplificado = client?.regimen === 'Régimen Simplificado';
+        const subtotal = isSimplificado ? v.monto : v.monto / 1.19;
+        return acc + subtotal;
+    }, 0);
     const totalManualProfit = manualSalesFiltered.reduce((acc, v) => {
-        const subtotal = v.monto / 1.19;
+        const client = clientes.find(c => c.id === v.clienteId);
+        const isSimplificado = client?.regimen === 'Régimen Simplificado';
+        const subtotal = isSimplificado ? v.monto : v.monto / 1.19;
         if (v.tipoVenta === 'Contrato') {
             return acc + (subtotal * 0.35);
         }

@@ -508,7 +508,7 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, pr
             const dateStr = `${month}/${year}`;
 
             doc.setFontSize(18);
-            doc.text(`Reporte de Comisiones v2 (${activeTab === 'siigo' ? 'Siigo' : 'CRM'})`, 14, 20);
+            doc.text(`Reporte de Comisiones v3 (${activeTab === 'siigo' ? 'Siigo' : 'CRM'})`, 14, 20);
             doc.setFontSize(12);
             doc.text(`Periodo: ${dateStr}`, 14, 30);
             doc.text(`Fecha de Reporte: ${new Date().toLocaleDateString()}`, 14, 38);
@@ -600,13 +600,18 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, pr
                 });
 
                 // Get finalY carefully
-                // @ts-ignore
                 let finalY = 100;
-                // @ts-ignore
-                if (doc.lastAutoTable && doc.lastAutoTable.finalY) {
+                try {
                     // @ts-ignore
-                    finalY = doc.lastAutoTable.finalY;
+                    if (doc.lastAutoTable && doc.lastAutoTable.finalY) {
+                        // @ts-ignore
+                        finalY = Number(doc.lastAutoTable.finalY);
+                    }
+                } catch (e) {
+                    finalY = 100;
                 }
+                
+                if (isNaN(finalY)) finalY = 100;
 
                 doc.setFontSize(14);
                 doc.text('Detalle por Factura CRM', 14, finalY + 15);
@@ -625,7 +630,7 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, pr
                 });
             }
 
-            doc.save(`Reporte_Comisiones_${activeTab}_${month}_${year}.pdf`);
+            doc.save(`Reporte_Comisiones_v3_${activeTab}_${month}_${year}.pdf`);
         } catch (error: any) {
             alert(`Error al generar el PDF: ${error.message}.`);
         } finally {

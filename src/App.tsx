@@ -74,6 +74,7 @@ export interface Cliente {
   contabilidadEmail?: string;
   poseeCredito: boolean;
   cupoCredito?: number;
+  regimen?: 'Régimen Común' | 'Régimen Simplificado';
 }
 
 export interface Proveedor {
@@ -85,6 +86,7 @@ export interface Proveedor {
   correo: string;
   direccion: string;
   coordenadas: string;
+  regimen?: 'Régimen Común' | 'Régimen Simplificado';
 }
 
 export interface Producto {
@@ -370,12 +372,18 @@ function App() {
           contabilidadTelefono: c.contabilidad_telefono || '',
           contabilidadEmail: c.contabilidad_email || '',
           poseeCredito: !!c.posee_credito,
-          cupoCredito: c.cupo_credito || 0
+          cupoCredito: c.cupo_credito || 0,
+          regimen: c.regimen || 'Régimen Común'
         } as Cliente)));
       }
 
       const { data: providerData } = await supabase.from('proveedores').select('*');
-      if (providerData) setProveedores(providerData as Proveedor[]);
+      if (providerData) {
+        setProveedores(providerData.map((p: any) => ({
+          ...p,
+          regimen: p.regimen || 'Régimen Común'
+        } as Proveedor)));
+      }
 
       const { data: productData, error: productError } = await supabase.from('productos').select('*');
       if (productError) console.error('Error cargando productos:', productError.message);
@@ -656,7 +664,8 @@ function App() {
       posee_credito: c.poseeCredito || false,
       cupo_credito: c.cupoCredito || 0,
       compradores: c.compradores || [],
-      sedes: c.sedes || []
+      sedes: c.sedes || [],
+      regimen: c.regimen || 'Régimen Común'
     };
 
     console.log('Insertando cliente en Supabase:', dbClient);
@@ -678,6 +687,7 @@ function App() {
         tesoreriaTelefono: dbObj.tesoreria_telefono,
         tesoreriaEmail: dbObj.tesoreria_email,
         contabilidadNombre: dbObj.contabilidad_nombre,
+        regimen: dbObj.regimen || 'Régimen Común',
         contabilidadTelefono: dbObj.contabilidad_telefono,
         contabilidadEmail: dbObj.contabilidad_email,
         poseeCredito: !!dbObj.posee_credito,
@@ -708,7 +718,8 @@ function App() {
       posee_credito: c.poseeCredito || false,
       cupo_credito: c.cupoCredito || 0,
       compradores: c.compradores || [],
-      sedes: c.sedes || []
+      sedes: c.sedes || [],
+      regimen: c.regimen || 'Régimen Común'
     };
 
     console.log('Actualizando cliente en Supabase:', payload);

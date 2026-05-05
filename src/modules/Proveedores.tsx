@@ -106,6 +106,17 @@ const ProveedoresModule: React.FC<IProps> = ({ proveedores, onAdd, onUpdate, onD
                                 <label>Coordenadas (Lat, Long)</label>
                                 <input className="input-field" placeholder="4.6097, -74.0817" value={formData.coordenadas || ''} onChange={e => setFormData({ ...formData, coordenadas: e.target.value })} />
                             </div>
+                            <div className="form-group flex-1">
+                                <label>Régimen Fiscal</label>
+                                <select 
+                                    className="input-field" 
+                                    value={formData.regimen || 'Régimen Común'} 
+                                    onChange={e => setFormData({ ...formData, regimen: e.target.value as any })}
+                                >
+                                    <option value="Régimen Común">Régimen Común</option>
+                                    <option value="Régimen Simplificado">Régimen Simplificado</option>
+                                </select>
+                            </div>
                             <div className="form-group flex-2">
                                 <label>Dirección</label>
                                 <input className="input-field" placeholder="Calle 123 #45-67" value={formData.direccion || ''} onChange={e => setFormData({ ...formData, direccion: e.target.value })} />
@@ -126,7 +137,8 @@ const ProveedoresModule: React.FC<IProps> = ({ proveedores, onAdd, onUpdate, onD
                             <th style={{ width: '20%' }}>Proveedor</th>
                             <th style={{ width: '15%' }}>NIT</th>
                             <th style={{ width: '30%' }}>Contacto / Tel / Correo</th>
-                            <th style={{ width: '25%' }}>Ubicación (Dir / Coords)</th>
+                            <th style={{ width: '20%' }}>Ubicación (Dir / Coords)</th>
+                            <th style={{ width: '10%' }}>Régimen</th>
                             <th style={{ width: '100px' }}>Acciones</th>
                         </tr>
                     </thead>
@@ -153,6 +165,18 @@ const ProveedoresModule: React.FC<IProps> = ({ proveedores, onAdd, onUpdate, onD
                                         <div>{p.direccion}</div>
                                         {p.coordenadas && <code className="coords-badge">📍 {p.coordenadas}</code>}
                                     </div>
+                                </td>
+                                <td>
+                                    <span className={`badge ${p.regimen === 'Régimen Simplificado' ? 'badge-simplificado' : 'badge-comun'}`} style={{
+                                        padding: '2px 8px',
+                                        borderRadius: '12px',
+                                        fontSize: '0.75rem',
+                                        fontWeight: 'bold',
+                                        background: p.regimen === 'Régimen Simplificado' ? '#fef3c7' : '#e0f2fe',
+                                        color: p.regimen === 'Régimen Simplificado' ? '#92400e' : '#0369a1'
+                                    }}>
+                                        {p.regimen || 'Régimen Común'}
+                                    </span>
                                 </td>
                                 <td>
                                     <div style={{ display: 'flex', gap: '0.5rem' }}>

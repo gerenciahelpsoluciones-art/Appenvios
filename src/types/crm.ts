@@ -47,6 +47,7 @@ export interface Cliente {
   contabilidadEmail?: string;
   poseeCredito: boolean;
   cupoCredito?: number;
+  regimen?: 'Régimen Común' | 'Régimen Simplificado';
 }
 
 export interface Proveedor {
@@ -58,6 +59,7 @@ export interface Proveedor {
   correo: string;
   direccion: string;
   coordenadas: string;
+  regimen?: 'Régimen Común' | 'Régimen Simplificado';
 }
 
 export interface Producto {

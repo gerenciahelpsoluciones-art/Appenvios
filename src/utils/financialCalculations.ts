@@ -1,11 +1,15 @@
-import type { Despacho, Cotizacion } from '../App';
+import type { Despacho, Cotizacion, Cliente } from '../App';
 
-export const calculateDespachoNeto = (d: Despacho, cotizaciones: Cotizacion[]) => {
+export const calculateDespachoNeto = (d: Despacho, cotizaciones: Cotizacion[], clientes: Cliente[] = []) => {
     const cot = cotizaciones.find(c => c.id === d.cotizacionId || c.consecutivo === d.consecutivoCotizacion);
+    const client = clientes.find(c => c.id === d.clienteId);
+    const isSimplificado = client?.regimen === 'Régimen Simplificado';
+    const ivaDivisor = isSimplificado ? 1 : 1.19;
+
     let totalNeto = 0;
 
     if (!d.items || d.items.length === 0) {
-        return d.total / 1.19;
+        return d.total / ivaDivisor;
     }
 
     const availableQuoteItems = cot ? [...cot.items] : [];
@@ -42,7 +46,7 @@ export const calculateDespachoNeto = (d: Despacho, cotizaciones: Cotizacion[]) =
 
         // Si sigue siendo 0, intentamos un fallback proporcional
         if (itemNeto === 0 && d.total > 0) {
-            itemNeto = (d.total / 1.19) / d.items.length;
+            itemNeto = (d.total / ivaDivisor) / d.items.length;
         }
 
         totalNeto += itemNeto;
