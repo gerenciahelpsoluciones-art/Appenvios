@@ -508,7 +508,7 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, pr
             const dateStr = `${month}/${year}`;
 
             doc.setFontSize(18);
-            doc.text(`Reporte de Comisiones (${activeTab === 'siigo' ? 'Siigo' : 'CRM'})`, 14, 20);
+            doc.text(`Reporte de Comisiones v2 (${activeTab === 'siigo' ? 'Siigo' : 'CRM'})`, 14, 20);
             doc.setFontSize(12);
             doc.text(`Periodo: ${dateStr}`, 14, 30);
             doc.text(`Fecha de Reporte: ${new Date().toLocaleDateString()}`, 14, 38);
@@ -558,7 +558,7 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, pr
                     const seller = quote?.ejecutivo || 'N/A';
                     const availableQuoteItems = quote ? [...quote.items] : [];
                     
-                    return d.items.map((dItem) => {
+                    return (d.items || []).map((dItem) => {
                         const qItemIndex = availableQuoteItems.findIndex(qi => 
                             (qi.productoId && dItem.productoId && qi.productoId === dItem.productoId) || 
                             (qi.id && dItem.productoId && qi.id === dItem.productoId)
@@ -584,14 +584,14 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, pr
                             salePrice = costPrice;
                         }
 
-                        const utility = (salePrice - costPrice) * dItem.cantidad;
+                        const utility = (salePrice - costPrice) * (dItem.cantidad || 0);
 
                         return [
                             d.fechaFacturado || '',
                             seller,
                             d.clienteNombre || '',
                             `${productName}\nCot: ${quote?.consecutivo || 'N/A'}`,
-                            String(dItem.cantidad),
+                            String(dItem.cantidad || 0),
                             `$ ${salePrice.toLocaleString('es-CO', { maximumFractionDigits: 0 })}`,
                             `$ ${costPrice.toLocaleString('es-CO', { maximumFractionDigits: 0 })}`,
                             `$ ${utility.toLocaleString('es-CO', { maximumFractionDigits: 0 })}`
@@ -599,25 +599,30 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, pr
                     });
                 });
 
-                if (detailBodyData.length > 0) {
+                // Get finalY carefully
+                // @ts-ignore
+                let finalY = 100;
+                // @ts-ignore
+                if (doc.lastAutoTable && doc.lastAutoTable.finalY) {
                     // @ts-ignore
-                    const finalY = doc.lastAutoTable?.finalY || 100;
-                    doc.setFontSize(14);
-                    doc.text('Detalle por Factura CRM', 14, finalY + 15);
-                    
-                    // @ts-ignore
-                    autoTable(doc, {
-                        startY: finalY + 20,
-                        head: [['Fecha', 'Asesor', 'Cliente', 'Producto', 'Cant.', 'Precio V.', 'Costo U.', 'Utilidad']],
-                        body: detailBodyData,
-                        theme: 'grid',
-                        headStyles: { fillColor: [2, 132, 199], textColor: 255 },
-                        styles: { fontSize: 8, overflow: 'linebreak' },
-                        columnStyles: {
-                            3: { cellWidth: 50 }
-                        }
-                    });
+                    finalY = doc.lastAutoTable.finalY;
                 }
+
+                doc.setFontSize(14);
+                doc.text('Detalle por Factura CRM', 14, finalY + 15);
+                
+                // @ts-ignore
+                autoTable(doc, {
+                    startY: finalY + 20,
+                    head: [['Fecha', 'Asesor', 'Cliente', 'Producto', 'Cant.', 'Precio V.', 'Costo U.', 'Utilidad']],
+                    body: detailBodyData.length > 0 ? detailBodyData : [['Sin datos', '', '', '', '', '', '', '']],
+                    theme: 'grid',
+                    headStyles: { fillColor: [2, 132, 199], textColor: 255 },
+                    styles: { fontSize: 8, overflow: 'linebreak' },
+                    columnStyles: {
+                        3: { cellWidth: 50 }
+                    }
+                });
             }
 
             doc.save(`Reporte_Comisiones_${activeTab}_${month}_${year}.pdf`);
