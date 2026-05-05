@@ -3,6 +3,7 @@ import Hero from '../components/Hero';
 import Services from '../components/Services';
 import About from '../components/About';
 import DynamicHomeSections from '../components/ui/DynamicHomeSections';
+import FAQ from '../components/FAQ';
 
 export default function Home() {
   return (
@@ -11,6 +12,7 @@ export default function Home() {
         <Hero />
         <Services />
         <About />
+        <FAQ />
         <DynamicHomeSections />
       </div>
     </div>

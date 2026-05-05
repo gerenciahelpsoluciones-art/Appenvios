@@ -5,6 +5,7 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import DynamicLayout from "../components/ui/DynamicLayout";
 import Script from "next/script";
+import WhatsAppWidget from "../components/ui/WhatsAppWidget";
 
 const notoSans = Noto_Sans({
   variable: "--font-noto-sans",
@@ -88,6 +89,84 @@ export default function RootLayout({
         <main className="flex-grow">{children}</main>
         <Footer />
         <DynamicLayout />
+        <WhatsAppWidget />
+
+        {/* Structured Data (JSON-LD) for Local Business */}
+        <Script id="structured-data" type="application/ld+json" strategy="afterInteractive">
+          {`
+            {
+              "@context": "https://schema.org",
+              "@type": "LocalBusiness",
+              "name": "Help Soluciones",
+              "image": "https://www.helpsoluciones.com.co/images/premium_hero_1.png",
+              "@id": "https://www.helpsoluciones.com.co",
+              "url": "https://www.helpsoluciones.com.co",
+              "telephone": "+573102172251",
+              "address": {
+                "@type": "PostalAddress",
+                "streetAddress": "Carrera 93 F 127 B 12",
+                "addressLocality": "Bogotá",
+                "addressCountry": "CO"
+              },
+              "geo": {
+                "@type": "GeoCoordinates",
+                "latitude": 4.711,
+                "longitude": -74.0721
+              },
+              "openingHoursSpecification": {
+                "@type": "OpeningHoursSpecification",
+                "dayOfWeek": [
+                  "Monday",
+                  "Tuesday",
+                  "Wednesday",
+                  "Thursday",
+                  "Friday"
+                ],
+                "opens": "08:00",
+                "closes": "18:00"
+              },
+              "sameAs": [
+                "https://www.facebook.com/helpsoluciones",
+                "https://www.instagram.com/helpsoluciones"
+              ]
+            }
+          `}
+        </Script>
+
+        <Script id="faq-schema" type="application/ld+json" strategy="afterInteractive">
+          {`
+            {
+              "@context": "https://schema.org",
+              "@type": "FAQPage",
+              "mainEntity": [
+                {
+                  "@type": "Question",
+                  "name": "¿Por qué es vital el mantenimiento preventivo de servidores para mi empresa?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "El mantenimiento preventivo garantiza la continuidad de su negocio al detectar fallas potenciales antes de que causen una interrupción. Asegura un uptime del 99.9% mediante optimización y actualizaciones críticas."
+                  }
+                },
+                {
+                  "@type": "Question",
+                  "name": "¿Qué beneficios ofrece un cableado estructurado certificado?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Un cableado certificado elimina cuellos de botella, reduce interferencias y cumple con normativas internacionales, soportando tecnologías de alta demanda como videollamadas 4K y VoIP sin latencia."
+                  }
+                },
+                {
+                  "@type": "Question",
+                  "name": "¿Brindan soporte técnico remoto y presencial en toda Colombia?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Sí, ofrecemos soporte técnico remoto inmediato y cobertura presencial en Bogotá y las principales ciudades de Colombia para infraestructura física y hardware."
+                  }
+                }
+              ]
+            }
+          `}
+        </Script>
 
         {/* HelpMarketer Visitor Tracker */}
         <Script id="helpmarketer-tracker" strategy="afterInteractive">

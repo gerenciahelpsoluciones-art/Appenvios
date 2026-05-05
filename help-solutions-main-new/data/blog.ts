@@ -96,6 +96,37 @@ export const blogPosts: BlogPost[] = [
       name: 'HelpMarketer IA',
       role: 'CDO Digital',
       avatar: 'https://images.unsplash.com/photo-1620712943543-bcc4628c9757?auto=format&fit=crop&q=80&w=100'
+    },
+  {
+    id: 'post-5',
+    slug: 'guia-cableado-estructurado-bogota-eficiencia',
+    title: 'Cableado Estructurado en Bogotá: La Clave de la Velocidad Empresarial',
+    excerpt: '¿Su oficina tiene cuellos de botella en la red? Descubra por qué una infraestructura de cableado profesional es la inversión más rentable para su empresa en 2026.',
+    content: '<h2>Más que solo cables</h2><p>Un sistema de <strong>cableado estructurado</strong> bien diseñado es el sistema nervioso de cualquier organización moderna. En Bogotá, donde la competencia empresarial es feroz, contar con una red de datos certificada (Categoría 6A o superior) marca la diferencia entre una operación fluida y una llena de interrupciones constantes.</p><h3>Beneficios de la Certificación</h3><p>Implementar redes certificadas no solo mejora la velocidad, sino que reduce drásticamente el ruido electromagnético y prepara a su empresa para tecnologías futuras como el IoT industrial y la videovigilancia 4K.</p>',
+    date: '25 Abr 2026',
+    readTime: '8 min de lectura',
+    category: 'Infraestructura TI',
+    image: 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?auto=format&fit=crop&q=80&w=800',
+    author: {
+      name: 'Carlos Mendoza',
+      role: 'Consultor Ti',
+      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=100'
+    }
+  },
+  {
+    id: 'post-6',
+    slug: 'mantenimiento-preventivo-servidores-ahorro-costos',
+    title: 'Mantenimiento de Servidores: El Seguro de Vida de su Información',
+    excerpt: 'El costo de una hora de inactividad puede ser devastador. Aprenda cómo el mantenimiento preventivo programado salva empresas de desastres financieros.',
+    content: '<h2>La cultura de la prevención vs. la reacción</h2><p>Esperar a que un servidor falle para llamar a soporte es el error más costoso que una empresa puede cometer. El <strong>mantenimiento preventivo de servidores</strong> en Help Soluciones incluye limpieza física profunda, actualización de firmware, revisión de arreglos RAID y optimización de software crítico.</p><h3>Seguridad y Rendimiento</h3><p>Un servidor bien mantenido consume menos energía, genera menos calor y, lo más importante, reduce la superficie de ataque para vulnerabilidades conocidas.</p>',
+    date: '02 May 2026',
+    readTime: '6 min de lectura',
+    category: 'Soporte Técnico',
+    image: 'https://images.unsplash.com/photo-1597733336794-12d05021d510?auto=format&fit=crop&q=80&w=800',
+    author: {
+      name: 'Luis Ramírez',
+      role: 'Tech Specialist',
+      avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=100'
     }
   }
 ];
