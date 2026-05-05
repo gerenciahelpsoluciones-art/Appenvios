@@ -623,13 +623,13 @@ const InformesModule: React.FC<IProps> = ({
                             {difference >= 0 ? `+ $${difference.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}` : `- $${Math.abs(difference).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`}
                         </div>
                     </div>
-                    <div className="card" style={{ background: '#059669', color: 'white', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
-                        <div style={{ fontSize: '0.9rem', opacity: 0.9, marginBottom: '0.5rem' }}>Utilidad en el Rango</div>
-                        <div style={{ fontSize: '2.5rem', fontWeight: 800 }}>${combinedProfit.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
-                        <div style={{ fontSize: '0.75rem', marginTop: '0.8rem', display: 'flex', gap: '1rem', opacity: 0.9, borderTop: '1px solid rgba(255,255,255,0.2)', paddingTop: '0.8rem' }}>
-                            <span>CRM: ${totalUtilidad.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</span>
-                            <span>Manual: ${totalManualProfit.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</span>
-                            <span>Alq: ${revenueByRental.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</span>
+                    <div className="card" style={{ background: '#059669', color: 'white', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', padding: '1rem' }}>
+                        <div style={{ fontSize: '0.8rem', opacity: 0.9, marginBottom: '0.3rem' }}>Utilidad en el Rango</div>
+                        <div style={{ fontSize: '1.5rem', fontWeight: 800, whiteSpace: 'nowrap' }}>${combinedProfit.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+                        <div style={{ fontSize: '0.65rem', marginTop: '0.6rem', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.4rem', width: '100%', opacity: 0.9, borderTop: '1px solid rgba(255,255,255,0.2)', paddingTop: '0.6rem' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column' }}><span>CRM</span><strong>${totalUtilidad.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</strong></div>
+                            <div style={{ display: 'flex', flexDirection: 'column' }}><span>Manual</span><strong>${totalManualProfit.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</strong></div>
+                            <div style={{ display: 'flex', flexDirection: 'column' }}><span>Alq</span><strong>${revenueByRental.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</strong></div>
                         </div>
                     </div>
                     <div className="stat-card margin-percent-card" style={{ background: 'linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)' }}>
@@ -905,7 +905,6 @@ const InformesModule: React.FC<IProps> = ({
             <div className="card">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
                     <h3 style={{ margin: 0 }}>Listado de Cotizaciones</h3>
-                    <span style={{ fontSize: '0.7rem', background: 'var(--primary-blue)', color: 'white', padding: '0.2rem 0.6rem', borderRadius: '10px', fontWeight: 'bold' }}>v2.0 - ALTA PRECISIÓN</span>
                 </div>
                 <div style={{ overflowX: 'auto' }}>
                     <table className="data-table">
