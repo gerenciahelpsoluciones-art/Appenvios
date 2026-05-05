@@ -501,7 +501,7 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, pr
         setLoading(true);
         try {
             const { jsPDF } = await import('jspdf');
-            await import('jspdf-autotable');
+            const { default: autoTable } = await import('jspdf-autotable');
 
             const doc = new jsPDF();
             const results = getSellerSummary();
@@ -527,7 +527,7 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, pr
             };
 
             // @ts-ignore
-            doc.autoTable({
+            autoTable(doc, {
                 startY: 45,
                 head: [['Asesor Comercial', 'Ventas', 'Utilidad Total', 'Comisión (10%)']],
                 body: bodyData,
