@@ -3,10 +3,8 @@
 import React, { useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
-import { supabase } from '../../app/lib/supabase';
 
 // Dynamic imports for non-critical components to reduce main thread work
-const WhatsAppButton = dynamic(() => import("../WhatsAppButton"), { ssr: false });
 const ScrollToTopButton = dynamic(() => import("../ScrollToTopButton"), { ssr: false });
 const LeadAgent = dynamic(() => import("../LeadAgent"), { ssr: false });
 const DeferredRender = dynamic(() => import("./DeferredRender"), { ssr: false });
@@ -40,7 +38,6 @@ export default function DynamicLayout() {
   return (
     <DeferredRender delay={1000}>
       <LeadAgent />
-      <WhatsAppButton />
       <ScrollToTopButton />
     </DeferredRender>
   );

@@ -1597,7 +1597,8 @@ function App() {
       monto: v.monto,
       moneda: v.moneda || 'COP',
       tipo_venta: v.tipoVenta || 'Venta',
-      descripcion: v.descripcion
+      descripcion: v.descripcion,
+      costo: v.costo || 0
     }));
 
     const { data, error } = await supabase.from('ventas_manuales').insert(payloads).select();
@@ -1627,7 +1628,8 @@ function App() {
       monto: v.monto,
       moneda: v.moneda || 'COP',
       tipo_venta: v.tipoVenta || 'Venta',
-      descripcion: v.descripcion
+      descripcion: v.descripcion,
+      costo: v.costo || 0
     };
 
     const { error } = await supabase.from('ventas_manuales').update(payload).eq('id', v.id);
@@ -1917,6 +1919,8 @@ function App() {
           cotizaciones={cotizaciones}
           despachos={despachos}
           productos={productos}
+          ventasManuales={ventasManuales}
+          alquileres={alquileres}
         />;
       case 'informes':
         const restrictedQuotes = currentUser.rol === 'Admin'

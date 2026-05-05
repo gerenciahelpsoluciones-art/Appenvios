@@ -1,4 +1,4 @@
-import { ArrowRight, MessageCircle } from 'lucide-react';
+import { MessageCircle } from 'lucide-react';
 
 /* ──────────────────────────────────────────────────────
    Hero — Executive Precision (Stitch Design System)

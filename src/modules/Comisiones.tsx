@@ -11,9 +11,11 @@ interface IProps {
     cotizaciones: Cotizacion[];
     despachos: Despacho[];
     productos: Producto[];
+    ventasManuales: VentaManual[];
+    alquileres: Alquiler[];
 }
 
-const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, productos }) => {
+const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, productos, ventasManuales, alquileres }) => {
     const [activeTab, setActiveTab] = useState<'siigo' | 'local'>('siigo');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -469,6 +471,37 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, pr
                     }
 
                     summary[sellerName].utility += dispatchUtility;
+                    summary[sellerName].salesCount += 1;
+                });
+
+            // 3. SUMAR VENTAS MANUALES (Local)
+            ventasManuales
+                .filter(v => v && v.fecha && v.fecha.startsWith(selectedMonthPrefix))
+                .forEach(v => {
+                    const sellerName = v.usuarioNombre || 'Desconocido';
+                    if (!summary[sellerName]) {
+                        summary[sellerName] = { id: sellerName, name: sellerName, utility: 0, commission: 0, salesCount: 0 };
+                    }
+                    // Utilidad = Monto - Costo (usando el nuevo campo que añadimos)
+                    const utility = Number(v.monto || 0) - Number((v as any).costo || 0);
+                    summary[sellerName].utility += Math.round(utility * 100) / 100;
+                    summary[sellerName].salesCount += 1;
+                });
+
+            // 4. SUMAR INGRESOS POR ALQUILERES (Equipos actualmente alquilados)
+            alquileres
+                .filter(a => a && a.estado === 'Alquilado')
+                .forEach(a => {
+                    const sellerObj = users.find(u => u.id === a.usuarioId);
+                    const sellerName = sellerObj ? sellerObj.nombre : 'Desconocido';
+                    
+                    if (!summary[sellerName]) {
+                        summary[sellerName] = { id: sellerName, name: sellerName, utility: 0, commission: 0, salesCount: 0 };
+                    }
+                    
+                    // En alquileres la utilidad es el 100% del valor mensual
+                    const rentalIncome = Number(a.valorMensual || 0);
+                    summary[sellerName].utility += rentalIncome;
                     summary[sellerName].salesCount += 1;
                 });
         }

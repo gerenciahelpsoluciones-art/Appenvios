@@ -35,6 +35,7 @@ const VentasManualesModule: React.FC<IProps> = ({
     const [monto, setMonto] = useState(0);
     const [tipoVenta, setTipoVenta] = useState<'Venta' | 'Contrato' | 'Alquiler' | 'Licencia' | 'Licitacion'>('Venta');
     const [descripcion, setDescripcion] = useState('');
+    const [costo, setCosto] = useState(0);
     const [searchTerm, setSearchTerm] = useState('');
 
     // Summary Calculations
@@ -97,7 +98,8 @@ const VentasManualesModule: React.FC<IProps> = ({
                 usuarioNombre: usuario.nombre,
                 monto,
                 tipoVenta: tipoVenta,
-                descripcion
+                descripcion,
+                costo
             });
             setEditingVenta(null);
         } else {
@@ -112,7 +114,8 @@ const VentasManualesModule: React.FC<IProps> = ({
                 usuarioNombre: usuario.nombre,
                 monto: monto,
                 tipoVenta: tipoVenta,
-                descripcion: descripcion
+                descripcion: descripcion,
+                costo: costo
             };
             onAdd(newVenta);
         }
@@ -127,6 +130,7 @@ const VentasManualesModule: React.FC<IProps> = ({
         setMonto(v.monto);
         setTipoVenta(v.tipoVenta || 'Venta');
         setDescripcion(v.descripcion);
+        setCosto(v.costo || 0);
         setIsAdding(true);
     };
 
@@ -140,6 +144,7 @@ const VentasManualesModule: React.FC<IProps> = ({
         setMonto(0);
         setTipoVenta('Venta');
         setDescripcion('');
+        setCosto(0);
     };
 
     const filteredVentas = useMemo(() => {
@@ -253,6 +258,17 @@ const VentasManualesModule: React.FC<IProps> = ({
                                     onChange={e => setMonto(Number(e.target.value))}
                                     placeholder="0"
                                     style={{ fontWeight: 'bold', fontSize: '1.1rem' }}
+                                />
+                            </div>
+                            <div className="form-group flex-1">
+                                <label>Costo de Venta (COP)</label>
+                                <input
+                                    type="number"
+                                    className="input-field"
+                                    value={costo}
+                                    onChange={e => setCosto(Number(e.target.value))}
+                                    placeholder="0"
+                                    style={{ fontWeight: 'bold', fontSize: '1.1rem', color: 'var(--error)' }}
                                 />
                             </div>
                         </div>

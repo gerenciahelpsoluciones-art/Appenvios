@@ -96,7 +96,8 @@ export const blogPosts: BlogPost[] = [
       name: 'HelpMarketer IA',
       role: 'CDO Digital',
       avatar: 'https://images.unsplash.com/photo-1620712943543-bcc4628c9757?auto=format&fit=crop&q=80&w=100'
-    },
+    }
+  },
   {
     id: 'post-5',
     slug: 'guia-cableado-estructurado-bogota-eficiencia',

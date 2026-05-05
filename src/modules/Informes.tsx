@@ -192,20 +192,30 @@ const InformesModule: React.FC<IProps> = ({
         .filter(v => v.tipoVenta === 'Venta')
         .reduce((acc, v) => acc + v.monto, 0);
 
-    const totalManualSales = manualSalesFiltered.reduce((acc, v) => {
+    const totalManualSales = (manualSalesFiltered || []).reduce((acc, v) => {
+        const monto = Number(v.monto || 0);
         const client = clientes.find(c => c.id === v.clienteId);
         const isSimplificado = client?.regimen === 'Régimen Simplificado';
-        const subtotal = isSimplificado ? v.monto : v.monto / 1.19;
-        return acc + subtotal;
+        const subtotal = isSimplificado ? monto : monto / 1.19;
+        return acc + (isNaN(subtotal) ? 0 : subtotal);
     }, 0);
-    const totalManualProfit = manualSalesFiltered.reduce((acc, v) => {
+
+    const totalManualProfit = (manualSalesFiltered || []).reduce((acc, v) => {
+        const monto = Number(v.monto || 0);
         const client = clientes.find(c => c.id === v.clienteId);
         const isSimplificado = client?.regimen === 'Régimen Simplificado';
-        const subtotal = isSimplificado ? v.monto : v.monto / 1.19;
-        if (v.tipoVenta === 'Contrato') {
-            return acc + (subtotal * 0.35);
+        const subtotal = isSimplificado ? monto : monto / 1.19;
+        
+        // Soportar tanto tipoVenta como tipo_venta (Supabase)
+        const tipoRaw = v.tipoVenta || (v as any).tipo_venta || '';
+        const tipo = String(tipoRaw).toLowerCase();
+        
+        if (tipo.includes('contrato')) {
+            return acc + (isNaN(subtotal) ? 0 : subtotal);
         }
-        return acc + (subtotal - (v.costo || 0));
+        const costo = Number(v.costo || 0);
+        const profit = subtotal - costo;
+        return acc + (isNaN(profit) ? 0 : profit);
     }, 0);
 
     // Mantener wonQuotesInRange solo para la tabla de cotizaciones listadas
@@ -319,10 +329,10 @@ const InformesModule: React.FC<IProps> = ({
     // Total manual sales in period
 
     // Monthly performance for execution cards (now based on appliedFilters for consistency)
-    const monthlySales = totalVendido + totalManualSales;
-    const combinedProfit = totalUtilidad + totalManualProfit;
+    const monthlySales = totalVendido + totalManualSales + revenueByRental;
+    const combinedProfit = totalUtilidad + totalManualProfit + revenueByRental;
     const totalBruto = totalVendido * 1.19;
-    const totalBrutoConManuales = totalBruto + totalManualSales; // Asumiendo manuales son brutos
+    const totalBrutoConManuales = totalBruto + totalManualSales + revenueByRental; // Asumiendo manuales son brutos
 
     const profitMarginPercent = monthlySales > 0 ? (combinedProfit / monthlySales) * 100 : 0;
 
@@ -613,10 +623,14 @@ const InformesModule: React.FC<IProps> = ({
                             {difference >= 0 ? `+ $${difference.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}` : `- $${Math.abs(difference).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`}
                         </div>
                     </div>
-                    <div className="stat-card profit-summary-card">
-                        <div className="stat-label" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.75rem' }}>Utilidad en Rango</div>
-                        <div className="stat-value" style={{ fontSize: '1.2rem', color: '#fff' }}>${combinedProfit.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
-                        <div className="stat-trend" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff' }}>Incluye V. Manuales</div>
+                    <div className="card" style={{ background: '#059669', color: 'white', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.9rem', opacity: 0.9, marginBottom: '0.5rem' }}>Utilidad en el Rango</div>
+                        <div style={{ fontSize: '2.5rem', fontWeight: 800 }}>${combinedProfit.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
+                        <div style={{ fontSize: '0.75rem', marginTop: '0.8rem', display: 'flex', gap: '1rem', opacity: 0.9, borderTop: '1px solid rgba(255,255,255,0.2)', paddingTop: '0.8rem' }}>
+                            <span>CRM: ${totalUtilidad.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</span>
+                            <span>Manual: ${totalManualProfit.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</span>
+                            <span>Alq: ${revenueByRental.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</span>
+                        </div>
                     </div>
                     <div className="stat-card margin-percent-card" style={{ background: 'linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)' }}>
                         <div className="stat-label" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.75rem' }}>Porcentaje de Utilidad</div>
@@ -729,9 +743,9 @@ const InformesModule: React.FC<IProps> = ({
             <div className="dashboard-grid" style={{ marginTop: '1.5rem', marginBottom: '1.5rem' }}>
                 <div className="card stat-card">
                     <h4>Total en el Rango</h4>
-                    <p className="stat-value">${(totalVendido + totalManualSales).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                    <p className="stat-value">${(totalVendido + totalManualSales + revenueByRental).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                     <div style={{ fontSize: '0.75rem', opacity: 0.8, marginTop: '0.5rem', fontWeight: 600 }}>
-                        Fact. CRM: ${totalVendido.toLocaleString('es-CO', { maximumFractionDigits: 0 })} | Manual: ${totalManualSales.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                        Fact. CRM: ${totalVendido.toLocaleString('es-CO', { maximumFractionDigits: 0 })} | Manual: ${totalManualSales.toLocaleString('es-CO', { maximumFractionDigits: 0 })} | Alquiler: ${revenueByRental.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
                     </div>
                     <span className="stat-label" style={{ marginTop: '0.5rem', display: 'block' }}>
                         {appliedFilters.inicio} al {appliedFilters.fin} • {despachosFacturadosEnRango.length} facturas CRM
