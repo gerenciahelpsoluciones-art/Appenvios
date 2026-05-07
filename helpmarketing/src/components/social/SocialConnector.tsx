@@ -43,6 +43,13 @@ const PLATFORM_INFO: Record<SocialPlatform, {
     docsUrl: 'https://developers.tiktok.com/doc/content-posting-api-get-started',
     fields: ['Client Key', 'Access Token'],
   },
+  whatsapp: {
+    label: 'WhatsApp', color: '#25d366', icon: '📞',
+    cost: 'Gratis (Cloud API)',
+    authType: 'Meta WhatsApp Cloud API',
+    docsUrl: 'https://developers.facebook.com/docs/whatsapp/cloud-api',
+    fields: ['Phone Number ID', 'WhatsApp Business Account ID', 'Access Token'],
+  },
 };
 
 // ─── Tarjeta por plataforma ──────────────────────────────────────────────────

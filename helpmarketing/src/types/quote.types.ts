@@ -1,4 +1,4 @@
-import { Client } from './remission.types';
+import type { Client } from './remission.types';
 
 export type QuoteStatus = 'borrador' | 'enviada' | 'aprobada' | 'rechazada' | 'vencida';
 

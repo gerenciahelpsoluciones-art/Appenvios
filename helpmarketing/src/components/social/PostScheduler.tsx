@@ -8,6 +8,7 @@ const PLATFORM_COLOR: Record<SocialPlatform, string> = {
   facebook:  '#1877f2',
   twitter:   '#14171a',
   tiktok:    '#ff0050',
+  whatsapp:  '#25d366',
 };
 
 const PLATFORM_LABEL: Record<SocialPlatform, string> = {
@@ -16,6 +17,7 @@ const PLATFORM_LABEL: Record<SocialPlatform, string> = {
   facebook:  'Facebook',
   twitter:   'X/Twitter',
   tiktok:    'TikTok',
+  whatsapp:  'WhatsApp',
 };
 
 const STATUS_LABEL: Record<Post['status'], string> = {

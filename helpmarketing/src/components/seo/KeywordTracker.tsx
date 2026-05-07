@@ -123,7 +123,6 @@ export function KeywordTracker() {
   // Agrupar: top 3, posiciones 4-10, >10
   const top3   = keywords.filter((k) => k.position != null && k.position <= 3);
   const page1  = keywords.filter((k) => k.position != null && k.position > 3 && k.position <= 10);
-  const rest   = keywords.filter((k) => k.position == null || k.position > 10);
 
   return (
     <div className="animate-fade-in">

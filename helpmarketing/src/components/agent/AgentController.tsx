@@ -454,10 +454,11 @@ export function AgentController() {
             </div>
           ))}
         </div>
+        </div>
         <p style={{ marginTop: '1rem', fontSize: '0.75rem', color: 'hsl(var(--text-muted))' }}>
           Los workflows se ejecutan en n8n. El agente lee <code>mkt_agent_paused</code> antes de cada ejecución.
         </p>
-        </>
+      </>
       ) : (
         <TelegramManager />
       )}

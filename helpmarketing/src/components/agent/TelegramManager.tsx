@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
+import { supabase } from '../../services/supabase';
 import { 
   getAuthorizedUsers, 
   authorizeUser, 
   deauthorizeUser, 
   getInboundMessages, 
-  subscribeToInboundMessages,
-  TelegramAuth,
-  TelegramInbound
+  subscribeToInboundMessages
 } from '../../services/telegramService';
+import type { TelegramAuth, TelegramInbound } from '../../services/telegramService';
 
 export function TelegramManager() {
   const [users, setUsers] = useState<TelegramAuth[]>([]);
@@ -159,5 +159,4 @@ export function TelegramManager() {
   );
 }
 
-// Mock de Supabase para evitar errores si no está importado globalmente
-import { supabase } from '../../services/supabase';
+

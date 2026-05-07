@@ -11,6 +11,7 @@ const PLATFORM_META: Record<SocialPlatform, { label: string; color: string; icon
   facebook:  { label: 'Facebook',  color: '#1877f2', icon: '𝑓' },
   twitter:   { label: 'X/Twitter', color: '#14171a', icon: '𝕏' },
   tiktok:    { label: 'TikTok',    color: '#ff0050', icon: '♪' },
+  whatsapp:  { label: 'WhatsApp',  color: '#25d366', icon: '📞' },
 };
 
 const STATUS_META: Record<Post['status'], { label: string; color: string }> = {

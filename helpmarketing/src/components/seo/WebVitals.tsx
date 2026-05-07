@@ -293,13 +293,13 @@ export function WebVitals() {
                 {uptime.uptimePercent}%
               </div>
               <div style={{ fontSize: '0.82rem', opacity: 0.6, marginTop: '0.25rem' }}>
-                {uptime.upCount ?? uptime.totalChecks} / {uptime.totalChecks} checks exitosos
+                {uptime?.upCount ?? uptime?.totalChecks} / {uptime?.totalChecks} checks exitosos
               </div>
               <div style={{ fontSize: '0.82rem', marginTop: '0.75rem', opacity: 0.8 }}>
-                Respuesta promedio: <strong>{uptime.avgResponseMs}ms</strong>
+                Respuesta promedio: <strong>{uptime?.avgResponseMs}ms</strong>
               </div>
               <div style={{ fontSize: '0.72rem', opacity: 0.5, marginTop: '0.25rem' }}>
-                Último check: {new Date(uptime.lastCheck.checked_at).toLocaleTimeString('es-CO')}
+                Último check: {uptime?.lastCheck?.checked_at ? new Date(uptime.lastCheck.checked_at).toLocaleTimeString('es-CO') : '—'}
               </div>
             </>
           ) : (

@@ -6,12 +6,34 @@ if (!API_KEY) {
 }
 
 const genAI = new GoogleGenerativeAI(API_KEY || "");
-const MODEL_NAME = "gemini-1.5-flash";
+const MODEL_NAME = "gemini-3.1-flash-lite-preview";
 
 const askGemini = async (prompt: string): Promise<string> => {
-  const model = genAI.getGenerativeModel({ model: MODEL_NAME });
-  const result = await model.generateContent(prompt);
-  return result.response.text();
+  if (!API_KEY) throw new Error("No hay API Key configurada");
+  
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${API_KEY}`;
+  
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }]
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("Error directo de Google API:", errorData);
+      throw new Error(errorData.error?.message || `Error ${response.status}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.candidates[0].content.parts[0].text;
+  } catch (err: any) {
+    console.error("Error en la llamada fetch a Gemini:", err);
+    throw err;
+  }
 };
 
 export const generateMarketingContent = async (prompt: string, platform: string) => {

@@ -507,10 +507,37 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, pr
         }
 
         // Calcular comisiones sobre los totales acumulados para evitar errores de redondeo por transacción
-        return Object.values(summary).map(s => ({
+        const finalResults = Object.values(summary).map(s => ({
             ...s,
             commission: calculateCommission(s.utility)
         }));
+
+        // FILTRO DE SEGURIDAD: Solo mostrar asesores comerciales legítimos
+        return finalResults.filter(s => {
+            // Buscamos al usuario en nuestra lista oficial de usuarios del CRM
+            const user = users.find(u => 
+                u.nombre.toLowerCase() === s.name.toLowerCase() || 
+                u.id === s.id
+            );
+
+            if (!user) return false;
+
+            const cargo = (user.cargo || '').toLowerCase();
+            const rol = (user.rol || '').toLowerCase();
+            
+            // Criterios para aparecer en comisiones:
+            const esComercial = 
+                cargo.includes('comercial') || 
+                cargo.includes('ejecutiv') || 
+                cargo.includes('gerente') || 
+                cargo.includes('ventas') ||
+                cargo.includes('asesor') ||
+                (rol === 'comercial' && !cargo.includes('tecnico'));
+
+            console.log(`[DEBUG COMISIONES] Evaluando ${s.name}: Cargo="${cargo}", Rol="${rol}", EsComercial=${esComercial}`);
+            
+            return esComercial;
+        });
     };
 
     const getSellerSummary = () => {
@@ -675,7 +702,7 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, pr
         <div className="module-container" id="comisiones-module">
             <div className="module-header">
                 <div>
-                    <h2>Módulo de Comisiones y Utilidades (CRM)</h2>
+                    <h2>Módulo de Comisiones y Utilidades (FILTRO ACTIVO)</h2>
                     <p style={{ color: 'var(--text-muted)' }}>Cálculo automático del 10% sobre la utilidad neta de despachos facturados.</p>
                 </div>
                 <div style={{ display: 'flex', gap: '1rem' }}>

@@ -21,7 +21,7 @@ export async function POST(req: Request) {
     const historyText = messages.map((m: any) => `${m.role}: ${m.content}`).join("\n");
 
     // 1. GENERAR RESPUESTA (Modelo verificado: gemini-2.5-flash)
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-3.1-flash-lite-preview" });
     const systemPrompt = `Eres Helpi, asistente experto de Help Soluciones Informáticas. 
 Atiende solicitudes de soporte TI, infraestructura y cotizaciones de forma profesional y amable.
 Solicita siempre el Nombre y Teléfono del cliente si no los ha proporcionado.
@@ -33,7 +33,7 @@ Contactos internos: Juan Perez (Soporte), Deicy Rodriguez (Ventas).`;
     // 2. EXTRACCIÓN Y GUARDADO EN CRM
     if (lastMessage.length > 5) {
       try {
-        const extractor = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const extractor = genAI.getGenerativeModel({ model: "gemini-3.1-flash-lite-preview" });
         const extractionPrompt = `Analiza esta conversación y extrae datos de contacto.
 Responde SOLO con JSON: {"nombre": "...", "telefono": "...", "empresa": "...", "email": "...", "requerimiento": "..."}
 Si un dato no existe, usa "N/A".

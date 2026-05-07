@@ -193,6 +193,7 @@ export const getUptimeStats = async () => {
 
   return {
     uptimePercent:  Math.round((upCount / total) * 10000) / 100,
+    upCount,
     totalChecks:    total,
     avgResponseMs:  Math.round(avgMs),
     lastCheck:      data[0],

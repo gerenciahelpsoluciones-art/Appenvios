@@ -126,8 +126,8 @@ export function CommandCenter({ onNavigate }: Props) {
           ) : metrics?.siteIsUp === null ? (
             <span className="stat-value" style={{ color: 'hsl(var(--text-muted))' }}>Sin datos</span>
           ) : (
-            <span className="stat-value" style={{ color: metrics.siteIsUp ? 'hsl(var(--success))' : '#ef4444', fontSize: '1.2rem' }}>
-              {metrics.siteIsUp ? '● EN LÍNEA' : '● CAÍDO'}
+            <span className="stat-value" style={{ color: metrics?.siteIsUp ? 'hsl(var(--success))' : '#ef4444', fontSize: '1.2rem' }}>
+              {metrics?.siteIsUp ? '● EN LÍNEA' : '● CAÍDO'}
             </span>
           )}
           {metrics?.responseTime != null && (
