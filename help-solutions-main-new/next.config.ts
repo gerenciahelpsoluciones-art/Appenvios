@@ -5,11 +5,15 @@ const nextConfig: NextConfig = {
   compiler: {
     removeConsole: process.env.NODE_ENV === "production",
   },
+  turbopack: {
+    root: __dirname,
+  },
   experimental: {
     optimizePackageImports: ["lucide-react"],
     inlineCss: true,
   },
   images: {
+    qualities: [75, 85],
     remotePatterns: [
       {
         protocol: "https",

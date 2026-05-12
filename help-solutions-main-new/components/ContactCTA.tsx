@@ -41,11 +41,15 @@ const ContactCTA: React.FC = () => {
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-[600px] bg-primary/10 blur-[150px] rounded-full pointer-events-none"></div>
 
                 <div className="relative z-10 flex flex-col gap-4 max-w-[700px]">
-                    <h1 className="text-zinc-900 text-3xl md:text-5xl font-display font-black leading-tight text-glow">
-                        ¿Listo para actualizar su infraestructura?
-                    </h1>
+                    <div className="inline-flex items-center justify-center gap-2 px-4 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold tracking-wider uppercase mx-auto">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      Diagnóstico Gratuito — Sin Compromiso
+                    </div>
+                    <h2 className="text-zinc-900 text-3xl md:text-5xl font-display font-black leading-tight text-glow">
+                        ¿Su infraestructura TI está protegida hoy?
+                    </h2>
                     <p className="text-zinc-700 text-base md:text-lg font-medium leading-relaxed">
-                        Déjenos su correo y nos pondremos en contacto para una evaluación inicial gratuita de sus sistemas actuales.
+                        Déjenos su correo y un ingeniero certificado evaluará su sistema actual — sin costo ni obligación. Respuesta garantizada en menos de 2 horas.
                     </p>
                 </div>
 
@@ -53,19 +57,22 @@ const ContactCTA: React.FC = () => {
                     <form className="flex flex-col md:flex-row w-full gap-3 p-1 rounded-xl bg-black/5 backdrop-blur-md border border-black/10" onSubmit={handleSubmit}>
                         <input
                             className="flex-1 rounded-lg bg-transparent text-zinc-900 px-4 py-3 focus:outline-none placeholder:text-zinc-400 transition-all"
-                            placeholder="Su correo electrónico corporativo"
+                            placeholder="correo@suempresa.com"
                             type="email"
+                            id="cta-email"
+                            name="email"
+                            autoComplete="email"
                             required
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             disabled={status === 'sending'}
                         />
-                        <button 
+                        <button
                             type="submit"
                             disabled={status === 'sending'}
                             className={`flex items-center justify-center rounded-lg bg-primary hover:bg-primary-hover transition-all duration-300 text-white px-8 py-3 font-bold font-display tracking-wide shadow-[0_0_20px_rgba(14,165,233,0.3)] hover:scale-105 active:scale-95 ${status === 'sending' ? 'opacity-70 cursor-wait' : ''}`}
                         >
-                            {status === 'sending' ? 'Enviando...' : 'Contactar'}
+                            {status === 'sending' ? 'Enviando…' : 'Solicitar Evaluación'}
                         </button>
                     </form>
                     

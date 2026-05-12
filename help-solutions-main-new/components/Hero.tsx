@@ -20,38 +20,38 @@ const HERO_SLIDES: Slide[] = [
     title:
       "Expertos en Mantenimiento de Servidores e Infraestructura TI de Alto Impacto",
     subtitle:
-      "Garantice la continuidad radical de su negocio. Optimizamos su núcleo tecnológico para un rendimiento imparable en toda Colombia.",
-    ctaPrimary: "Asesoría Estratégica",
+      "12 años garantizando la continuidad de negocios en Colombia. Respondemos en menos de 2 horas — porque cada minuto de inactividad le cuesta a su empresa.",
+    ctaPrimary: "Diagnóstico Gratuito",
     ctaPrimaryHref: "/agendar-cita",
-    ctaSecondary: "Nuestra Ingeniería",
-    ctaSecondaryHref: "/ingenieria-social",
+    ctaSecondary: "Ver Servicios",
+    ctaSecondaryHref: "#servicios",
   },
   {
     image: "/images/premium_hero_2.png",
-    title: "Conectividad de Próxima Generación: Redes WiFi y Cableado Estructurado",
+    title: "Redes WiFi y Cableado Estructurado: Conectividad que no Falla",
     subtitle:
-      "Infraestructura robusta para la era digital. Implementamos soluciones estables, seguras y escalables para empresas que no se detienen.",
+      "Cat6A certificado, fibra óptica y WiFi corporativo de alta densidad. Infraestructura diseñada para soportar el crecimiento de su empresa sin cuellos de botella.",
     ctaPrimary: "Cotizar Proyecto",
     ctaPrimaryHref: "/contactenos",
     ctaSecondary: "Ver Portafolio",
-    ctaSecondaryHref: "/ingenieria-social",
+    ctaSecondaryHref: "#servicios",
   },
   {
     image: "/images/premium_about.png",
-    title: "Soporte Técnico de Élite con Respuesta Inmediata",
+    title: "Soporte Técnico 24/7: Respuesta en Menos de 2 Horas",
     subtitle:
-      "Diagnóstico experto en hardware y software. Más de una década redefiniendo el soporte técnico para las empresas líderes de la región.",
-    ctaPrimary: "Solicitar Soporte",
+      "Ingenieros certificados listos para actuar — en sitio o de forma remota. Proteja su operación con el servicio de soporte TI más confiable de Bogotá.",
+    ctaPrimary: "Contactar Ahora",
     ctaPrimaryHref: "/contactenos",
-    ctaSecondary: "Explorar Más",
-    ctaSecondaryHref: "/contactenos",
+    ctaSecondary: "¿Cómo Trabajamos?",
+    ctaSecondaryHref: "#nosotros",
   },
   {
     image: "/images/premium_rental.png",
-    title: "Outsourcing Tecnológico: Potencia tu Infraestructura sin Límites",
+    title: "Outsourcing TI: Tecnología Dell, HP y Lenovo sin Inversión Inicial",
     subtitle:
-      "Equipamiento de última generación (Dell, HP, Lenovo). Alquiler flexible con gestión integral incluida para una operatividad total.",
-    ctaPrimary: "Solicitar Propuesta",
+      "Acceda a equipos de última generación con mantenimiento incluido. Reduzca costos, elimine riesgos y enfóquese 100% en su negocio.",
+    ctaPrimary: "Ver Planes",
     ctaPrimaryHref: "/contactenos",
     ctaSecondary: "Ver Equipos",
     ctaSecondaryHref: "/productos",
@@ -86,7 +86,7 @@ const Hero: React.FC = () => {
           <div
             key={slide.image}
             className={`absolute inset-0 transition-all duration-1000 ease-in-out ${
-              index === currentImageIndex ? "opacity-30 scale-100" : "opacity-0 scale-110"
+              index === currentImageIndex ? "opacity-55 scale-100" : "opacity-0 scale-110"
             }`}
           >
             <Image
@@ -96,13 +96,13 @@ const Hero: React.FC = () => {
               className="object-cover object-center"
               priority={index === 0}
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 90vw, (max-width: 1536px) 80vw, 1200px"
-              quality={60}
+              quality={85}
             />
           </div>
         ))}
 
         {/* Premium Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-white/20 via-white/40 to-white/90 z-10" />
+        <div className="absolute inset-0 bg-gradient-to-b from-white/5 via-white/20 to-white/80 z-10" />
         
         {/* Content Layer */}
         <div className="relative z-20 w-full max-w-[1000px] flex flex-col items-center gap-10">
@@ -119,14 +119,26 @@ const Hero: React.FC = () => {
                 12 Años de Excelencia Tecnológica
               </div>
 
-              <h1 className="text-zinc-900 text-4xl md:text-6xl lg:text-7xl font-display font-black leading-[1.1] tracking-tight text-glow filter drop-shadow-sm selection:bg-primary/30">
-                {slide.title.split(': ').map((part, i) => (
-                  <React.Fragment key={i}>
-                    {i > 0 && <br className="hidden md:block" />}
-                    <span className={i > 0 ? "text-primary block mt-2" : ""}>{part}</span>
-                  </React.Fragment>
-                ))}
-              </h1>
+              {/* Solo slide 0 usa <h1> real para SEO; el resto usa <div> con estilos idénticos */}
+              {index === 0 ? (
+                <h1 className="text-zinc-900 text-4xl md:text-6xl lg:text-7xl font-display font-black leading-[1.1] tracking-tight text-glow filter drop-shadow-sm selection:bg-primary/30">
+                  {slide.title.split(': ').map((part, i) => (
+                    <React.Fragment key={i}>
+                      {i > 0 && <br className="hidden md:block" />}
+                      <span className={i > 0 ? "text-primary block mt-2" : ""}>{part}</span>
+                    </React.Fragment>
+                  ))}
+                </h1>
+              ) : (
+                <div role="heading" aria-level={2} className="text-zinc-900 text-4xl md:text-6xl lg:text-7xl font-display font-black leading-[1.1] tracking-tight text-glow filter drop-shadow-sm selection:bg-primary/30">
+                  {slide.title.split(': ').map((part, i) => (
+                    <React.Fragment key={i}>
+                      {i > 0 && <br className="hidden md:block" />}
+                      <span className={i > 0 ? "text-primary block mt-2" : ""}>{part}</span>
+                    </React.Fragment>
+                  ))}
+                </div>
+              )}
 
               <p className="text-zinc-600 text-lg md:text-2xl font-medium leading-relaxed max-w-[800px] text-balance">
                 {slide.subtitle}
@@ -142,6 +154,13 @@ const Hero: React.FC = () => {
                 >
                   {slide.ctaSecondary}
                 </Link>
+              </div>
+              <div className="flex flex-wrap justify-center items-center gap-x-6 gap-y-2 pt-2 text-xs text-zinc-500 font-semibold tracking-wide">
+                <span className="flex items-center gap-1.5"><span className="text-emerald-500">✓</span> Respuesta en &lt;2 horas</span>
+                <span className="hidden sm:block w-px h-3 bg-zinc-300" />
+                <span className="flex items-center gap-1.5"><span className="text-emerald-500">✓</span> Sin contratos forzosos</span>
+                <span className="hidden sm:block w-px h-3 bg-zinc-300" />
+                <span className="flex items-center gap-1.5"><span className="text-emerald-500">✓</span> +500 empresas atendidas</span>
               </div>
             </div>
           ))}

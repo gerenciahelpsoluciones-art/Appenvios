@@ -1,17 +1,19 @@
 import React from 'react';
+import Link from 'next/link';
 import { Cable, Server, MonitorSmartphone, Cloud, ArrowRight } from 'lucide-react';
 
 interface ServiceItemProps {
   icon: React.ReactNode;
   title: string;
   description: string;
+  href: string;
   index: number;
 }
 
-const ServiceItem: React.FC<ServiceItemProps> = ({ icon, title, description, index }) => (
-  <div className="flex flex-col gap-6 p-8 glass-card group transition-all duration-700 hover:-translate-y-2 relative h-full">
+const ServiceItem: React.FC<ServiceItemProps> = ({ icon, title, description, href, index }) => (
+  <Link href={href} className="flex flex-col gap-6 p-8 glass-card group transition-all duration-700 hover:-translate-y-2 relative h-full cursor-pointer">
     <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
-    
+
     <div className="flex items-start justify-between">
       <div className="text-primary p-4 rounded-2xl bg-primary/5 group-hover:bg-primary group-hover:text-white transition-all duration-500 shadow-inner group-hover:shadow-[0_0_30px_rgba(37,99,234,0.3)] group-hover:rotate-12">
         {icon}
@@ -31,32 +33,36 @@ const ServiceItem: React.FC<ServiceItemProps> = ({ icon, title, description, ind
     </div>
 
     <div className="mt-auto pt-6 flex items-center gap-2 text-primary font-bold text-xs tracking-widest uppercase opacity-0 group-hover:opacity-100 -translate-x-4 group-hover:translate-x-0 transition-all duration-500">
-      Saber Más <ArrowRight size={14} />
+      Ver Servicio <ArrowRight size={14} />
     </div>
-  </div>
+  </Link>
 );
 
 const Services: React.FC = () => {
   const services = [
     {
       icon: <Cable size={32} strokeWidth={1.5} />,
-      title: 'Infraestructura de Redes de Alto Desempeño',
-      description: 'Diseño e ingeniería de redes certificadas. Implementamos soluciones de conectividad robustas con fibra óptica y cableado estructurado para garantizar que su comunicación sea infalible y escalable.',
+      title: 'Redes y Cableado Estructurado Certificado',
+      description: 'Cat6A, fibra óptica y WiFi corporativo de alta densidad. Diseñamos infraestructuras de red certificadas que soportan el crecimiento de su empresa sin interrupciones ni cuellos de botella.',
+      href: '/contactenos',
     },
     {
       icon: <Server size={32} strokeWidth={1.5} />,
-      title: 'Gestión Crítica de Servidores',
-      description: 'Protección proactiva y administración de datacenters. Maximizamos el uptime de su infraestructura con mantenimiento preventivo de élite y virtualización avanzada.',
+      title: 'Mantenimiento y Gestión de Servidores',
+      description: 'Mantenimiento preventivo y correctivo de servidores rack, torre y blade. Garantizamos uptime del 99.9% con monitoreo proactivo, backups y respuesta de emergencia 24/7.',
+      href: '/contactenos',
     },
     {
       icon: <MonitorSmartphone size={32} strokeWidth={1.5} />,
-      title: 'Soporte Técnico de Alta Precision',
-      description: 'Asistencia técnica experta en sitio y remota. Prolongamos la vida útil de su hardware mediante diagnósticos profundos y una respuesta ágil ante cualquier eventualidad.',
+      title: 'Soporte Técnico TI en Sitio y Remoto',
+      description: 'Ingenieros especializados disponibles en menos de 2 horas. Diagnóstico profundo, reparación de hardware, software y prolongamos la vida útil de sus equipos.',
+      href: '/contactenos',
     },
     {
       icon: <Cloud size={32} strokeWidth={1.5} />,
-      title: 'Ecosistemas Cloud e Ingeniería TI',
-      description: 'Migración estratégica a la nube y consultoría integral. Diseñamos entornos digitales seguros que optimizan costos y potencian la competitividad de su organización.',
+      title: 'Cloud, Ciberseguridad y Outsourcing TI',
+      description: 'Migración a la nube, firewall y auditorías de seguridad. Además, alquile equipos Dell, HP y Lenovo con gestión integral incluida — sin inversión inicial.',
+      href: '/contactenos',
     },
   ];
 
@@ -83,7 +89,7 @@ const Services: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 xl:gap-5 auto-rows-fr">
           {services.map((service, index) => (
             <div key={index} className="animate-in fade-in slide-in-from-bottom-10 duration-1000 fill-mode-both flex" style={{ animationDelay: `${index * 200}ms` }}>
-              <ServiceItem {...service} index={index} />
+              <ServiceItem {...service} index={index} href={service.href} />
             </div>
           ))}
         </div>
