@@ -1,0 +1,180 @@
+{
+  "name": "NOVA - FASE 2 (FINAL - GEMINI 3 FLASH)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            { "field": "seconds", "secondsInterval": 15 }
+          ]
+        }
+      },
+      "id": "trigger",
+      "name": "Reloj (15s)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [0, 300]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "table": "mkt_telegram_inbound",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            { "key": "status", "operator": "equal", "value": "pending" }
+          ]
+        }
+      },
+      "id": "read-msgs",
+      "name": "Leer Mensajes",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            { "value1": "={{$json.raw_message.message.voice ? true : false}}", "value2": true }
+          ]
+        }
+      },
+      "id": "is-voice",
+      "name": "Es Voz?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [400, 300]
+    },
+    {
+      "parameters": {
+        "operation": "getFile",
+        "fileId": "={{$json.raw_message.message.voice.file_id}}"
+      },
+      "id": "get-file",
+      "name": "Get File Info",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [600, 450]
+    },
+    {
+      "parameters": {
+        "url": "={{'https://api.telegram.org/file/bot8700524651:AAH6-G5Rho6YLJcr0uHAKjmqfnGvvHTIQ40/' + $json.result.file_path}}",
+        "responseFormat": "file",
+        "options": {}
+      },
+      "id": "download",
+      "name": "Download Audio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [800, 450]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=AIzaSyD0Bd4JUPdEasAGLlYFhBVTkfY15jA40zM",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "contents",
+              "value": "=[{ \"parts\": [{ \"text\": \"Eres NOVA, el Cerebro de Help Soluciones. Extrae cliente e ítems de este audio. Responde SOLO JSON: { 'tipo': 'cotizacion', 'cliente': '...', 'items': [{ 'nombre': '...', 'cantidad': X, 'precio': Y }] }\" }, { \"inline_data\": { \"mime_type\": \"audio/ogg\", \"data\": \"{{$binary.data.data}}\" } }] }]"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "gemini-voice",
+      "name": "Gemini (Voz)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1050, 450]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=AIzaSyD0Bd4JUPdEasAGLlYFhBVTkfY15jA40zM",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "contents",
+              "value": "=[{ \"parts\": [{ \"text\": \"Eres NOVA, el Cerebro de Help Soluciones. Extrae cliente e ítems de este texto: {{$json.raw_message.message.text}}. Responde SOLO JSON: { 'tipo': 'cotizacion', 'cliente': '...', 'items': [{ 'nombre': '...', 'cantidad': X, 'precio': Y }] }\" }] }]"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "gemini-text",
+      "name": "Gemini (Texto)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1050, 150]
+    },
+    {
+      "parameters": {
+        "value": "={{JSON.parse($json.candidates[0].content.parts[0].text.replace(/```json|```/g, ''))}}",
+        "dataPropertyName": "parsed"
+      },
+      "id": "parse-json",
+      "name": "Parse Result",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.2,
+      "position": [1300, 300]
+    },
+    {
+      "parameters": {
+        "table": "mkt_cotizaciones",
+        "fieldsToInsert": {
+          "fields": [
+            { "field": "telegram_id", "value": "={{$json.telegram_id}}" },
+            { "field": "cliente_nombre", "value": "={{$json.parsed.cliente}}" },
+            { "field": "estado", "value": "Borrador" }
+          ]
+        }
+      },
+      "id": "insert-header",
+      "name": "Sync CRM (Header)",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1500, 300]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.telegram_id}}",
+        "text": "=✅ *¡Cotización Sincronizada!*\n\n*Cliente:* {{$json.parsed.cliente}}\n\nNOVA ha procesado tu solicitud y la ha guardado en el CRM como borrador.",
+        "additionalFields": { "parse_mode": "Markdown" }
+      },
+      "id": "reply",
+      "name": "Responder",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [1750, 300]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "table": "mkt_telegram_inbound",
+        "id": "={{$json.id}}",
+        "fields": { "status": "done" }
+      },
+      "id": "mark-done",
+      "name": "Finalizar",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1950, 300]
+    }
+  ],
+  "connections": {
+    "trigger": { "main": [[{ "node": "read-msgs", "type": "main", "index": 0 }]] },
+    "read-msgs": { "main": [[{ "node": "is-voice", "type": "main", "index": 0 }]] },
+    "is-voice": { "main": [[{ "node": "gemini-text", "type": "main", "index": 0 }], [{ "node": "get-file", "type": "main", "index": 0 }]] },
+    "get-file": { "main": [[{ "node": "download", "type": "main", "index": 0 }]] },
+    "download": { "main": [[{ "node": "gemini-voice", "type": "main", "index": 0 }]] },
+    "gemini-voice": { "main": [[{ "node": "parse-json", "type": "main", "index": 0 }]] },
+    "gemini-text": { "main": [[{ "node": "parse-json", "type": "main", "index": 0 }]] },
+    "parse-json": { "main": [[{ "node": "insert-header", "type": "main", "index": 0 }]] },
+    "insert-header": { "main": [[{ "node": "reply", "type": "main", "index": 0 }]] },
+    "reply": { "main": [[{ "node": "mark-done", "type": "main", "index": 0 }]] }
+  }
+}

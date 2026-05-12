@@ -172,35 +172,7 @@ const InformesModule: React.FC<IProps> = ({
         return dateMatch && advisorMatch && clientMatch;
     });
 
-    const revenueByContract = manualSalesFiltered
-        .filter(v => v.tipoVenta === 'Contrato')
-        .reduce((acc, v) => acc + v.monto, 0);
-    
-    const revenueByRental = alquileres
-        .filter((a: any) => a.estado === 'Alquilado')
-        .reduce((acc: number, a: any) => acc + (a.valorMensual || 0), 0);
-    
-    const revenueByLicense = manualSalesFiltered
-        .filter(v => v.tipoVenta === 'Licencia')
-        .reduce((acc, v) => acc + v.monto, 0);
-    
-    const revenueByTenders = manualSalesFiltered
-        .filter(v => v.tipoVenta === 'Licitacion')
-        .reduce((acc, v) => acc + v.monto, 0);
-    
-    const revenueByStandard = manualSalesFiltered
-        .filter(v => v.tipoVenta === 'Venta')
-        .reduce((acc, v) => acc + v.monto, 0);
-
-    const totalManualSales = (manualSalesFiltered || []).reduce((acc, v) => {
-        const monto = Number(v.monto || 0);
-        const client = clientes.find(c => c.id === v.clienteId);
-        const isSimplificado = client?.regimen === 'Régimen Simplificado';
-        const subtotal = isSimplificado ? monto : monto / 1.19;
-        return acc + (isNaN(subtotal) ? 0 : subtotal);
-    }, 0);
-
-    const totalManualProfit = (manualSalesFiltered || []).reduce((acc, v) => {
+    const manualSalesWithNet = manualSalesFiltered.map(v => {
         const monto = Number(v.monto || 0);
         const client = clientes.find(c => c.id === v.clienteId);
         const isSimplificado = client?.regimen === 'Régimen Simplificado';
@@ -210,13 +182,40 @@ const InformesModule: React.FC<IProps> = ({
         const tipoRaw = v.tipoVenta || (v as any).tipo_venta || '';
         const tipo = String(tipoRaw).toLowerCase();
         
+        let profit = 0;
         if (tipo.includes('contrato')) {
-            return acc + (isNaN(subtotal) ? 0 : subtotal);
+            profit = isNaN(subtotal) ? 0 : subtotal;
+        } else {
+            const costo = Number(v.costo || 0);
+            profit = (isNaN(subtotal) ? 0 : subtotal) - costo;
         }
-        const costo = Number(v.costo || 0);
-        const profit = subtotal - costo;
-        return acc + (isNaN(profit) ? 0 : profit);
-    }, 0);
+
+        return { ...v, subtotal: isNaN(subtotal) ? 0 : subtotal, profit, tipoNormalized: tipo };
+    });
+
+    const revenueByContract = manualSalesWithNet
+        .filter(v => v.tipoNormalized.includes('contrato'))
+        .reduce((acc, v) => acc + v.subtotal, 0);
+    
+    const revenueByRental = alquileres
+        .filter((a: any) => a.estado === 'Alquilado')
+        .reduce((acc: number, a: any) => acc + (a.valorMensual || 0), 0);
+    
+    const revenueByLicense = manualSalesWithNet
+        .filter(v => v.tipoNormalized.includes('licencia'))
+        .reduce((acc, v) => acc + v.subtotal, 0);
+    
+    const revenueByTenders = manualSalesWithNet
+        .filter(v => v.tipoNormalized.includes('licitacion'))
+        .reduce((acc, v) => acc + v.subtotal, 0);
+    
+    const revenueByStandard = manualSalesWithNet
+        .filter(v => v.tipoNormalized === 'venta')
+        .reduce((acc, v) => acc + v.subtotal, 0);
+
+    const totalManualSales = manualSalesWithNet.reduce((acc, v) => acc + v.subtotal, 0);
+
+    const totalManualProfit = manualSalesWithNet.reduce((acc, v) => acc + v.profit, 0);
 
     // Mantener wonQuotesInRange solo para la tabla de cotizaciones listadas
     // (no afecta los totales del rango, solo muestra el listado filtrado por fecha de cotización)

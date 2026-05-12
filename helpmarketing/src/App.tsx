@@ -29,12 +29,13 @@ import { KeywordTracker }         from './components/seo/KeywordTracker';
 import { SocialHub }              from './components/social/SocialHub';
 import { PostScheduler }          from './components/social/PostScheduler';
 import { SocialConnector }        from './components/social/SocialConnector';
+import { CommunityHub }           from './components/CommunityHub';
 
 export type Tab =
   // Agente
   | 'dashboard' | 'agent' | 'agentlog'
   // Contenido & Social
-  | 'studio' | 'social' | 'social-calendar' | 'social-connect' | 'factory'
+  | 'studio' | 'social' | 'social-calendar' | 'social-connect' | 'factory' | 'community'
   // SEO & Web
   | 'seo' | 'keywords' | 'vitals' | 'visitors'
   // Inteligencia
@@ -59,6 +60,7 @@ function App() {
       case 'social':          return <SocialHub />;
       case 'social-calendar': return <PostScheduler />;
       case 'social-connect':  return <SocialConnector />;
+      case 'community':       return <CommunityHub />;
       case 'factory':         return <ArticleFactory />;
 
       // ── SEO & Web ────────────────────────────────────────────────

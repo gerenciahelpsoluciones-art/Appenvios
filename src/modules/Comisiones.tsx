@@ -534,8 +534,6 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, pr
                 cargo.includes('asesor') ||
                 (rol === 'comercial' && !cargo.includes('tecnico'));
 
-            console.log(`[DEBUG COMISIONES] Evaluando ${s.name}: Cargo="${cargo}", Rol="${rol}", EsComercial=${esComercial}`);
-            
             return esComercial;
         });
     };
@@ -702,7 +700,7 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, pr
         <div className="module-container" id="comisiones-module">
             <div className="module-header">
                 <div>
-                    <h2>Módulo de Comisiones y Utilidades (FILTRO ACTIVO)</h2>
+                    <h2>Módulo de Comisiones y Utilidades (CRM)</h2>
                     <p style={{ color: 'var(--text-muted)' }}>Cálculo automático del 10% sobre la utilidad neta de despachos facturados.</p>
                 </div>
                 <div style={{ display: 'flex', gap: '1rem' }}>

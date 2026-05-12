@@ -163,6 +163,7 @@ export function Sidebar({ activeTab, onNavigate }: SidebarProps) {
         {navItem('social',          'social',   'Social Hub')}
         {navItem('social-calendar', 'calendar', 'Calendario')}
         {navItem('social-connect',  'social',   'Conectar RRSS')}
+        {navItem('community',       'social',   'Community Hub')}
         {navItem('factory',         'article',  'Article Factory')}
 
         {sectionDivider('SEO & WEB')}

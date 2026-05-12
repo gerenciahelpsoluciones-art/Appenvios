@@ -33,7 +33,7 @@ export const Remissions = () => {
       .select('*')
       .eq('remision_id', remission.id);
 
-    if (error) return alert('Error al cargar detalles para el PDF');
+    if (error) { console.error('Error al cargar detalles para el PDF:', error); return; }
     generateRemissionPDF(remission, details);
   };
 
@@ -63,11 +63,18 @@ export const Remissions = () => {
 
       <div className="glass-card" style={{ padding: '0', overflow: 'hidden' }}>
         <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--glass-border)', display: 'flex', gap: '1rem' }}>
-          <input 
-            placeholder="Buscar por número o cliente..."
+          <input
+            id="remissions-search"
+            name="search"
+            type="search"
+            autoComplete="off"
+            aria-label="Buscar remisiones"
+            placeholder="Buscar por número o cliente…"
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid var(--glass-border)', padding: '0.75rem 1rem', borderRadius: '12px', color: '#fff' }}
+            style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid var(--glass-border)', padding: '0.75rem 1rem', borderRadius: '12px', color: '#fff', outline: 'none' }}
+            onFocus={(e) => e.target.style.borderColor = 'hsl(var(--primary))'}
+            onBlur={(e) => e.target.style.borderColor = 'var(--glass-border)'}
           />
         </div>
 

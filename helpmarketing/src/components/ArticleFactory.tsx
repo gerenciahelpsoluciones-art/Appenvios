@@ -83,7 +83,10 @@ export const ArticleFactory = () => {
           <h1 style={{ marginBottom: '0.5rem' }}>Article Factory</h1>
           <p style={{ color: 'hsl(var(--text-muted))' }}>Revisa, edita y lanza tu contenido a n8n</p>
         </div>
-        <button className="badge" style={{ background: 'hsla(var(--primary), 0.1)', color: 'hsl(var(--primary))', border: '1px solid hsla(var(--primary), 0.2)' }}>
+        <button
+          onClick={() => {/* TODO: conectar a CreativeStudio */}}
+          style={{ background: 'hsla(var(--primary), 0.1)', color: 'hsl(var(--primary))', border: '1px solid hsla(var(--primary), 0.2)', padding: '0.5rem 1.2rem', width: 'auto' }}
+        >
           + Generar Nueva Idea
         </button>
       </div>
@@ -92,7 +95,7 @@ export const ArticleFactory = () => {
         {articles.map(article => (
           <div key={article.id} className="glass-card" style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
             <div style={{ height: '200px', overflow: 'hidden', position: 'relative' }}>
-              <img src={article.image} alt={article.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <img src={article.image} alt={article.title} width={800} height={200} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
               <div style={{ position: 'absolute', top: '1rem', right: '1rem' }} className={`badge ${article.status === 'sent' ? 'badge-success' : ''}`}>
                 {article.platform}
               </div>
@@ -100,8 +103,10 @@ export const ArticleFactory = () => {
             
             <div style={{ padding: '1.5rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
               <h3 style={{ marginTop: 0, marginBottom: '1rem', color: '#fff' }}>{article.title}</h3>
-              <textarea 
-                defaultValue={article.copy}
+              <textarea
+                aria-label={`Texto del post: ${article.title}`}
+                value={article.copy}
+                onChange={(e) => setArticles(prev => prev.map(a => a.id === article.id ? { ...a, copy: e.target.value } : a))}
                 style={{ 
                   width: '100%', 
                   background: 'rgba(255,255,255,0.05)', 
