@@ -119,7 +119,7 @@ const HelpDesk: React.FC = () => {
         {/* RIGHT — Image with overlays */}
         <div className="w-full lg:w-1/2 relative order-1 lg:order-2 flex-shrink-0">
           {/* Main image */}
-          <div className="relative w-full lg:h-[580px] rounded-3xl overflow-hidden shadow-2xl">
+          <div className="relative w-full h-[260px] sm:h-[360px] lg:h-[580px] rounded-3xl overflow-hidden shadow-2xl">
             <Image
               src="/images/pexels-anete-lusina-31854226.jpg"
               alt="Agente de Mesa de Ayuda Help Soluciones brindando soporte técnico empresarial"
@@ -132,11 +132,11 @@ const HelpDesk: React.FC = () => {
           </div>
 
           {/* SLA floating card */}
-          <div className="absolute -bottom-6 -left-4 lg:-left-8 bg-white rounded-2xl p-5 shadow-xl border border-zinc-100 grid grid-cols-2 gap-4 min-w-[240px]">
+          <div className="absolute bottom-3 left-3 sm:-bottom-6 sm:-left-4 lg:-left-8 bg-white rounded-2xl p-3 sm:p-5 shadow-xl border border-zinc-100 grid grid-cols-2 gap-2 sm:gap-4 min-w-[180px] sm:min-w-[240px]">
             {slaItems.map((item) => (
               <div key={item.label} className="flex flex-col">
-                <span className="text-2xl font-black text-primary font-display leading-none">{item.value}</span>
-                <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider leading-tight mt-0.5">{item.label}</span>
+                <span className="text-lg sm:text-2xl font-black text-primary font-display leading-none">{item.value}</span>
+                <span className="text-[9px] sm:text-[10px] text-zinc-500 font-bold uppercase tracking-wider leading-tight mt-0.5">{item.label}</span>
               </div>
             ))}
           </div>

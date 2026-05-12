@@ -11,7 +11,7 @@ const About: React.FC = () => {
         <div className="w-full lg:w-1/2 relative flex-shrink-0">
           {/* Main image */}
           <div
-            className="w-full lg:h-[540px] rounded-2xl bg-zinc-100 group relative overflow-hidden shadow-2xl"
+            className="w-full h-[280px] sm:h-[360px] lg:h-[540px] rounded-2xl bg-zinc-100 group relative overflow-hidden shadow-2xl"
             aria-label="Ingeniero de campo Help Soluciones trabajando en infraestructura de red"
           >
             <Image
@@ -34,7 +34,7 @@ const About: React.FC = () => {
           </div>
 
           {/* Floating stat card */}
-          <div className="absolute -top-4 -right-4 lg:right-[-2rem] bg-white rounded-2xl p-4 shadow-xl border border-zinc-100 flex flex-col items-center gap-1 min-w-[100px]">
+          <div className="absolute top-3 right-3 sm:-top-4 sm:-right-4 lg:right-[-2rem] bg-white rounded-2xl p-4 shadow-xl border border-zinc-100 flex flex-col items-center gap-1 min-w-[90px] sm:min-w-[100px]">
             <span className="text-3xl font-black text-primary font-display leading-none">500+</span>
             <span className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest text-center">Proyectos<br/>Exitosos</span>
           </div>

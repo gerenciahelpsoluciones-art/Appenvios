@@ -80,7 +80,7 @@ const Hero: React.FC = () => {
       <div className="absolute top-1/4 -left-20 w-80 h-80 bg-primary/20 rounded-full blur-[100px] animate-blob pointer-events-none" />
       <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-sky-400/10 rounded-full blur-[120px] animate-blob pointer-events-none [animation-delay:2s]" />
       
-      <div className="rounded-3xl overflow-hidden relative min-h-[600px] flex flex-col items-center justify-center p-8 md:p-16 text-center glass-card border-white/20 group">
+      <div className="rounded-3xl overflow-hidden relative min-h-[480px] sm:min-h-[560px] lg:min-h-[600px] flex flex-col items-center justify-center p-6 sm:p-8 md:p-16 text-center glass-card border-white/20 group">
         {/* Background Carousel Layer */}
         {HERO_SLIDES.map((slide, index) => (
           <div
@@ -121,7 +121,7 @@ const Hero: React.FC = () => {
 
               {/* Solo slide 0 usa <h1> real para SEO; el resto usa <div> con estilos idénticos */}
               {index === 0 ? (
-                <h1 className="text-zinc-900 text-4xl md:text-6xl lg:text-7xl font-display font-black leading-[1.1] tracking-tight text-glow filter drop-shadow-sm selection:bg-primary/30">
+                <h1 className="text-zinc-900 text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-display font-black leading-[1.1] tracking-tight text-glow filter drop-shadow-sm selection:bg-primary/30">
                   {slide.title.split(': ').map((part, i) => (
                     <React.Fragment key={i}>
                       {i > 0 && <br className="hidden md:block" />}
@@ -130,7 +130,7 @@ const Hero: React.FC = () => {
                   ))}
                 </h1>
               ) : (
-                <div role="heading" aria-level={2} className="text-zinc-900 text-4xl md:text-6xl lg:text-7xl font-display font-black leading-[1.1] tracking-tight text-glow filter drop-shadow-sm selection:bg-primary/30">
+                <div role="heading" aria-level={2} className="text-zinc-900 text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-display font-black leading-[1.1] tracking-tight text-glow filter drop-shadow-sm selection:bg-primary/30">
                   {slide.title.split(': ').map((part, i) => (
                     <React.Fragment key={i}>
                       {i > 0 && <br className="hidden md:block" />}
