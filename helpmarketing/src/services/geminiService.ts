@@ -184,25 +184,79 @@ export const analyzeSeo = async (url: string) => {
   const lcp = pagespeedData?.lighthouseResult?.audits?.["largest-contentful-paint"]?.displayValue || "N/A";
   const score = Math.round((pagespeedData?.lighthouseResult?.categories?.performance?.score || 0) * 100);
 
-  const prompt = `Eres experto en SEO técnico y posicionamiento web para empresas colombianas.
-Analiza el sitio web: ${url}
-${pagespeedData ? `Datos reales de PageSpeed: LCP=${lcp}, Score de rendimiento=${score}/100` : ""}
+  const prompt = `Eres un experto en SEO técnico, posicionamiento local y marketing digital para empresas B2B colombianas.
+Analiza exhaustivamente el sitio web: ${url}
+${pagespeedData ? `Datos reales de PageSpeed API: LCP=${lcp}, Performance Score=${score}/100` : "Sin datos de PageSpeed (analiza basado en tu conocimiento del sitio)."}
 
-Proporciona un análisis SEO completo y recomendaciones accionables para el mercado colombiano.
-Responde ÚNICAMENTE con JSON válido:
+Genera un informe SEO completo y profesional. Responde ÚNICAMENTE con JSON válido sin texto adicional:
 {
-  "score": ${score || 65},
+  "score": ${score || 62},
+  "grade": "letra de A a F según el score",
   "loadTime": "${lcp !== "N/A" ? lcp : "estimado 2.8s"}",
-  "metaTagsScore": número del 0 al 100,
-  "recommendations": [
-    {"priority": "Alta|Media|Baja", "issue": "problema encontrado", "fix": "cómo solucionarlo"},
-    {"priority": "Alta", "issue": "...", "fix": "..."},
-    {"priority": "Media", "issue": "...", "fix": "..."},
-    {"priority": "Media", "issue": "...", "fix": "..."},
-    {"priority": "Baja", "issue": "...", "fix": "..."}
+  "metaTagsScore": número entero 0-100,
+  "summary": "párrafo de 2-3 oraciones con diagnóstico ejecutivo del estado SEO actual del sitio",
+  "categoryScores": {
+    "tecnico": número 0-100,
+    "contenido": número 0-100,
+    "local": número 0-100,
+    "autoridad": número 0-100,
+    "experiencia": número 0-100
+  },
+  "onPage": [
+    {"item": "Title Tag", "status": "ok|warning|error", "detail": "evaluación específica del title tag"},
+    {"item": "Meta Description", "status": "ok|warning|error", "detail": "evaluación de la meta descripción"},
+    {"item": "Estructura H1/H2/H3", "status": "ok|warning|error", "detail": "uso correcto de headings"},
+    {"item": "Imágenes con Alt Text", "status": "ok|warning|error", "detail": "optimización de imágenes"},
+    {"item": "HTTPS y Seguridad", "status": "ok|warning|error", "detail": "certificado SSL y seguridad"},
+    {"item": "Responsive / Mobile", "status": "ok|warning|error", "detail": "adaptación a dispositivos móviles"},
+    {"item": "Schema Markup", "status": "ok|warning|error", "detail": "datos estructurados JSON-LD"},
+    {"item": "Velocidad de Carga", "status": "ok|warning|error", "detail": "Core Web Vitals y performance"},
+    {"item": "URLs Amigables", "status": "ok|warning|error", "detail": "estructura de URLs para SEO"},
+    {"item": "Sitemap y Robots.txt", "status": "ok|warning|error", "detail": "indexación y rastreo"}
   ],
-  "keywordSuggestions": ["keyword relevante 1", "keyword 2", "keyword 3"],
-  "technicalIssues": ["problema técnico 1", "problema 2"]
+  "recommendations": [
+    {"priority": "Alta", "issue": "problema crítico 1", "fix": "solución detallada y accionable", "impact": "impacto estimado en tráfico o posicionamiento"},
+    {"priority": "Alta", "issue": "problema crítico 2", "fix": "solución detallada", "impact": "..."},
+    {"priority": "Alta", "issue": "problema crítico 3", "fix": "solución detallada", "impact": "..."},
+    {"priority": "Media", "issue": "mejora importante 1", "fix": "cómo implementarlo", "impact": "..."},
+    {"priority": "Media", "issue": "mejora importante 2", "fix": "cómo implementarlo", "impact": "..."},
+    {"priority": "Media", "issue": "mejora importante 3", "fix": "cómo implementarlo", "impact": "..."},
+    {"priority": "Baja", "issue": "mejora secundaria 1", "fix": "cómo implementarlo", "impact": "..."},
+    {"priority": "Baja", "issue": "mejora secundaria 2", "fix": "cómo implementarlo", "impact": "..."}
+  ],
+  "keywords": [
+    {"term": "keyword principal 1", "intent": "comercial|informacional|navegacional", "difficulty": "Alta|Media|Baja", "opportunity": "Alta|Media|Baja"},
+    {"term": "keyword 2", "intent": "...", "difficulty": "...", "opportunity": "..."},
+    {"term": "keyword 3", "intent": "...", "difficulty": "...", "opportunity": "..."},
+    {"term": "keyword 4", "intent": "...", "difficulty": "...", "opportunity": "..."},
+    {"term": "keyword 5", "intent": "...", "difficulty": "...", "opportunity": "..."},
+    {"term": "keyword 6", "intent": "...", "difficulty": "...", "opportunity": "..."},
+    {"term": "keyword 7", "intent": "...", "difficulty": "...", "opportunity": "..."},
+    {"term": "keyword 8", "intent": "...", "difficulty": "...", "opportunity": "..."}
+  ],
+  "competitors": [
+    {"name": "competidor real 1", "domain": "dominio.com", "fortaleza": "en qué le gana a nuestro sitio", "debilidad": "en qué podemos superarlo"},
+    {"name": "competidor real 2", "domain": "dominio.com", "fortaleza": "...", "debilidad": "..."},
+    {"name": "competidor real 3", "domain": "dominio.com", "fortaleza": "...", "debilidad": "..."}
+  ],
+  "contentGaps": [
+    {"topic": "tema de contenido 1 con alta demanda", "keyword": "keyword objetivo", "type": "Blog|Página de servicio|Landing"},
+    {"topic": "tema 2", "keyword": "...", "type": "..."},
+    {"topic": "tema 3", "keyword": "...", "type": "..."},
+    {"topic": "tema 4", "keyword": "...", "type": "..."},
+    {"topic": "tema 5", "keyword": "...", "type": "..."}
+  ],
+  "localSeo": {
+    "score": número 0-100,
+    "items": [
+      {"item": "Google Business Profile", "status": "ok|warning|error", "detail": "evaluación"},
+      {"item": "NAP Consistente (Nombre, Dirección, Teléfono)", "status": "ok|warning|error", "detail": "evaluación"},
+      {"item": "Keywords con ubicación (Bogotá)", "status": "ok|warning|error", "detail": "evaluación"},
+      {"item": "Reseñas y Rating", "status": "ok|warning|error", "detail": "evaluación"},
+      {"item": "Citas en directorios locales", "status": "ok|warning|error", "detail": "evaluación"}
+    ]
+  },
+  "technicalIssues": ["issue técnico específico 1", "issue técnico 2", "issue técnico 3", "issue técnico 4"]
 }`;
 
   const text = await askGemini(prompt);
@@ -228,6 +282,42 @@ Responde ÚNICAMENTE con un array JSON válido:
     "opportunity": "oportunidad específica para Help Soluciones",
     "priority": "Alta|Media|Baja",
     "estimatedBudget": "rango estimado en COP"
+  }
+]`;
+
+  const text = await askGemini(prompt);
+  return parseJsonArray(text);
+};
+
+export const huntNearbyLeads = async (zona: string, sector: string, radio: string) => {
+  const prompt = `Eres especialista en prospección comercial puerta a puerta para empresas de tecnología en Colombia.
+
+Help Soluciones Informáticas está ubicada en Cl. 6c #82a 91, Bogotá (zona ${zona}).
+Necesita encontrar PYMEs cercanas que NO tengan página web o tengan presencia digital muy precaria.
+
+Genera 8 prospectos realistas de negocios físicos en la zona ${zona} de Bogotá (radio ${radio}) en el sector "${sector}" que:
+- No tienen sitio web o solo tienen Facebook desactualizado
+- Tienen potencial de compra de servicios TI (mínimo 5 empleados)
+- Son visitables presencialmente
+
+Para cada prospecto incluye cómo encontrarlo físicamente y un script de acercamiento.
+
+Responde ÚNICAMENTE con array JSON válido:
+[
+  {
+    "company": "nombre realista del negocio",
+    "type": "tipo de negocio (ej: Clínica veterinaria, Distribuidora, Taller mecánico)",
+    "sector": "${sector}",
+    "zone": "barrio o sector específico en ${zona}, Bogotá",
+    "address": "dirección aproximada o referencia (ej: Cerca al centro comercial Titan Plaza, Av. El Dorado)",
+    "employees": "rango estimado de empleados (ej: 5-15)",
+    "webPresence": "Sin web|Solo Facebook|Web desactualizada|Sin redes",
+    "painPoint": "problema tecnológico específico que probablemente tiene (computadores lentos, no tienen facturación electrónica, no tienen red interna, etc.)",
+    "opportunity": "servicio específico de Help Soluciones que le vendería primero",
+    "estimatedBudget": "presupuesto estimado mensual en COP",
+    "howToFind": "cómo llegar o identificar el negocio físicamente (Google Maps, recorrer la calle X, llamar al directorio de la cámara de comercio, etc.)",
+    "approachScript": "guión de 2-3 oraciones para el primer contacto presencial o telefónico, tono natural y colombiano",
+    "priority": "Alta|Media|Baja"
   }
 ]`;
 
