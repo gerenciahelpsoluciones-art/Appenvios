@@ -2086,68 +2086,98 @@ function App() {
                 </h3>
 
                 <div className="timeline-container" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  {curMonthQuotes.slice(-5).reverse().map(c => (
-                    <div key={c.id} className="timeline-item" style={{ display: 'flex', gap: '1rem', padding: '1rem', background: '#f8fafc', borderRadius: '8px', borderLeft: `4px solid ${c.estado === 'Ganado' ? '#22c55e' : '#3b82f6'}` }}>
-                      <div style={{ minWidth: '80px', fontSize: '0.85rem', color: '#64748b', fontWeight: '600' }}>
-                        {c.fecha || 'N/A'}
-                      </div>
-                      <div>
-                        <div style={{ fontWeight: 'bold', color: '#0f172a', marginBottom: '0.25rem' }}>
-                          {c.estado === 'Ganado' ? '✅ Venta Cerrada' : '📄 Nueva Cotización'} ({c.consecutivo})
-                        </div>
-                        <div style={{ fontSize: '0.9rem', color: '#475569' }}>
-                          Para: <strong>{c.clienteNombre}</strong> por ${c.total.toLocaleString()}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                  {(() => {
+                    const activities: any[] = [];
+                    
+                    curMonthQuotes.forEach(c => {
+                      if (c.fecha) {
+                        activities.push({ id: 'q-' + c.id, date: c.fecha, type: 'quote', data: c });
+                      }
+                    });
 
-                  {/* Facturaciones Recientes */}
-                  {dashDespachos.filter(d => {
-                    if (!d.facturado || !d.fechaFacturado) return false;
-                    const [y, m] = d.fechaFacturado.split('-').map(Number);
-                    return y === curYear && (m - 1) === curMonth;
-                  }).slice(-3).reverse().map(d => (
-                    <div key={d.id} className="timeline-item" style={{ display: 'flex', gap: '1rem', padding: '1rem', background: '#f0fdf4', borderRadius: '8px', borderLeft: `4px solid #22c55e` }}>
-                      <div style={{ minWidth: '80px', fontSize: '0.85rem', color: '#166534', fontWeight: '600' }}>
-                        {d.fechaFacturado}
-                      </div>
-                      <div>
-                        <div style={{ fontWeight: 'bold', color: '#14532d', marginBottom: '0.25rem' }}>
-                          💰 Factura Realizada ({d.consecutivoCotizacion})
-                        </div>
-                        <div style={{ fontSize: '0.9rem', color: '#166534' }}>
-                          Para: <strong>{d.clienteNombre}</strong>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                    dashDespachos.forEach(d => {
+                      if (d.facturado && d.fechaFacturado) {
+                        const [y, m] = d.fechaFacturado.split('-').map(Number);
+                        if (y === curYear && (m - 1) === curMonth) {
+                          activities.push({ id: 'f-' + d.id, date: d.fechaFacturado, type: 'invoice', data: d });
+                        }
+                      }
+                      if (d.fechaSolicitud) {
+                        const [y, m] = d.fechaSolicitud.split('-').map(Number);
+                        if (y === curYear && (m - 1) === curMonth) {
+                          activities.push({ id: 's-' + d.id, date: d.fechaSolicitud, type: 'shipping', data: d });
+                        }
+                      }
+                    });
 
-                  {dashDespachos.filter(d => {
-                    if (!d.fechaSolicitud) return false;
-                    const [y, m] = d.fechaSolicitud.split('-').map(Number);
-                    return y === curYear && (m - 1) === curMonth;
-                  }).slice(-3).reverse().map(d => (
-                    <div key={d.id} className="timeline-item" style={{ display: 'flex', gap: '1rem', padding: '1rem', background: '#f8fafc', borderRadius: '8px', borderLeft: `4px solid #f59e0b` }}>
-                      <div style={{ minWidth: '80px', fontSize: '0.85rem', color: '#64748b', fontWeight: '600' }}>
-                        {d.fechaSolicitud || 'N/A'}
-                      </div>
-                      <div>
-                        <div style={{ fontWeight: 'bold', color: '#0f172a', marginBottom: '0.25rem' }}>
-                          🚚 Envío {d.consecutivoCotizacion}
-                        </div>
-                        <div style={{ fontSize: '0.9rem', color: '#475569' }}>
-                          Estado: <span style={{ fontWeight: '600' }}>{d.estado}</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                    activities.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-                  {(curMonthQuotes.length === 0 && dashDespachos.length === 0) && (
-                    <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
-                      No hay actividad reciente este mes.
-                    </div>
-                  )}
+                    if (activities.length === 0) {
+                      return (
+                        <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
+                          No hay actividad reciente este mes.
+                        </div>
+                      );
+                    }
+
+                    return activities.slice(0, 8).map(activity => {
+                      if (activity.type === 'quote') {
+                        const c = activity.data;
+                        return (
+                          <div key={activity.id} className="timeline-item" style={{ display: 'flex', gap: '1rem', padding: '1rem', background: '#f8fafc', borderRadius: '8px', borderLeft: `4px solid ${c.estado === 'Ganado' ? '#22c55e' : '#3b82f6'}` }}>
+                            <div style={{ minWidth: '80px', fontSize: '0.85rem', color: '#64748b', fontWeight: '600' }}>
+                              {activity.date}
+                            </div>
+                            <div>
+                              <div style={{ fontWeight: 'bold', color: '#0f172a', marginBottom: '0.25rem' }}>
+                                {c.estado === 'Ganado' ? '✅ Venta Cerrada' : '📄 Nueva Cotización'} ({c.consecutivo})
+                              </div>
+                              <div style={{ fontSize: '0.9rem', color: '#475569' }}>
+                                Para: <strong>{c.clienteNombre}</strong> por ${c.total.toLocaleString()}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+                      if (activity.type === 'invoice') {
+                        const d = activity.data;
+                        return (
+                          <div key={activity.id} className="timeline-item" style={{ display: 'flex', gap: '1rem', padding: '1rem', background: '#f0fdf4', borderRadius: '8px', borderLeft: `4px solid #22c55e` }}>
+                            <div style={{ minWidth: '80px', fontSize: '0.85rem', color: '#166534', fontWeight: '600' }}>
+                              {activity.date}
+                            </div>
+                            <div>
+                              <div style={{ fontWeight: 'bold', color: '#14532d', marginBottom: '0.25rem' }}>
+                                💰 Factura Realizada ({d.consecutivoCotizacion})
+                              </div>
+                              <div style={{ fontSize: '0.9rem', color: '#166534' }}>
+                                Para: <strong>{d.clienteNombre}</strong>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+                      if (activity.type === 'shipping') {
+                        const d = activity.data;
+                        return (
+                          <div key={activity.id} className="timeline-item" style={{ display: 'flex', gap: '1rem', padding: '1rem', background: '#f8fafc', borderRadius: '8px', borderLeft: `4px solid #f59e0b` }}>
+                            <div style={{ minWidth: '80px', fontSize: '0.85rem', color: '#64748b', fontWeight: '600' }}>
+                              {activity.date}
+                            </div>
+                            <div>
+                              <div style={{ fontWeight: 'bold', color: '#0f172a', marginBottom: '0.25rem' }}>
+                                🚚 Envío {d.consecutivoCotizacion}
+                              </div>
+                              <div style={{ fontSize: '0.9rem', color: '#475569' }}>
+                                Estado: <span style={{ fontWeight: '600' }}>{d.estado}</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+                      return null;
+                    });
+                  })()}
                 </div>
               </div>
 
