@@ -119,7 +119,7 @@ BBVA - Cuenta Corriente No. 390021475`;
                     }
 
                     const defaultUtil = 15;
-                    const defaultVenta = costo > 0 ? (costo / (1 - (defaultUtil / 100))) : 0;
+                    const defaultVenta = costo > 0 ? (costo * (1 + (defaultUtil / 100))) : 0;
                     return { ...item, productoId: value, costoUnitario: costo, precioVenta: defaultVenta, utilidad: defaultUtil, unidad: prod?.unidad || 'Und', iva: prod?.exentoIva ? 0 : 19, moneda: monedaItem };
                 }
                 if (field === 'costoUnitario') {
@@ -127,8 +127,8 @@ BBVA - Cuenta Corriente No. 390021475`;
                         return { ...item, costoUnitario: '' as any, precioVenta: 0 };
                     }
                     const newCosto = Number(value);
-                    const margin = Math.min(Number(item.utilidad) || 0, 99.99) / 100;
-                    const newVenta = newCosto > 0 ? (newCosto / (1 - margin)) : 0;
+                    const margin = (Number(item.utilidad) || 0) / 100;
+                    const newVenta = newCosto > 0 ? (newCosto * (1 + margin)) : 0;
                     return { ...item, costoUnitario: newCosto, precioVenta: newVenta };
                 }
                 if (field === 'utilidad') {
@@ -136,8 +136,8 @@ BBVA - Cuenta Corriente No. 390021475`;
                         return { ...item, utilidad: '' as any };
                     }
                     const newUtil = Number(value);
-                    const margin = Math.min(newUtil, 99.99) / 100;
-                    const newVenta = Number(item.costoUnitario) > 0 ? (Number(item.costoUnitario) / (1 - margin)) : item.precioVenta;
+                    const margin = newUtil / 100;
+                    const newVenta = Number(item.costoUnitario) > 0 ? (Number(item.costoUnitario) * (1 + margin)) : item.precioVenta;
                     return { ...item, utilidad: newUtil, precioVenta: newVenta };
                 }
                 return { ...item, [field]: value };
@@ -153,8 +153,9 @@ BBVA - Cuenta Corriente No. 390021475`;
                 if (nuevoPrecioVenta <= 0) {
                     return { ...item, precioVenta: nuevoPrecioVenta, utilidad: 0 };
                 }
-                let newMargin = ((nuevoPrecioVenta - item.costoUnitario) / nuevoPrecioVenta) * 100;
-                newMargin = newMargin;
+                let newMargin = item.costoUnitario > 0 
+                    ? ((nuevoPrecioVenta - item.costoUnitario) / item.costoUnitario) * 100 
+                    : 100;
                 return { ...item, precioVenta: nuevoPrecioVenta, utilidad: newMargin };
             }
             return item;
@@ -189,9 +190,9 @@ BBVA - Cuenta Corriente No. 390021475`;
     // Actual margin percent based on total cost vs selling price
     const profitTotal = items.reduce((acc, item) => acc + calculateMarginTotal(item), 0);
     const totalCost = items.reduce((acc, item) => acc + (item.costoUnitario * item.cantidad), 0);
-    const marginPercent = subtotalGeneral > 0
-        ? ((subtotalGeneral - totalCost) / subtotalGeneral) * 100
-        : 0;
+    const marginPercent = totalCost > 0
+        ? ((subtotalGeneral - totalCost) / totalCost) * 100
+        : 100;
 
     const generatePDF = async () => {
         if (!selectedCliente) {
