@@ -24,7 +24,7 @@ const spaceGrotesk = Space_Grotesk({
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.helpsoluciones.com.co"),
   title: {
-    default: "Help Soluciones | Mantenimiento de Servidores y Redes TI en Colombia",
+    default: "Help Soluciones | Soporte TI y Redes en Colombia",
     template: "%s | Help Soluciones",
   },
   description: "Expertos en mantenimiento de servidores, cableado estructurado y soporte técnico TI en Colombia. Infraestructura segura 24/7 para su empresa.",
