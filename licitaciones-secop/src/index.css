@@ -1,0 +1,195 @@
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600;700&family=Inter:wght@400;500;600;700;800&display=swap');
+
+:root {
+  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #080a0f;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  --background:     224 71% 4%;
+  --background-alt: 224 71% 2%;
+  --primary:        217 91% 60%;
+  --primary-glow:   hsla(217, 91%, 60%, 0.3);
+  --accent:         199 89% 48%;
+  --success:        142 71% 45%;
+  --warning:        38 92% 50%;
+  --error:          0 84% 60%;
+  --text-main:      210 40% 98%;
+  --text-muted:     215 20% 65%;
+  --glass:          hsla(224, 71%, 10%, 0.4);
+  --glass-border:   hsla(224, 71%, 20%, 0.6);
+  --glass-highlight:hsla(0, 0%, 100%, 0.05);
+  --header-h:       60px;
+  --transition:     all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar       { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: hsl(var(--background-alt)); }
+::-webkit-scrollbar-thumb { background: hsla(var(--primary), 0.25); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: hsla(var(--primary), 0.45); }
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: hsl(var(--background));
+  color: hsl(var(--text-main));
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+/* ── App shell ── */
+
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 0% 0%, hsla(var(--primary), 0.08), transparent 40%),
+    radial-gradient(circle at 100% 100%, hsla(var(--accent), 0.04), transparent 40%);
+}
+
+/* ── Header ── */
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  height: var(--header-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2rem;
+  background: hsla(224, 71%, 3%, 0.92);
+  border-bottom: 1px solid var(--glass-border);
+  backdrop-filter: blur(12px);
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.header-brand-icon {
+  width: 36px;
+  height: 36px;
+  background: hsla(var(--primary), 0.2);
+  border: 1px solid hsla(var(--primary), 0.4);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+}
+
+.header-brand-title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: hsl(var(--text-main));
+  letter-spacing: -0.02em;
+}
+
+.header-brand-sub {
+  font-size: 0.72rem;
+  color: hsl(var(--text-muted));
+  font-weight: 500;
+}
+
+.header-meta {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.header-badge {
+  padding: 0.3rem 0.85rem;
+  background: hsla(var(--primary), 0.12);
+  border: 1px solid hsla(var(--primary), 0.3);
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: hsl(var(--primary));
+  letter-spacing: 0.04em;
+}
+
+.header-status {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  color: hsl(var(--text-muted));
+}
+
+.header-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 6px #10b981;
+  animation: pulse-dot 2s infinite;
+}
+
+/* ── Main ── */
+
+.app-main {
+  flex: 1;
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+  animation: slide-up 0.4s ease-out;
+}
+
+/* ── Buttons (override browser default) ── */
+
+button {
+  font-family: 'Inter', sans-serif;
+}
+
+/* ── Inputs ── */
+
+input, select, textarea {
+  font-family: 'Inter', sans-serif;
+}
+
+select option {
+  background: hsl(var(--background));
+  color: hsl(var(--text-main));
+}
+
+/* ── Responsive ── */
+
+@media (max-width: 768px) {
+  .app-main {
+    padding: 1rem;
+  }
+  .app-header {
+    padding: 0 1rem;
+  }
+  .header-meta {
+    gap: 0.5rem;
+  }
+  .header-badge {
+    display: none;
+  }
+}

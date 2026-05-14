@@ -1,0 +1,179 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 560" width="820" height="560" font-family="Segoe UI, Arial, sans-serif">
+  <rect width="820" height="560" fill="#0f172a"/>
+
+  <!-- Title -->
+  <text x="410" y="36" text-anchor="middle" font-size="21" font-weight="bold" fill="white">FocusClip V2.1 — Para Niños</text>
+  <text x="410" y="57" text-anchor="middle" font-size="12" fill="#94a3b8">Orejeta con cordón o llavero · Sin clips · LED frontal visible</text>
+
+  <!-- ════════════════════════════════════
+       PANEL IZQUIERDO: Dispositivo en uso
+       ════════════════════════════════════ -->
+
+  <!-- Silueta niño (simple) -->
+  <!-- Cabeza -->
+  <circle cx="195" cy="130" r="38" fill="#fde68a" stroke="#f59e0b" stroke-width="2"/>
+  <!-- Ojos -->
+  <circle cx="182" cy="124" r="5" fill="#1e293b"/>
+  <circle cx="208" cy="124" r="5" fill="#1e293b"/>
+  <circle cx="183" cy="122" r="2" fill="white"/>
+  <circle cx="209" cy="122" r="2" fill="white"/>
+  <!-- Sonrisa -->
+  <path d="M 182 140 Q 195 150 208 140" stroke="#92400e" stroke-width="2" fill="none"/>
+  <!-- Cuerpo -->
+  <rect x="148" y="168" width="94" height="120" rx="20" fill="#3b82f6"/>
+  <!-- Brazos -->
+  <rect x="100" y="172" width="50" height="22" rx="11" fill="#3b82f6"/>
+  <rect x="242" y="172" width="50" height="22" rx="11" fill="#3b82f6"/>
+  <!-- Piernas -->
+  <rect x="155" y="286" width="34" height="70" rx="12" fill="#1e40af"/>
+  <rect x="202" y="286" width="34" height="70" rx="12" fill="#1e40af"/>
+  <!-- Zapatos -->
+  <ellipse cx="172" cy="358" rx="22" ry="10" fill="#1e293b"/>
+  <ellipse cx="219" cy="358" rx="22" ry="10" fill="#1e293b"/>
+
+  <!-- Cordón del cuello -->
+  <path d="M 195 168 Q 215 215 226 230" stroke="#ef4444" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M 195 168 Q 175 215 164 230" stroke="#ef4444" stroke-width="3" fill="none" stroke-linecap="round" stroke-dasharray="6,3"/>
+
+  <!-- Dispositivo colgado -->
+  <!-- Box lower body -->
+  <rect x="196" y="230" width="60" height="44" rx="5" fill="#2563eb" stroke="#1d4ed8" stroke-width="2"/>
+  <!-- LED window on front face of box (izquierda — cara frontal) -->
+  <rect x="196" y="243" width="8" height="18" rx="3" fill="#22d3ee"/>
+  <!-- LED glow -->
+  <ellipse cx="192" cy="252" rx="12" ry="10" fill="#06b6d4" opacity="0.35"/>
+  <ellipse cx="186" cy="252" rx="8" ry="7" fill="#06b6d4" opacity="0.2"/>
+  <!-- FocusClip label on box -->
+  <text x="226" y="250" text-anchor="middle" font-size="6" fill="#bfdbfe" font-weight="bold">FocusClip</text>
+  <!-- Box lid -->
+  <rect x="196" y="222" width="60" height="10" rx="4" fill="#1d4ed8" stroke="#1e40af" stroke-width="1.5"/>
+  <!-- Orejeta en la tapa -->
+  <rect x="219" y="210" width="14" height="14" rx="5" fill="#1d4ed8" stroke="#60a5fa" stroke-width="1.5"/>
+  <circle cx="226" cy="215" r="3.5" fill="none" stroke="#93c5fd" stroke-width="1.5"/>
+
+  <!-- Cordón conectando orejeta -->
+  <path d="M 226 210 Q 218 196 210 186 Q 203 177 200 170" stroke="#ef4444" stroke-width="3" fill="none" stroke-linecap="round"/>
+
+  <!-- LED arrow and label -->
+  <line x1="183" y1="252" x2="145" y2="252" stroke="#22d3ee" stroke-width="1.5"/>
+  <text x="140" y="249" text-anchor="end" font-size="10" fill="#22d3ee" font-weight="bold">LED</text>
+  <text x="140" y="261" text-anchor="end" font-size="9" fill="#67e8f9">alerta visual</text>
+
+  <!-- Sensor label -->
+  <line x1="256" y1="255" x2="290" y2="255" stroke="#a3e635" stroke-width="1" stroke-dasharray="3,2"/>
+  <text x="294" y="252" font-size="9" fill="#a3e635">MPU6050</text>
+  <text x="294" y="263" font-size="9" fill="#86efac">detecta postura</text>
+
+  <!-- Use case label -->
+  <text x="195" y="400" text-anchor="middle" font-size="12" fill="#fbbf24" font-weight="bold">Colgado del cuello</text>
+  <text x="195" y="415" text-anchor="middle" font-size="10" fill="#94a3b8">como un dije / medallón</text>
+
+  <!-- ════════════════════════════════════
+       PANEL CENTRAL: Detalle de la orejeta
+       ════════════════════════════════════ -->
+
+  <rect x="360" y="75" width="200" height="240" rx="10" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+  <text x="460" y="97" text-anchor="middle" font-size="13" font-weight="bold" fill="white">Detalle orejeta</text>
+
+  <!-- Side view of lid + lug -->
+  <!-- Lid top face -->
+  <rect x="390" y="170" width="140" height="18" rx="4" fill="#1e40af" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="460" y="183" text-anchor="middle" font-size="9" fill="#bfdbfe">tapa superior</text>
+
+  <!-- Lug shape (teardrop side view) -->
+  <path d="M 444 170 L 444 128 Q 444 114 460 114 Q 476 114 476 128 L 476 170 Z"
+        fill="#2563eb" stroke="#60a5fa" stroke-width="1.5"/>
+  <!-- Hole -->
+  <ellipse cx="460" cy="128" rx="5" ry="5" fill="#0f172a" stroke="#93c5fd" stroke-width="1.5"/>
+  <text x="487" y="132" font-size="9" fill="#93c5fd">Ø 7mm</text>
+  <line x1="484" y1="130" x2="467" y2="130" stroke="#93c5fd" stroke-width="1" stroke-dasharray="2,2"/>
+
+  <!-- Height annotation -->
+  <line x1="436" y1="114" x2="436" y2="170" stroke="#10b981" stroke-width="1.5"/>
+  <line x1="431" y1="114" x2="441" y2="114" stroke="#10b981" stroke-width="1"/>
+  <line x1="431" y1="170" x2="441" y2="170" stroke="#10b981" stroke-width="1"/>
+  <text x="425" y="145" font-size="9" fill="#10b981" text-anchor="middle">14mm</text>
+
+  <!-- Front view of lug -->
+  <ellipse cx="460" cy="240" rx="10" ry="12" fill="#2563eb" stroke="#60a5fa" stroke-width="1.5"/>
+  <ellipse cx="460" cy="240" rx="3.5" ry="3.5" fill="#0f172a" stroke="#93c5fd" stroke-width="1.5"/>
+  <rect x="449" y="250" width="22" height="10" rx="2" fill="#2563eb" stroke="#60a5fa" stroke-width="1"/>
+  <text x="460" y="278" text-anchor="middle" font-size="9" fill="#94a3b8">Vista frontal</text>
+  <text x="460" y="155" text-anchor="middle" font-size="9" fill="#94a3b8">Vista lateral</text>
+
+  <!-- ════════════════════════════════════
+       PANEL DERECHO: 3 formas de usarlo
+       ════════════════════════════════════ -->
+
+  <rect x="578" y="75" width="222" height="380" rx="10" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+  <text x="689" y="97" text-anchor="middle" font-size="13" font-weight="bold" fill="white">Cómo usarlo</text>
+
+  <!-- Option 1: Cord necklace -->
+  <rect x="596" y="108" width="186" height="85" rx="7" fill="#0f172a" stroke="#3b82f6" stroke-width="1"/>
+  <circle cx="626" cy="128" r="14" fill="none" stroke="#ef4444" stroke-width="2.5"/>
+  <!-- device mini -->
+  <rect x="614" y="134" width="24" height="16" rx="2" fill="#3b82f6"/>
+  <rect x="614" y="131" width="24" height="5" rx="2" fill="#2563eb"/>
+  <rect x="614" y="138" width="4" height="6" rx="1" fill="#22d3ee"/>
+  <text x="648" y="120" font-size="11" fill="white" font-weight="600">Cordón al cuello</text>
+  <text x="648" y="133" font-size="9" fill="#94a3b8">Cordón de nylon o tela</text>
+  <text x="648" y="145" font-size="9" fill="#94a3b8">Ø 3–5mm, largo 40–50cm</text>
+  <text x="648" y="157" font-size="9" fill="#64748b">Ajustable con nudo corredizo</text>
+  <rect x="596" y="187" width="186" height="4" rx="2" fill="#1e293b"/>
+  <text x="689" y="184" text-anchor="middle" font-size="8" fill="#10b981">✓ Más cómodo para el día escolar</text>
+
+  <!-- Option 2: Keyring backpack -->
+  <rect x="596" y="196" width="186" height="85" rx="7" fill="#0f172a" stroke="#7c3aed" stroke-width="1"/>
+  <!-- Keyring icon -->
+  <circle cx="626" cy="226" r="12" fill="none" stroke="#a78bfa" stroke-width="2.5"/>
+  <circle cx="626" cy="226" r="6" fill="none" stroke="#a78bfa" stroke-width="1.5"/>
+  <rect x="621" y="236" width="10" height="12" rx="2" fill="#6d28d9"/>
+  <rect x="621" y="236" width="4" height="5" rx="1" fill="#22d3ee"/>
+  <text x="648" y="212" font-size="11" fill="white" font-weight="600">Llavero / mosquetón</text>
+  <text x="648" y="225" font-size="9" fill="#94a3b8">Llavero metálico estándar</text>
+  <text x="648" y="237" font-size="9" fill="#94a3b8">o mosquetón pequeño</text>
+  <text x="648" y="249" font-size="9" fill="#64748b">Cuelga de la mochila o estuche</text>
+  <rect x="596" y="275" width="186" height="4" rx="2" fill="#1e293b"/>
+  <text x="689" y="272" text-anchor="middle" font-size="8" fill="#10b981">✓ Siempre visible al sacar la mochila</text>
+
+  <!-- Option 3: Safety clip with cord -->
+  <rect x="596" y="284" width="186" height="85" rx="7" fill="#0f172a" stroke="#059669" stroke-width="1"/>
+  <!-- Safety icon -->
+  <path d="M 626 296 L 614 316 L 638 316 Z" fill="none" stroke="#34d399" stroke-width="2"/>
+  <text x="626" y="313" text-anchor="middle" font-size="8" fill="#34d399">!</text>
+  <text x="648" y="300" font-size="11" fill="white" font-weight="600">Clip de seguridad</text>
+  <text x="648" y="313" font-size="9" fill="#94a3b8">Broche de presión con cordón</text>
+  <text x="648" y="325" font-size="9" fill="#94a3b8">Se desengancha si jalan fuerte</text>
+  <text x="648" y="337" font-size="9" fill="#64748b">(seguridad para niños pequeños)</text>
+  <rect x="596" y="363" width="186" height="4" rx="2" fill="#1e293b"/>
+  <text x="689" y="360" text-anchor="middle" font-size="8" fill="#10b981">✓ Recomendado edad 5–9 años</text>
+
+  <!-- ════════════════════════════════════
+       PANEL INFERIOR: Piezas y hardware
+       ════════════════════════════════════ -->
+
+  <rect x="20" y="440" width="780" height="100" rx="10" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+  <text x="410" y="460" text-anchor="middle" font-size="13" font-weight="bold" fill="white">Solo 3 STL · 4 tornillos · 1 cordón</text>
+
+  <!-- Piece boxes -->
+  <rect x="36"  y="470" width="160" height="56" rx="6" fill="#1e3a8a" stroke="#3b82f6" stroke-width="1"/>
+  <text x="116" y="487" text-anchor="middle" font-size="10" fill="#bfdbfe" font-weight="bold">STL 1 — Cuerpo inferior</text>
+  <text x="116" y="500" text-anchor="middle" font-size="9" fill="#93c5fd">Ventana LED frontal</text>
+  <text x="116" y="512" text-anchor="middle" font-size="9" fill="#93c5fd">Logo "FocusClip"</text>
+
+  <rect x="210" y="470" width="160" height="56" rx="6" fill="#1e3a8a" stroke="#3b82f6" stroke-width="1"/>
+  <text x="290" y="487" text-anchor="middle" font-size="10" fill="#bfdbfe" font-weight="bold">STL 2 — Tapa + orejeta</text>
+  <text x="290" y="500" text-anchor="middle" font-size="9" fill="#93c5fd">Orejeta Ø7mm integrada</text>
+  <text x="290" y="512" text-anchor="middle" font-size="9" fill="#93c5fd">Una sola pieza</text>
+
+  <rect x="384" y="470" width="160" height="56" rx="6" fill="#0e7490" stroke="#22d3ee" stroke-width="1"/>
+  <text x="464" y="487" text-anchor="middle" font-size="10" fill="#a5f3fc" font-weight="bold">STL 3 — Difusor LED</text>
+  <text x="464" y="500" text-anchor="middle" font-size="9" fill="#67e8f9">PETG transparente</text>
+  <text x="464" y="512" text-anchor="middle" font-size="9" fill="#67e8f9">o PLA blanco 0% relleno</text>
+
+  <rect x="558" y="470" width="230" height="56" rx="6" fill="#14532d" stroke="#22c55e" stroke-width="1"/>
+  <text x="672" y="487" text-anchor="middle" font-size="10" fill="#bbf7d0" font-weight="bold">Hardware necesario</text>
+  <text x="672" y="500" text-anchor="middle" font-size="9" fill="#86efac">4× M3×10mm (tapa + cuerpo)</text>
+  <text x="672" y="512" text-anchor="middle" font-size="9" fill="#86efac">1× cordón Ø3–5mm · largo 45cm</text>
+
+</svg>

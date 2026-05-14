@@ -1,0 +1,272 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 780" width="1100" height="780" font-family="Courier New, monospace">
+
+  <!-- Fondo -->
+  <rect width="1100" height="780" fill="#1a1a2e"/>
+
+  <!-- Título -->
+  <text x="550" y="34" text-anchor="middle" font-size="20" font-weight="bold" fill="white" font-family="Segoe UI, Arial">FocusClip V2.1 — Diagrama de Conexiones</text>
+  <text x="550" y="54" text-anchor="middle" font-size="12" fill="#94a3b8" font-family="Segoe UI, Arial">ESP32 DevKit V1 · MPU-6050 · LEDs · Vibrador · Buzzer</text>
+
+  <!-- ═══════════════════════════════════════════════
+       ESP32 DevKit V1 — Centro
+       ═══════════════════════════════════════════════ -->
+  <rect x="380" y="80" width="160" height="520" rx="8" fill="#1a1a1a" stroke="#f59e0b" stroke-width="2.5"/>
+  <rect x="390" y="90" width="140" height="100" rx="4" fill="#92400e" opacity="0.8"/>
+  <!-- Chip ESP32 -->
+  <rect x="415" y="105" width="90" height="70" rx="3" fill="#d97706"/>
+  <text x="460" y="135" text-anchor="middle" font-size="11" font-weight="bold" fill="#1a1a1a">ESP-32</text>
+  <text x="460" y="150" text-anchor="middle" font-size="9" fill="#1a1a1a">CE  FCC</text>
+  <!-- Antena WiFi -->
+  <rect x="490" y="92" width="35" height="8" rx="2" fill="#6b7280"/>
+
+  <!-- Label ESP32 -->
+  <text x="460" y="210" text-anchor="middle" font-size="13" font-weight="bold" fill="#f59e0b" font-family="Segoe UI">ESP32 DevKit V1</text>
+
+  <!-- PINES LADO IZQUIERDO ESP32 (X=380) -->
+  <!-- Pin labels izquierda -->
+  <text x="375" y="242" text-anchor="end" font-size="9" fill="#94a3b8">3.3V</text>
+  <text x="375" y="262" text-anchor="end" font-size="9" fill="#94a3b8">GND</text>
+  <text x="375" y="282" text-anchor="end" font-size="9" fill="#94a3b8">G21</text>
+  <text x="375" y="302" text-anchor="end" font-size="9" fill="#94a3b8">G22</text>
+  <text x="375" y="322" text-anchor="end" font-size="9" fill="#94a3b8">G25</text>
+  <text x="375" y="342" text-anchor="end" font-size="9" fill="#94a3b8">G26</text>
+  <text x="375" y="362" text-anchor="end" font-size="9" fill="#94a3b8">G27</text>
+  <text x="375" y="382" text-anchor="end" font-size="9" fill="#94a3b8">G33</text>
+  <text x="375" y="402" text-anchor="end" font-size="9" fill="#94a3b8">VIN</text>
+  <text x="375" y="422" text-anchor="end" font-size="9" fill="#94a3b8">GND</text>
+
+  <!-- Puntos de pin izquierda -->
+  <circle cx="382" cy="239" r="4" fill="#f59e0b"/>
+  <circle cx="382" cy="259" r="4" fill="#f59e0b"/>
+  <circle cx="382" cy="279" r="4" fill="#f59e0b"/>
+  <circle cx="382" cy="299" r="4" fill="#f59e0b"/>
+  <circle cx="382" cy="319" r="4" fill="#f59e0b"/>
+  <circle cx="382" cy="339" r="4" fill="#f59e0b"/>
+  <circle cx="382" cy="359" r="4" fill="#f59e0b"/>
+  <circle cx="382" cy="379" r="4" fill="#f59e0b"/>
+  <circle cx="382" cy="399" r="4" fill="#f59e0b"/>
+  <circle cx="382" cy="419" r="4" fill="#f59e0b"/>
+
+  <!-- PINES LADO DERECHO ESP32 (X=540) -->
+  <text x="545" y="242" font-size="9" fill="#94a3b8">VN</text>
+  <text x="545" y="262" font-size="9" fill="#94a3b8">D34</text>
+  <text x="545" y="282" font-size="9" fill="#94a3b8">D35</text>
+  <text x="545" y="302" font-size="9" fill="#94a3b8">D32</text>
+  <text x="545" y="322" font-size="9" fill="#94a3b8">D33</text>
+  <text x="545" y="342" font-size="9" fill="#94a3b8">D25</text>
+  <text x="545" y="362" font-size="9" fill="#94a3b8">D26</text>
+  <text x="545" y="382" font-size="9" fill="#94a3b8">D27</text>
+  <text x="545" y="402" font-size="9" fill="#94a3b8">D14</text>
+
+  <circle cx="538" cy="239" r="4" fill="#f59e0b"/>
+  <circle cx="538" cy="259" r="4" fill="#f59e0b"/>
+  <circle cx="538" cy="279" r="4" fill="#f59e0b"/>
+  <circle cx="538" cy="299" r="4" fill="#f59e0b"/>
+  <circle cx="538" cy="319" r="4" fill="#f59e0b"/>
+  <circle cx="538" cy="339" r="4" fill="#f59e0b"/>
+  <circle cx="538" cy="359" r="4" fill="#f59e0b"/>
+  <circle cx="538" cy="379" r="4" fill="#f59e0b"/>
+  <circle cx="538" cy="399" r="4" fill="#f59e0b"/>
+
+  <!-- Botones EN/BOOT -->
+  <rect x="395" y="560" width="30" height="16" rx="3" fill="#374151" stroke="#6b7280" stroke-width="1"/>
+  <text x="410" y="572" text-anchor="middle" font-size="7" fill="#9ca3af">EN</text>
+  <rect x="490" y="560" width="35" height="16" rx="3" fill="#374151" stroke="#6b7280" stroke-width="1"/>
+  <text x="507" y="572" text-anchor="middle" font-size="7" fill="#9ca3af">BOOT</text>
+  <!-- USB-C -->
+  <rect x="425" y="580" width="70" height="14" rx="3" fill="#4b5563" stroke="#9ca3af" stroke-width="1"/>
+  <text x="460" y="591" text-anchor="middle" font-size="8" fill="#d1d5db">USB-C ⚡</text>
+
+  <!-- ═══════════════════════════════════════════════
+       MPU-6050 — Derecha arriba
+       ═══════════════════════════════════════════════ -->
+  <rect x="730" y="100" width="110" height="160" rx="6" fill="#1e3a5f" stroke="#3b82f6" stroke-width="2"/>
+  <rect x="742" y="112" width="86" height="60" rx="3" fill="#1d4ed8" opacity="0.6"/>
+  <rect x="768" y="128" width="34" height="28" rx="2" fill="#2563eb"/>
+  <text x="785" y="147" text-anchor="middle" font-size="8" fill="white" font-weight="bold">MPU</text>
+  <text x="785" y="157" text-anchor="middle" font-size="7" fill="white">6050</text>
+  <text x="785" y="196" text-anchor="middle" font-size="11" font-weight="bold" fill="#60a5fa" font-family="Segoe UI">MPU-6050</text>
+  <text x="785" y="210" text-anchor="middle" font-size="9" fill="#93c5fd" font-family="Segoe UI">Acelerómetro</text>
+  <text x="785" y="222" text-anchor="middle" font-size="9" fill="#93c5fd" font-family="Segoe UI">Giroscopio</text>
+
+  <!-- Pines MPU-6050 (lado izquierdo del módulo) -->
+  <circle cx="730" cy="130" r="4" fill="#3b82f6"/>
+  <circle cx="730" cy="148" r="4" fill="#3b82f6"/>
+  <circle cx="730" cy="166" r="4" fill="#3b82f6"/>
+  <circle cx="730" cy="184" r="4" fill="#3b82f6"/>
+  <text x="726" y="133" text-anchor="end" font-size="9" fill="#93c5fd">VCC</text>
+  <text x="726" y="151" text-anchor="end" font-size="9" fill="#93c5fd">GND</text>
+  <text x="726" y="169" text-anchor="end" font-size="9" fill="#93c5fd">SCL</text>
+  <text x="726" y="187" text-anchor="end" font-size="9" fill="#93c5fd">SDA</text>
+
+  <!-- ═══════════════════════════════════════════════
+       CABLES MPU-6050
+       ═══════════════════════════════════════════════ -->
+  <!-- 3.3V → VCC MPU (rojo) -->
+  <polyline points="382,239 320,239 320,130 730,130" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="500" y="126" text-anchor="middle" font-size="10" fill="#ef4444" font-weight="bold">3.3V</text>
+
+  <!-- GND → GND MPU (negro) -->
+  <polyline points="382,259 310,259 310,148 730,148" fill="none" stroke="#6b7280" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="500" y="144" text-anchor="middle" font-size="10" fill="#9ca3af">GND</text>
+
+  <!-- G22 → SCL (verde) -->
+  <polyline points="382,299 340,299 340,166 730,166" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="500" y="162" text-anchor="middle" font-size="10" fill="#22c55e" font-weight="bold">SCL</text>
+
+  <!-- G21 → SDA (azul) -->
+  <polyline points="382,279 330,279 330,184 730,184" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="500" y="180" text-anchor="middle" font-size="10" fill="#60a5fa" font-weight="bold">SDA</text>
+
+  <!-- ═══════════════════════════════════════════════
+       LED ROJO — Izquierda arriba
+       ═══════════════════════════════════════════════ -->
+  <ellipse cx="130" cy="200" rx="22" ry="28" fill="#dc2626" stroke="#ef4444" stroke-width="2" opacity="0.9"/>
+  <ellipse cx="130" cy="195" rx="15" ry="18" fill="#fca5a5" opacity="0.4"/>
+  <!-- Patas -->
+  <line x1="122" y1="228" x2="122" y2="260" stroke="#d1d5db" stroke-width="2"/>
+  <line x1="138" y1="228" x2="138" y2="260" stroke="#d1d5db" stroke-width="2"/>
+  <text x="130" y="285" text-anchor="middle" font-size="11" font-weight="bold" fill="#ef4444" font-family="Segoe UI">LED ROJO</text>
+  <text x="130" y="298" text-anchor="middle" font-size="9" fill="#fca5a5" font-family="Segoe UI">GPIO 25</text>
+
+  <!-- Resistencia 220Ω LED Rojo -->
+  <rect x="190" y="313" width="50" height="16" rx="4" fill="#92400e" stroke="#d97706" stroke-width="1.5"/>
+  <text x="215" y="325" text-anchor="middle" font-size="9" fill="white" font-weight="bold">220 Ω</text>
+  <line x1="138" y1="259" x2="190" y2="321" stroke="#ef4444" stroke-width="2" stroke-dasharray="4,2"/>
+  <line x1="240" y1="321" x2="382" y2="319" stroke="#ef4444" stroke-width="2.5"/>
+  <!-- LED GND -->
+  <polyline points="122,260 80,260 80,680 350,680 350,419 382,419" fill="none" stroke="#6b7280" stroke-width="2" stroke-dasharray="5,3"/>
+  <!-- Label G25 -->
+  <text x="300" y="316" font-size="10" fill="#ef4444" font-weight="bold">→ G25</text>
+
+  <!-- ═══════════════════════════════════════════════
+       LED VERDE — Izquierda abajo
+       ═══════════════════════════════════════════════ -->
+  <ellipse cx="130" cy="420" rx="22" ry="28" fill="#16a34a" stroke="#22c55e" stroke-width="2" opacity="0.9"/>
+  <ellipse cx="130" cy="415" rx="15" ry="18" fill="#86efac" opacity="0.4"/>
+  <line x1="122" y1="448" x2="122" y2="480" stroke="#d1d5db" stroke-width="2"/>
+  <line x1="138" y1="448" x2="138" y2="480" stroke="#d1d5db" stroke-width="2"/>
+  <text x="130" y="500" text-anchor="middle" font-size="11" font-weight="bold" fill="#22c55e" font-family="Segoe UI">LED VERDE</text>
+  <text x="130" y="513" text-anchor="middle" font-size="9" fill="#86efac" font-family="Segoe UI">GPIO 26</text>
+
+  <!-- Resistencia 220Ω LED Verde -->
+  <rect x="190" y="493" width="50" height="16" rx="4" fill="#92400e" stroke="#d97706" stroke-width="1.5"/>
+  <text x="215" y="505" text-anchor="middle" font-size="9" fill="white" font-weight="bold">220 Ω</text>
+  <line x1="138" y1="479" x2="190" y2="501" stroke="#22c55e" stroke-width="2" stroke-dasharray="4,2"/>
+  <line x1="240" y1="501" x2="382" y2="339" stroke="#22c55e" stroke-width="2.5"/>
+  <!-- LED GND -->
+  <line x1="122" y1="480" x2="80" y2="480" stroke="#6b7280" stroke-width="2" stroke-dasharray="5,3"/>
+  <!-- Label G26 -->
+  <text x="300" y="460" font-size="10" fill="#22c55e" font-weight="bold">→ G26</text>
+
+  <!-- ═══════════════════════════════════════════════
+       MÓDULO VIBRADOR — Derecha centro
+       ═══════════════════════════════════════════════ -->
+  <rect x="730" y="310" width="130" height="130" rx="6" fill="#1a1a1a" stroke="#f59e0b" stroke-width="2"/>
+  <!-- Disco vibrador -->
+  <circle cx="795" cy="355" r="30" fill="#374151" stroke="#6b7280" stroke-width="2"/>
+  <circle cx="795" cy="355" r="18" fill="#4b5563"/>
+  <circle cx="795" cy="355" r="6" fill="#9ca3af"/>
+  <text x="795" y="405" text-anchor="middle" font-size="10" font-weight="bold" fill="#f59e0b" font-family="Segoe UI">VIBRADOR</text>
+  <text x="795" y="418" text-anchor="middle" font-size="9" fill="#fcd34d" font-family="Segoe UI">Módulo c/driver</text>
+  <text x="795" y="430" text-anchor="middle" font-size="9" fill="#fcd34d" font-family="Segoe UI">GPIO 33 · VIN(5V)</text>
+
+  <!-- Pines vibrador -->
+  <circle cx="730" cy="330" r="4" fill="#f59e0b"/>
+  <circle cx="730" cy="350" r="4" fill="#f59e0b"/>
+  <circle cx="730" cy="370" r="4" fill="#f59e0b"/>
+  <text x="726" y="333" text-anchor="end" font-size="9" fill="#fcd34d">IN</text>
+  <text x="726" y="353" text-anchor="end" font-size="9" fill="#fcd34d">VCC</text>
+  <text x="726" y="373" text-anchor="end" font-size="9" fill="#fcd34d">GND</text>
+
+  <!-- Cable G33 → IN vibrador (amarillo) -->
+  <polyline points="538,319 640,319 640,330 730,330" fill="none" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="640" y="314" text-anchor="middle" font-size="10" fill="#f59e0b" font-weight="bold">G33</text>
+
+  <!-- Cable VIN → VCC vibrador (rojo) -->
+  <polyline points="538,399 660,399 660,350 730,350" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="660" y="395" text-anchor="middle" font-size="10" fill="#ef4444" font-weight="bold">5V (VIN)</text>
+
+  <!-- Cable GND vibrador -->
+  <polyline points="730,370 700,370 700,450 650,450 650,680 350,680" fill="none" stroke="#6b7280" stroke-width="2" stroke-dasharray="5,3"/>
+
+  <!-- ═══════════════════════════════════════════════
+       BUZZER / PARLANTE — Derecha abajo
+       ═══════════════════════════════════════════════ -->
+  <circle cx="795" cy="570" r="55" fill="#1f2937" stroke="#8b5cf6" stroke-width="2"/>
+  <circle cx="795" cy="570" r="40" fill="#374151"/>
+  <circle cx="795" cy="570" r="22" fill="#4b5563"/>
+  <circle cx="795" cy="570" r="8"  fill="#1f2937"/>
+  <!-- Texto buzzer -->
+  <text x="795" y="648" text-anchor="middle" font-size="11" font-weight="bold" fill="#a78bfa" font-family="Segoe UI">BUZZER / PARLANTE</text>
+  <text x="795" y="662" text-anchor="middle" font-size="9" fill="#c4b5fd" font-family="Segoe UI">GPIO 27</text>
+
+  <!-- Pines buzzer -->
+  <circle cx="740" cy="555" r="4" fill="#8b5cf6"/>
+  <circle cx="740" cy="575" r="4" fill="#8b5cf6"/>
+  <text x="736" y="558" text-anchor="end" font-size="9" fill="#c4b5fd">(+)</text>
+  <text x="736" y="578" text-anchor="end" font-size="9" fill="#c4b5fd">(−)</text>
+
+  <!-- Resistencia 100Ω Buzzer -->
+  <rect x="620" y="547" width="50" height="16" rx="4" fill="#581c87" stroke="#8b5cf6" stroke-width="1.5"/>
+  <text x="645" y="559" text-anchor="middle" font-size="9" fill="white" font-weight="bold">100 Ω</text>
+  <!-- Cable G27 → 100Ω → Buzzer+ -->
+  <polyline points="538,359 590,359 590,555 620,555" fill="none" stroke="#8b5cf6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="670" y1="555" x2="740" y2="555" stroke="#8b5cf6" stroke-width="2.5"/>
+  <text x="580" y="354" text-anchor="middle" font-size="10" fill="#a78bfa" font-weight="bold">G27</text>
+
+  <!-- Cable GND buzzer -->
+  <polyline points="740,575 710,575 710,680 350,680" fill="none" stroke="#6b7280" stroke-width="2" stroke-dasharray="5,3"/>
+
+  <!-- ═══════════════════════════════════════════════
+       LÍNEA GND COMÚN
+       ═══════════════════════════════════════════════ -->
+  <line x1="80" y1="680" x2="350" y2="680" stroke="#6b7280" stroke-width="3"/>
+  <line x1="350" y1="680" x2="382" y2="419" stroke="#6b7280" stroke-width="3"/>
+  <text x="200" y="696" text-anchor="middle" font-size="11" fill="#9ca3af" font-weight="bold" font-family="Segoe UI">─── GND COMÚN ───</text>
+
+  <!-- ═══════════════════════════════════════════════
+       LEYENDA
+       ═══════════════════════════════════════════════ -->
+  <rect x="20" y="608" width="340" height="148" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+  <text x="190" y="628" text-anchor="middle" font-size="12" font-weight="bold" fill="white" font-family="Segoe UI">Leyenda de cables</text>
+
+  <line x1="35" y1="648" x2="75" y2="648" stroke="#ef4444" stroke-width="3"/>
+  <text x="85" y="652" font-size="11" fill="#fca5a5" font-family="Segoe UI">Rojo → 3.3V / 5V (alimentación)</text>
+
+  <line x1="35" y1="668" x2="75" y2="668" stroke="#6b7280" stroke-width="3" stroke-dasharray="6,3"/>
+  <text x="85" y="672" font-size="11" fill="#9ca3af" font-family="Segoe UI">Gris (guión) → GND (tierra)</text>
+
+  <line x1="35" y1="688" x2="75" y2="688" stroke="#22c55e" stroke-width="3"/>
+  <text x="85" y="692" font-size="11" fill="#86efac" font-family="Segoe UI">Verde → SCL / LED Verde</text>
+
+  <line x1="35" y1="708" x2="75" y2="708" stroke="#3b82f6" stroke-width="3"/>
+  <text x="85" y="712" font-size="11" fill="#93c5fd" font-family="Segoe UI">Azul → SDA (I2C datos)</text>
+
+  <line x1="35" y1="728" x2="75" y2="728" stroke="#f59e0b" stroke-width="3"/>
+  <text x="85" y="732" font-size="11" fill="#fcd34d" font-family="Segoe UI">Amarillo → GPIO 33 Vibrador</text>
+
+  <line x1="35" y1="748" x2="75" y2="748" stroke="#8b5cf6" stroke-width="3"/>
+  <text x="85" y="752" font-size="11" fill="#c4b5fd" font-family="Segoe UI">Violeta → GPIO 27 Buzzer</text>
+
+  <!-- ═══════════════════════════════════════════════
+       ADVERTENCIAS
+       ═══════════════════════════════════════════════ -->
+  <rect x="380" y="618" width="330" height="100" rx="8" fill="#1c0a0a" stroke="#dc2626" stroke-width="1.5"/>
+  <text x="545" y="638" text-anchor="middle" font-size="12" font-weight="bold" fill="#ef4444" font-family="Segoe UI">⚠  Advertencias</text>
+  <text x="395" y="658" font-size="10" fill="#fca5a5" font-family="Segoe UI">• MPU-6050 → 3.3V  (NUNCA 5V, se daña)</text>
+  <text x="395" y="674" font-size="10" fill="#fca5a5" font-family="Segoe UI">• LEDs → resistencia 220Ω obligatoria</text>
+  <text x="395" y="690" font-size="10" fill="#fca5a5" font-family="Segoe UI">• Buzzer → resistencia 100Ω en serie</text>
+  <text x="395" y="706" font-size="10" fill="#fca5a5" font-family="Segoe UI">• Vibrador → VIN (5V), no 3.3V</text>
+
+  <!-- ═══════════════════════════════════════════════
+       LIBRERÍAS
+       ═══════════════════════════════════════════════ -->
+  <rect x="730" y="700" width="350" height="58" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+  <text x="905" y="718" text-anchor="middle" font-size="11" font-weight="bold" fill="white" font-family="Segoe UI">Librerías Arduino IDE</text>
+  <text x="745" y="734" font-size="10" fill="#93c5fd" font-family="Segoe UI">• Adafruit MPU6050</text>
+  <text x="745" y="750" font-size="10" fill="#93c5fd" font-family="Segoe UI">• Adafruit Unified Sensor</text>
+  <text x="905" y="734" font-size="10" fill="#86efac" font-family="Segoe UI">Placa: ESP32 Dev Module</text>
+  <text x="905" y="750" font-size="10" fill="#86efac" font-family="Segoe UI">Velocidad: 115200 baud</text>
+
+</svg>

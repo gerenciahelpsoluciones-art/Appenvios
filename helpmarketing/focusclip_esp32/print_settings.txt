@@ -1,0 +1,120 @@
+═══════════════════════════════════════════════════════════
+  FOCUSCLIP V1 — CONFIGURACIÓN DE IMPRESIÓN 3D
+  Archivo: focusclip_case.scad (OpenSCAD)
+═══════════════════════════════════════════════════════════
+
+SOFTWARE RECOMENDADO
+────────────────────
+• OpenSCAD (gratis): https://openscad.org/downloads.html
+  → Abrir focusclip_case.scad
+  → Renderizar con F6
+  → Descomenta la pieza deseada y exporta STL con F7
+
+• Slicer: Bambu Studio / PrusaSlicer / Cura
+
+
+PIEZAS A IMPRIMIR
+─────────────────
+┌─────────────────────┬────────────────────┬──────────────┬────────────┐
+│ Pieza               │ Archivo STL         │ Filamento    │ Cantidad   │
+├─────────────────────┼────────────────────┼──────────────┼────────────┤
+│ Cuerpo inferior     │ body.stl            │ PLA Azul     │ 1          │
+│ Tapa superior       │ lid.stl             │ PLA Azul     │ 1          │
+│ Brazo clip          │ clip.stl            │ PLA Azul     │ 1          │
+│ Difusor LED         │ diffuser.stl        │ PLA Blanco   │ 1          │
+│                     │                     │ Translúcido  │            │
+└─────────────────────┴────────────────────┴──────────────┴────────────┘
+
+
+DIMENSIONES EXTERNAS DE REFERENCIA
+───────────────────────────────────
+• Cuerpo inferior:  67.6 × 43.6 × 22.0 mm
+• Tapa superior:    67.6 × 43.6 × 12.0 mm
+• Clip:             28.0 × 18.0 × 33.0 mm
+• Difusor LED:      33.0 × 15.0 ×  1.2 mm
+• Altura total ensamblado: ~59 mm (sin clip) / ~92 mm (con clip)
+
+
+CONFIGURACIÓN DE IMPRESIÓN — CUERPO Y TAPA
+───────────────────────────────────────────
+Material:          PLA (recomendado) o PETG
+Temperatura boquilla:  210°C (PLA) / 235°C (PETG)
+Temperatura cama:       60°C (PLA) /  85°C (PETG)
+Altura de capa:    0.20 mm (calidad estándar)
+               o   0.15 mm (mayor detalle en texto)
+Relleno:           25% — Patrón Gyroid o Grid
+Perímetros:        3 (para buenas paredes)
+Soporte:           NO necesita soportes si se orienta correctamente
+Orientación:
+  • Cuerpo inferior → base hacia abajo (cara exterior arriba) ✓
+  • Tapa superior   → cara exterior hacia abajo (texto queda arriba) ✓
+Velocidad:         60 mm/s cuerpo / 40 mm/s perímetros exteriores
+Adherencia:        Brim 5mm (recomendado para la tapa)
+
+
+CONFIGURACIÓN — DIFUSOR LED
+────────────────────────────
+Material:          PLA Blanco Translúcido o PETG Transparente
+Temperatura:       igual que el material elegido
+Altura de capa:    0.10 mm (máximo detalle)
+Relleno:           0% (totalmente hueco para mejor difusión de luz)
+Perímetros:        2
+Soporte:           NO
+Velocidad:         30 mm/s (impresión muy lenta para transparencia)
+
+
+CONFIGURACIÓN — CLIP
+─────────────────────
+Material:          PLA (para elasticidad del brazo flexible)
+                   NO usar PETG ni ABS (quebraría o sería muy rígido)
+Relleno:           40% — Patrón Lines (para dar flexibilidad al brazo)
+Perímetros:        4 (el brazo necesita resistencia)
+Orientación:       Con la base hacia abajo, clip vertical
+Soporte:           Sí — solo en el brazo inferior si quedan voladizos
+
+
+TORNILLOS Y ENSAMBLE
+─────────────────────
+Necesitas:
+  • 4x tornillo M3 × 10mm + 4x tuerca M3  (tapa ↔ cuerpo)
+  • 2x tornillo M3 ×  8mm + 2x tuerca M3  (clip ↔ tapa)
+
+Proceso:
+  1. Insertar tuercas M3 en los postes internos del cuerpo inferior
+     (presionar con cautela con soldador a baja temperatura)
+  2. Colocar electrónica en el cuerpo inferior:
+     - ESP32 sobre los rieles (puerto USB-C alineado al corte)
+     - MPU6050 pegado con cinta doble faz cerca del centro
+     - LEDs apuntando hacia arriba (hacia la ventana)
+     - Vibrador y buzzer en esquinas libres
+  3. Insertar difusor translúcido en el rebaje de la tapa
+  4. Cerrar con la tapa y atornillar 4x M3 × 10mm
+  5. Montar clip con 2x M3 × 8mm
+
+
+FILAMENTO RECOMENDADO
+──────────────────────
+• eSUN PLA+ Azul Marino     (cuerpo y tapa)
+• eSUN PLA+ Blanco Natural  (difusor)
+  o Polyterra PLA Blanco Translúcido
+Consumo estimado total: ~65 gramos
+
+
+TIEMPO ESTIMADO DE IMPRESIÓN
+─────────────────────────────
+• Cuerpo inferior:  2h 30min
+• Tapa superior:    1h 45min
+• Clip:             1h 00min
+• Difusor:          0h 20min
+• TOTAL:           ~5h 35min
+
+
+NOTAS ADICIONALES
+──────────────────
+• El brazo flexible del clip funciona mejor impreso en PLA con 40%
+  relleno — el brazo delantero se dobla ligeramente al insertar en
+  bolsillo de camisa, solapa o cuaderno.
+• Si el texto "FocusClip" no se ve bien, aumenta la resolución del
+  slicer o usa 0.15mm de capa.
+• Ajusta UMBRAL_MOVIMIENTO en el .ino según las pruebas físicas.
+═══════════════════════════════════════════════════════════

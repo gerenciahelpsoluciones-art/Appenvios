@@ -1918,7 +1918,6 @@ function App() {
           users={users}
           cotizaciones={cotizaciones}
           despachos={despachos}
-          productos={productos}
           ventasManuales={ventasManuales}
           alquileres={alquileres}
         />;

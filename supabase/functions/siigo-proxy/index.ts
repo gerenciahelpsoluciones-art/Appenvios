@@ -123,7 +123,20 @@ Deno.serve(async (req: Request) => {
                     headers: authHeaders,
                 });
 
-                const data = await siigoRes.json();
+                const rawText = await siigoRes.text();
+                console.log(`Siigo ${action} HTTP ${siigoRes.status} — ${rawText.slice(0, 200)}`);
+
+                let data: any;
+                try {
+                    data = JSON.parse(rawText);
+                } catch {
+                    data = {
+                        error: 'Siigo devolvió respuesta no-JSON',
+                        status: siigoRes.status,
+                        raw: rawText.slice(0, 600),
+                    };
+                }
+
                 return new Response(JSON.stringify(data), {
                     status: siigoRes.status,
                     headers: { ...corsHeaders, 'Content-Type': 'application/json' },

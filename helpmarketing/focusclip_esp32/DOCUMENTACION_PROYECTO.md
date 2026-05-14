@@ -50,33 +50,8 @@ Para ahorrar espacio, utilizaremos los rieles laterales (+ y -) de la protoboard
 
 Para la **V1 Desktop**, utilizaremos los siguientes pines del ESP32. Es importante usar resistencias de 220Ω para los LEDs para evitar daños.
 
-```mermaid
-graph TD
-    ESP32[ESP32 DevKit V1] -->|3.3V| MPU[MPU-6050 VCC]
-    ESP32 -->|GND| MPU[MPU-6050 GND]
-    ESP32 -->|D22| MPU[MPU-6050 SCL]
-    ESP32 -->|D21| MPU[MPU-6050 SDA]
-
-    ESP32 -->|D25| LED_R[LED Rojo + Resistencia]
-    ESP32 -->|D26| LED_G[LED Verde + Resistencia]
-    
-    ESP32 -->|D27| BUZ[Buzzer Positivo]
-    ESP32 -->|D33| VIB[Motor Vibrador]
-
-    LED_R --- GND[GND Común]
-    LED_G --- GND
-    BUZ --- GND
-    VIB --- GND
 ```
 
-### Detalle de Pines (Pinout)
-*   **Alimentación**: El ESP32 se alimenta vía USB. Los sensores y actuadores usan los pines de **3.3V** y **GND** del ESP32.
-*   **I2C (Sensor)**: D21 (SDA) y D22 (SCL).
-*   **Actuadores**:
-    *   **LED Rojo**: Pin 25.
-    *   **LED Verde**: Pin 26.
-    *   **Buzzer**: Pin 27.
-    *   **Vibrador**: Pin 33.
 
 ---
 

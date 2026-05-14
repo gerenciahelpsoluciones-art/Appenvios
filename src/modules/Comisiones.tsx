@@ -1,558 +1,642 @@
-import React, { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabaseClient';
-import type { AppUser, Cotizacion, SiigoInvoice, SiigoSeller, Producto, Despacho } from '../types/crm';
+import React, { useState } from 'react';
+import type { AppUser, Cotizacion, Despacho } from '../types/crm';
 
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 const SUPABASE_PROJECT_URL = import.meta.env.VITE_SUPABASE_URL || 'https://matyjysinegbibdwzhoq.supabase.co';
 const EDGE_FUNCTION_URL = `${SUPABASE_PROJECT_URL}/functions/v1/siigo-proxy`;
 
+interface VentaManual { fecha: string; usuarioNombre: string; monto: number; costo?: number; tipoVenta?: string; }
+interface Alquiler { usuarioId: string; valorMensual: number; estado: string; }
+
 interface IProps {
     users: AppUser[];
     cotizaciones: Cotizacion[];
     despachos: Despacho[];
-    productos: Producto[];
     ventasManuales: VentaManual[];
     alquileres: Alquiler[];
 }
 
-const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, productos, ventasManuales, alquileres }) => {
-    const [activeTab, setActiveTab] = useState<'siigo' | 'local'>('siigo');
+type MainTab = 'siigo' | 'local';
+type SiigoSubTab = 'resumen' | 'detalle';
+
+interface ManualNC {
+    id: string;
+    vendedorId: string;
+    vendedorName: string;
+    ncNum: string;
+    amount: number;
+    month: number;
+    year: number;
+}
+
+interface VendedorRow {
+    id: string; name: string;
+    ventasBruto: number; devoluciones: number; ventasNetas: number;
+    costos: number; utilidad: number; comision: number;
+    countFacturas: number; countDevoluciones: number;
+}
+
+interface LineaDetalle {
+    vendedorId: string; vendedorName: string;
+    facturaNum: string; facturaFecha: string; clienteNombre: string;
+    code: string; description: string;
+    quantity: number; unitPrice: number; totalVenta: number;
+    unitCost: number; totalCosto: number; utilidad: number;
+    esDevolucion: boolean;
+}
+
+const fmt = (n: number) => `$${Math.round(n).toLocaleString('es-CO')}`;
+const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, ventasManuales, alquileres }) => {
+    const [mainTab, setMainTab] = useState<MainTab>('siigo');
+    const [siigoSubTab, setSiigoSubTab] = useState<SiigoSubTab>('resumen');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [month, setMonth] = useState(new Date().getMonth() + 1);
     const [year, setYear] = useState(new Date().getFullYear());
-    const [selectedComercial, setSelectedComercial] = useState<string>('');
-    
-    // Siigo Data
+    const [selectedVendedor, setSelectedVendedor] = useState('');
+    const [selectedComercial, setSelectedComercial] = useState('');
+
+    // Siigo raw data
     const [siigoInvoices, setSiigoInvoices] = useState<any[]>([]);
     const [siigoCreditNotes, setSiigoCreditNotes] = useState<any[]>([]);
-    const [siigoPurchases, setSiigoPurchases] = useState<any[]>([]);
-    const [siigoDebitNotes, setSiigoDebitNotes] = useState<any[]>([]);
-    const [siigoSellers, setSiigoSellers] = useState<any[]>([]);
-    const [siigoCostCenters, setSiigoCostCenters] = useState<any[]>([]);
     const [productCosts, setProductCosts] = useState<Record<string, number>>({});
-    const [aliases, setAliases] = useState<Record<string, string>>(() => {
-        const saved = localStorage.getItem('siigo_seller_aliases');
-        return saved ? JSON.parse(saved) : {};
-    });
+    const [usersMap, setUsersMap] = useState<Record<string, string>>({}); // id → name
+    const [costCentersMap, setCostCentersMap] = useState<Record<string, string>>({}); // id → name
     const [token, setToken] = useState<string | null>(null);
-    const [showDiag, setShowDiag] = useState(false);
-    const [diagInfo, setDiagInfo] = useState({ fetchCount: 0, sellerCount: 0, costCenterCount: 0, lastSync: '' });
-    const [detailSample, setDetailSample] = useState<any>(null);
     const [syncLog, setSyncLog] = useState<string[]>([]);
+    const [showDiag, setShowDiag] = useState(false);
+    const [diagInfo, setDiagInfo] = useState<{ invoices: number; creditNotes: number; purchases: number; debitNotes: number; lastSync: string; firstCN?: any }>({ invoices: 0, creditNotes: 0, purchases: 0, debitNotes: 0, lastSync: '' });
 
-    const addLog = (msg: string) => {
-        setSyncLog(prev => [...prev.slice(-19), `[${new Date().toLocaleTimeString()}] ${msg}`]);
-        console.log(`[SYNC LOG] ${msg}`);
+    // Mapa manual de centros de costo (persiste en localStorage, tiene prioridad sobre API)
+    const DEFAULT_CC_MAP: Record<string, string> = {
+        '14146': 'Deicy Rodriguez',
+        '15087': 'Lidy Hernandez',
+        '13847': 'Carlos Arturo Saenz',
+        '14152': 'Juan Andres Perez',
+        '14536': 'Angelica Villanueva',
+    };
+    const [manualCCMap, setManualCCMap] = useState<Record<string, string>>(() => {
+        try {
+            const stored = localStorage.getItem('comisiones_cc_map');
+            if (!stored) {
+                localStorage.setItem('comisiones_cc_map', JSON.stringify(DEFAULT_CC_MAP));
+                return DEFAULT_CC_MAP;
+            }
+            return JSON.parse(stored);
+        } catch { return DEFAULT_CC_MAP; }
+    });
+    const [showCCEditor, setShowCCEditor] = useState(false);
+    const [ccEditText, setCCEditText] = useState('');
+
+    const saveManualCCMap = (map: Record<string, string>) => {
+        setManualCCMap(map);
+        localStorage.setItem('comisiones_cc_map', JSON.stringify(map));
+    };
+    const openCCEditor = () => {
+        const lines = Object.entries(manualCCMap).map(([id, name]) => `${id}=${name}`).join('\n');
+        setCCEditText(lines || '14146=Deicy Rodriguez\n15087=Lidy Hernandez\n13847=Carlos Arturo Saenz\n14152=Juan Andres Perez\n14536=Angelica Villanueva');
+        setShowCCEditor(true);
+    };
+    const saveCCEditor = () => {
+        const map: Record<string, string> = {};
+        ccEditText.split('\n').forEach(line => {
+            const eq = line.indexOf('=');
+            if (eq > 0) {
+                const id = line.slice(0, eq).trim();
+                const name = line.slice(eq + 1).trim();
+                if (id && name) map[id] = name;
+            }
+        });
+        saveManualCCMap(map);
+        setShowCCEditor(false);
     };
 
-    const getBaseHeaders = (): Record<string, string> => ({
+    // Notas crédito manuales (persisten en localStorage)
+    const [manualNCs, setManualNCs] = useState<ManualNC[]>(() => {
+        try { return JSON.parse(localStorage.getItem('comisiones_manual_nc') ?? '[]'); }
+        catch { return []; }
+    });
+    const [ncForm, setNcForm] = useState({ vendedorId: '', ncNum: '', amount: '' });
+
+    const saveNCs = (list: ManualNC[]) => {
+        setManualNCs(list);
+        localStorage.setItem('comisiones_manual_nc', JSON.stringify(list));
+    };
+    const addManualNC = () => {
+        if (!ncForm.vendedorId || !ncForm.amount || Number(ncForm.amount) <= 0) return;
+        const v = vendedoresUnicos.find(v => v.id === ncForm.vendedorId);
+        saveNCs([...manualNCs, {
+            id: Date.now().toString(),
+            vendedorId: ncForm.vendedorId,
+            vendedorName: v?.name ?? ncForm.vendedorId,
+            ncNum: ncForm.ncNum,
+            amount: Math.abs(Number(ncForm.amount)),
+            month, year,
+        }]);
+        setNcForm({ vendedorId: '', ncNum: '', amount: '' });
+    };
+    const deleteManualNC = (id: string) => saveNCs(manualNCs.filter(n => n.id !== id));
+
+    const addLog = (msg: string) => setSyncLog(prev => [...prev.slice(-29), `[${new Date().toLocaleTimeString()}] ${msg}`]);
+
+    const baseHeaders = (): Record<string, string> => ({
         'Content-Type': 'application/json',
         'apikey': SUPABASE_ANON_KEY,
         'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
     });
 
-    const authenticateSiigo = async (): Promise<string | null> => {
+    // ── Autenticación ─────────────────────────────────────────────────────────
+    const authenticate = async (): Promise<string | null> => {
         const username = localStorage.getItem('siigo_username');
         const accessKey = localStorage.getItem('siigo_access_key');
-
         if (!username || !accessKey) {
-            setError('Credenciales de Siigo no encontradas. Conéctese primero en el módulo de Inventario.');
+            setError('Credenciales Siigo no configuradas. Conecte primero en el módulo Inventario.');
             return null;
         }
-
         try {
-            setLoading(true);
             const res = await fetch(`${EDGE_FUNCTION_URL}?action=auth`, {
-                method: 'POST',
-                headers: getBaseHeaders(),
+                method: 'POST', headers: baseHeaders(),
                 body: JSON.stringify({ username, access_key: accessKey }),
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Autenticación fallida');
             setToken(data.access_token);
             return data.access_token;
-        } catch (err: any) {
-            setError(err.message);
-            return null;
-        } finally {
-            setLoading(false);
-        }
+        } catch (e: any) { setError(e.message); return null; }
     };
 
-    // Super-Scanner: Recursive search for ANY potential seller-related fields
-    const findSeller = (obj: any, depth = 0): any => {
-        if (!obj || typeof obj !== 'object' || depth > 5) return null;
-        
-        const priorityKeys = [
-            'seller', 'cost_center', 'salesman', 'sales_responsible', 
-            'vendedor', 'asesor', 'comercial', 'user'
-        ];
-        
-        for (const key of priorityKeys) {
-            const val = obj[key];
-            if (val !== undefined && val !== null) {
-                // Si es un objeto con nombre e ID, lo devolvemos completo para extraer info luego
-                if (typeof val === 'object' && (val.id || val.code || val.identification)) return val;
-                // Si es un valor simple, lo devolvemos
-                if (typeof val === 'number' || typeof val === 'string') return val;
-            }
-        }
-
-        for (const key in obj) {
-            if (obj[key] && typeof obj[key] === 'object' && !Array.isArray(obj[key])) {
-                const found = findSeller(obj[key], depth + 1);
-                if (found) return found;
-            }
-        }
-        
-        return null;
-    };
-
-    const syncSiigoData = async () => {
-        let currentToken = token;
-        if (!currentToken) {
-            currentToken = await authenticateSiigo();
-        }
-        if (!currentToken) return;
-
-        try {
-            setLoading(true);
-            setError(null);
-            setSyncLog([]);
-            addLog('--- Iniciando Sincronización Siigo ---');
-            addLog(`Periodo: ${month}/${year}`);
-
-            const fetchAllPages = async (action: string, params: string = '') => {
-                let results: any[] = [];
-                for (let page = 1; page <= 50; page++) {
-                    const separator = params ? '&' : '';
-                    const url = `${EDGE_FUNCTION_URL}?action=${action}${separator}${params}&page=${page}&page_size=100`;
-                    try {
-                        const res = await fetch(url, {
-                            method: 'GET',
-                            headers: { ...getBaseHeaders(), 'x-siigo-token': currentToken }
-                        });
-                        if (!res.ok) break;
-                        const data = await res.json();
-                        const pageResults = data.results || (Array.isArray(data) ? data : []);
-                        if (pageResults.length === 0) break;
-                        results = [...results, ...pageResults];
-                        if (pageResults.length < 100) break; 
-                    } catch (e) { break; }
+    // ── Paginador genérico ────────────────────────────────────────────────────
+    const fetchPages = async (tk: string, action: string, extra = '') => {
+        let all: any[] = [];
+        for (let p = 1; p <= 50; p++) {
+            const sep = extra ? '&' : '';
+            const url = `${EDGE_FUNCTION_URL}?action=${action}${sep}${extra}&page=${p}&page_size=100`;
+            try {
+                const res = await fetch(url, { headers: { ...baseHeaders(), 'x-siigo-token': tk } });
+                if (!res.ok) {
+                    const txt = await res.text();
+                    addLog(`⚠️ ${action} p${p}: HTTP ${res.status} — ${txt.slice(0, 120)}`);
+                    break;
                 }
-                return results;
-            };
+                const data = await res.json();
+                const rows = data.results ?? data.data ?? (Array.isArray(data) ? data : []);
+                if (!rows.length) break;
+                all = [...all, ...rows];
+                if (rows.length < 100) break;
+            } catch (e: any) {
+                addLog(`⚠️ ${action} p${p}: ${e.message}`);
+                break;
+            }
+        }
+        return all;
+    };
 
-            addLog('Cargando Usuarios y Centros de Costo (Paginado)...');
-            const [allSellers, ccList] = await Promise.all([
-                fetchAllPages('users'),
-                fetchAllPages('cost-centers')
-            ]);
-            
-            setSiigoSellers(allSellers);
-            setSiigoCostCenters(ccList);
-            addLog(`Total vendedores: ${allSellers.length} | Centros de Costo: ${ccList.length}`);
+    // ── Paginador con URLSearchParams (codifica correctamente fechas RFC3339) ──
+    const fetchPagesSafe = async (tk: string, action: string, params: Record<string, string> = {}) => {
+        let all: any[] = [];
+        for (let p = 1; p <= 100; p++) {
+            const qs = new URLSearchParams({ action, ...params, page: String(p), page_size: '100' }).toString();
+            const url = `${EDGE_FUNCTION_URL}?${qs}`;
+            try {
+                const res = await fetch(url, { headers: { ...baseHeaders(), 'x-siigo-token': tk } });
+                const rawText = await res.text();
+                if (!res.ok) {
+                    addLog(`⚠️ ${action} p${p}: HTTP ${res.status} — ${rawText.slice(0, 200)}`);
+                    break;
+                }
+                let data: any;
+                try { data = JSON.parse(rawText); } catch { addLog(`⚠️ ${action} p${p}: JSON inválido — ${rawText.slice(0, 150)}`); break; }
+                const rows = data.results ?? data.data ?? (Array.isArray(data) ? data : []);
+                if (rows.length === 0) {
+                    addLog(`  ${action} p${p}: 0 resultados (total=${data.pagination?.total_results ?? '?'}) → ${rawText.slice(0, 280)}`);
+                    break;
+                }
+                addLog(`  ${action} p${p}: ${rows.length} resultados (total=${data.pagination?.total_results ?? '?'})`);
+                all = [...all, ...rows];
+                if (rows.length < 100) break;
+            } catch (e: any) {
+                addLog(`⚠️ ${action} p${p}: ${e.message}`);
+                break;
+            }
+        }
+        return all;
+    };
+
+    // ── Test directo NC ───────────────────────────────────────────────────────
+    const testCreditNotes = async () => {
+        let tk = token ?? await authenticate();
+        if (!tk) return;
+        setShowDiag(true);
+        addLog('🔬 ── TEST DIRECTO credit-notes ──');
+        try {
+            // Test 1: sin filtros
+            const url1 = `${EDGE_FUNCTION_URL}?action=credit-notes&page=1&page_size=5`;
+            const res1 = await fetch(url1, { headers: { ...baseHeaders(), 'x-siigo-token': tk } });
+            const raw1 = await res1.text();
+            try {
+                const j = JSON.parse(raw1);
+                const total = j.pagination?.total_results ?? j.total_results ?? '?';
+                const count = (j.results ?? j.data ?? []).length;
+                addLog(`Sin filtros → HTTP ${res1.status} | total_results=${total} | en página=${count}`);
+                if (count > 0) {
+                    const first = (j.results ?? j.data ?? [])[0];
+                    addLog(`Primera NC: id=${first.id} | date=${first.date} | name=${first.name} | total=${first.total}`);
+                }
+            } catch { addLog(`Sin filtros → HTTP ${res1.status}: ${raw1.slice(0, 300)}`); }
+
+            // Test 2: con fecha del mes actual
+            const now = new Date();
+            const mm = String(now.getMonth()+1).padStart(2,'0');
+            const yy = now.getFullYear();
+            const lastDay = new Date(yy, now.getMonth()+1, 0).getDate();
+            const qs2 = new URLSearchParams({ action: 'credit-notes', page: '1', page_size: '5', date_start: `${yy}-${mm}-01T00:00:00Z`, date_end: `${yy}-${mm}-${lastDay}T23:59:59Z` }).toString();
+            const res2 = await fetch(`${EDGE_FUNCTION_URL}?${qs2}`, { headers: { ...baseHeaders(), 'x-siigo-token': tk } });
+            const raw2 = await res2.text();
+            try {
+                const j2 = JSON.parse(raw2);
+                const total2 = j2.pagination?.total_results ?? '?';
+                addLog(`Con date_start mes actual → HTTP ${res2.status} | total_results=${total2}`);
+            } catch { addLog(`Con fecha → HTTP ${res2.status}: ${raw2.slice(0, 200)}`); }
+        } catch (e: any) { addLog(`🚨 Test NC error: ${e.message}`); }
+    };
+
+    // ── Sincronización completa ───────────────────────────────────────────────
+    const syncSiigo = async () => {
+        let tk = token ?? await authenticate();
+        if (!tk) return;
+        setLoading(true); setError(null); setSyncLog([]);
+        addLog('─── Iniciando Sincronización Siigo ───');
+        addLog(`Periodo: ${MONTHS[month-1]} ${year}`);
+        try {
+            // Mapa de usuarios id→nombre para resolver vendedores por ID
+            addLog('Cargando lista de usuarios Siigo...');
+            const usersList = await fetchPages(tk, 'users');
+            const uMap: Record<string, string> = {};
+            usersList.forEach((u: any) => {
+                const id = String(u.id ?? u.code ?? '');
+                const parts = [u.first_name, u.last_name].filter(Boolean).join(' ');
+                const fullName = u.name ?? u.full_name ?? (parts || u.username) ?? `Usuario ${id}`;
+                if (id) uMap[id] = fullName;
+            });
+            addLog(`Usuarios mapeados: ${Object.entries(uMap).slice(0,5).map(([k,v])=>`${k}→${v}`).join(', ')}`);
+
+            setUsersMap(uMap);
+            addLog(`Usuarios cargados: ${usersList.length}`);
+
+            // Mapa de centros de costo id→nombre via listado completo
+            addLog('Cargando Centros de Costo...');
+            const ccList = await fetchPages(tk, 'cost-centers');
+            const ccMap: Record<string, string> = {};
+            ccList.forEach((cc: any) => {
+                const id = String(cc.id ?? cc.code ?? '');
+                const name = cc.name ?? cc.description ?? '';
+                if (id && name) ccMap[id] = name;
+            });
+            addLog(`Centros de costo (listado): ${ccList.length}, con nombre: ${Object.keys(ccMap).length}`);
 
             const lastDay = new Date(year, month, 0).getDate();
-            const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
-            const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
-            const dateParams = `created_start=${startDate}&created_end=${endDate}`;
+            const dateQ = `created_start=${year}-${String(month).padStart(2,'0')}-01&created_end=${year}-${String(month).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
 
+            // Facturas de venta con detalle de ítems
             addLog('Cargando Facturas de Venta...');
-            const rawInvoices = await fetchAllPages('invoices', dateParams);
-            addLog(`Facturas en resumen: ${rawInvoices.length}`);
+            const rawInv = await fetchPages(tk, 'invoices', dateQ);
+            addLog(`Facturas encontradas: ${rawInv.length}. Cargando detalles...`);
+            const detailedInv: any[] = [];
+            for (let i = 0; i < rawInv.length; i++) {
+                addLog(`  Detallando ${i+1}/${rawInv.length}: ${rawInv[i].number ?? rawInv[i].id}`);
+                try {
+                    const r = await fetch(`${EDGE_FUNCTION_URL}?action=invoice-detail&id=${rawInv[i].id}`, {
+                        headers: { ...baseHeaders(), 'x-siigo-token': tk }
+                    });
+                    detailedInv.push(r.ok ? await r.json() : rawInv[i]);
+                } catch { detailedInv.push(rawInv[i]); }
+                if (i % 5 === 0) await new Promise(r => setTimeout(r, 80));
+            }
+            setSiigoInvoices(detailedInv);
 
-            addLog('Cargando Movimientos de Compra (Purchases, Bills, Debit Notes)...');
-            const [purchases, bills, debitNotes] = await Promise.all([
-                fetchAllPages('purchases', dateParams),
-                fetchAllPages('bills', dateParams),
-                fetchAllPages('debit-notes', dateParams)
+            // Buscar nombres de CC por ID individual para los que aún no tenemos nombre
+            const uniqueCcIds = [...new Set(
+                detailedInv.map(inv => inv.cost_center).filter(v => v != null).map(v => String(typeof v === 'object' ? (v.id ?? v.code ?? '') : v)).filter(Boolean)
+            )];
+            addLog(`IDs de centros de costo en facturas: ${uniqueCcIds.join(', ') || '(ninguno)'}`);
+            for (const ccId of uniqueCcIds) {
+                if (ccMap[ccId]) continue; // ya tenemos el nombre del listado
+                try {
+                    const r = await fetch(`${EDGE_FUNCTION_URL}?action=cost-center-detail&id=${ccId}`, {
+                        headers: { ...baseHeaders(), 'x-siigo-token': tk }
+                    });
+                    if (r.ok) {
+                        const cc = await r.json();
+                        const name = cc.name ?? cc.description ?? '';
+                        if (name) { ccMap[ccId] = name; addLog(`CC ${ccId} → "${name}"`); }
+                        else addLog(`CC ${ccId}: sin nombre en respuesta — ${JSON.stringify(cc).slice(0,100)}`);
+                    } else {
+                        addLog(`CC ${ccId}: HTTP ${r.status}`);
+                    }
+                } catch (e: any) { addLog(`CC ${ccId}: error ${e.message}`); }
+            }
+            setCostCentersMap({ ...ccMap });
+            addLog(`Centros de costo resueltos: ${Object.keys(ccMap).length}`);
+
+            // Notas de crédito — Usar exactamente el mismo filtro que las facturas (dateQ: created_start / created_end)
+            addLog('Cargando Notas de Crédito...');
+            let rawCN = await fetchPages(tk, 'credit-notes', dateQ);
+            addLog(`Notas de crédito encontradas: ${rawCN.length}. Cargando detalles...`);
+
+            // Los detalles ya vienen en el listado; solo buscamos detalle si faltan items
+            const detailedCN: any[] = [];
+            for (const cn of rawCN) {
+                if (cn.items?.length > 0) { detailedCN.push(cn); continue; }
+                try {
+                    const r = await fetch(`${EDGE_FUNCTION_URL}?action=credit-note-detail&id=${cn.id}`, {
+                        headers: { ...baseHeaders(), 'x-siigo-token': tk }
+                    });
+                    detailedCN.push(r.ok ? await r.json() : cn);
+                } catch { detailedCN.push(cn); }
+            }
+            setSiigoCreditNotes(detailedCN);
+            addLog(`Notas de crédito cargadas: ${detailedCN.length}`);
+
+            // Facturas de compra → mapa de costos por código (último costo)
+            addLog('Cargando Facturas de Compra (buscando el costo más reciente)...');
+            // Usamos date_start y date_end que son los campos soportados por purchases/bills
+            const pStart = `${year}-01-01`; 
+            const pEnd   = `${year}-${String(month).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
+            const pq = `date_start=${pStart}&date_end=${pEnd}`;
+            const [purchases, bills] = await Promise.all([
+                fetchPages(tk, 'purchases', pq),
+                fetchPages(tk, 'bills', pq),
             ]);
             
-            const allProcurement = [...purchases, ...bills];
-            const allReturnsPurchase = [...debitNotes];
-            
-            setSiigoPurchases(allProcurement);
-            setSiigoDebitNotes(allReturnsPurchase);
-            addLog(`Documentos compra/soporte: ${allProcurement.length} | Notas Débito: ${allReturnsPurchase.length}`);
+            // Ordenamos de la compra más reciente a la más antigua
+            const allPurchases = [...purchases, ...bills].sort((a, b) => {
+                const dA = new Date(a.date ?? a.created_at ?? 0).getTime();
+                const dB = new Date(b.date ?? b.created_at ?? 0).getTime();
+                return dB - dA;
+            });
+            addLog(`Documentos de compra encontrados en el año: ${allPurchases.length}`);
 
+            // Construir mapa código → costo unitario (tomar estrictamente el ÚLTIMO costo)
             const costs: Record<string, number> = {};
-            allProcurement.forEach((p: any) => {
-                if (p.items) {
-                    p.items.forEach((item: any) => {
-                        if (item.code) {
-                            const price = Number(item.price || 0);
-                            if (!costs[item.code] || price > 0) {
-                                costs[item.code] = price;
-                            }
-                        }
-                    });
-                }
+            allPurchases.forEach((p: any) => {
+                (p.items ?? []).forEach((item: any) => {
+                    // Si no tiene costo asignado aún (como ordenamos DESC, el primero que encuentra es el más nuevo)
+                    if (item.code && costs[item.code] === undefined) {
+                        costs[item.code] = Number(item.price ?? item.unit_price ?? 0);
+                    }
+                });
             });
             setProductCosts(costs);
-            addLog(`Mapa de costos creado: ${Object.keys(costs).length} productos.`);
-            
-            if (rawInvoices.length > 0) {
-                addLog('🚀 Iniciando Sincronización Profunda (Detalle de cada venta)...');
-                const detailedInvoices = [];
-                for (let i = 0; i < rawInvoices.length; i++) {
-                    const inv = rawInvoices[i];
-                    addLog(`🔎 Detallando factura ${i + 1}/${rawInvoices.length}: ${inv.number || inv.id}...`);
-                    try {
-                        const detailRes = await fetch(`${EDGE_FUNCTION_URL}?action=invoice-detail&id=${inv.id}`, {
-                            method: 'GET',
-                            headers: { ...getBaseHeaders(), 'x-siigo-token': currentToken }
-                        });
-                        if (detailRes.status === 400) {
-                            addLog('⚠️ El servidor no soporta Detalle Profundo. Usando datos básicos.');
-                            detailedInvoices.push(inv);
-                        } else {
-                            const detailData = await detailRes.json();
-                            if (detailRes.ok) {
-                                detailedInvoices.push(detailData);
-                            } else {
-                                detailedInvoices.push(inv);
-                            }
-                        }
-                    } catch (e) {
-                        detailedInvoices.push(inv);
-                    }
-                    if (i % 5 === 0) await new Promise(r => setTimeout(r, 100));
-                }
+            addLog(`Códigos con costo mapeado: ${Object.keys(costs).length}`);
 
-                addLog(`✅ Sincronización profunda completada: ${detailedInvoices.length} facturas detalladas.`);
-                
-                addLog('Solicitando Notas de Crédito (Devoluciones de Venta)...');
-                const rawCreditNotes = await fetchAllPages('credit-notes', dateParams);
-                addLog(`Notas de Crédito recibidas: ${rawCreditNotes.length}`);
-                
-                const detailedCreditNotes = [];
-                for (let i = 0; i < rawCreditNotes.length; i++) {
-                    const cn = rawCreditNotes[i];
-                    try {
-                        const cnDetailRes = await fetch(`${EDGE_FUNCTION_URL}?action=credit-note-detail&id=${cn.id}`, {
-                            method: 'GET',
-                            headers: { ...getBaseHeaders(), 'x-siigo-token': currentToken }
-                        });
-                        if (cnDetailRes.ok) {
-                            detailedCreditNotes.push(await cnDetailRes.json());
-                        } else {
-                            detailedCreditNotes.push(cn);
-                        }
-                    } catch (e) {
-                        detailedCreditNotes.push(cn);
-                    }
-                }
-                
-                setSiigoInvoices(detailedInvoices);
-                setSiigoCreditNotes(detailedCreditNotes);
-                
-                setDiagInfo({
-                    fetchCount: detailedInvoices.length,
-                    sellerCount: allSellers.length,
-                    costCenterCount: siigoCostCenters.length,
-                    lastSync: new Date().toLocaleTimeString()
-                });
-                
-                if (detailedInvoices.length === 0) {
-                    addLog('⚠️ No se encontraron facturas.');
-                    setError(`No se encontraron facturas en Siigo para el periodo ${month}/${year}.`);
-                } else {
-                    addLog('Escaneando facturas en busca de IDs...');
-                    const unknownIds = new Set<string>();
+            // Notas débito
+            addLog('Cargando Notas Débito...');
+            const debitNotes = await fetchPages(tk, 'debit-notes', dateQ);
+            addLog(`Notas débito: ${debitNotes.length}`);
 
-                    detailedInvoices.forEach((inv: any) => {
-                        if (!inv) return;
-                        const sellerData = findSeller(inv);
-                        const skey = typeof sellerData === 'object' ? String(sellerData.id || sellerData.code || sellerData.identification || '') : String(sellerData || '');
-                        if (!skey) return;
-
-                        const isKnown = allSellers.some((s: any) => String(s.id) === skey || String(s.identification) === skey) || 
-                                        siigoCostCenters.some((cc: any) => String(cc.id) === skey || String(cc.code) === skey);
-                        
-                        if (!isKnown) {
-                            unknownIds.add(skey);
-                        }
-                    });
-
-                    addLog(`Detectados ${unknownIds.size} IDs sin nombre: ${Array.from(unknownIds).join(', ')}`);
-
-                    if (unknownIds.size > 0) {
-                        addLog(`🚀 Iniciando Resolución Quirúrgica de ${unknownIds.size} IDs...`);
-                        const resolvedCCs: any[] = [];
-                        
-                        let radarActive = true;
-                        for (const skey of unknownIds) {
-                            if (!radarActive) break;
-                            addLog(`📡 Radar: Investigando ID ${skey}...`);
-                            try {
-                                let nameRes = await fetch(`${EDGE_FUNCTION_URL}?action=user-detail&id=${skey}`, {
-                                    method: 'GET',
-                                    headers: { ...getBaseHeaders(), 'x-siigo-token': currentToken }
-                                });
-                                
-                                if (nameRes.status === 400) {
-                                    addLog('🛑 Radar desactivado: El servidor no soporta búsqueda quirúrgica.');
-                                    radarActive = false;
-                                    break;
-                                }
-                                
-                                let data = await nameRes.json();
-
-                                if (!nameRes.ok) {
-                                    addLog(`   ↪️ No es usuario (Status ${nameRes.status}). Probando como Centro de Costo...`);
-                                    nameRes = await fetch(`${EDGE_FUNCTION_URL}?action=cost-center-detail&id=${skey}`, {
-                                        method: 'GET',
-                                        headers: { ...getBaseHeaders(), 'x-siigo-token': currentToken }
-                                    });
-                                    data = await nameRes.json();
-                                }
-
-                                if (nameRes.ok) {
-                                    const foundName = data.name || `${data.first_name || ''} ${data.last_name || ''}`.trim() || data.username || data.code;
-                                    if (foundName) {
-                                        addLog(`✅ ¡ENCONTRADO! ID ${skey} -> ${foundName}`);
-                                        resolvedCCs.push({ id: skey, code: data.code || skey, name: foundName });
-                                    }
-                                } else {
-                                    addLog(`❌ ID ${skey} no pudo ser resuelto por Siigo (Status ${nameRes.status})`);
-                                }
-                            } catch (e) {
-                                addLog(`❌ Error de conexión al investigar ID ${skey}`);
-                            }
-                        }
-
-                        if (resolvedCCs.length > 0) {
-                            setSiigoCostCenters(prev => [...prev, ...resolvedCCs]);
-                            addLog(`✨ Se rescataron ${resolvedCCs.length} nombres con el radar.`);
-                        }
-                    } else {
-                        addLog('🎉 Todos los IDs comerciales son conocidos.');
-                    }
-                }
-            } else {
-                addLog('❌ Error en respuesta de Siigo.');
-                throw new Error('Error al obtener facturas.');
-            }
-        } catch (err: any) {
-            addLog(`🚨 ERROR: ${err.message}`);
-            setError(`Error al sincronizar: ${err.message}`);
-            setDiagInfo(prev => ({ ...prev, lastSync: 'ERROR: ' + err.message }));
+            setDiagInfo({
+                invoices: detailedInv.length, creditNotes: detailedCN.length,
+                purchases: allPurchases.length, debitNotes: debitNotes.length,
+                lastSync: new Date().toLocaleTimeString(),
+                firstCN: detailedCN[0] ?? null,
+            });
+            addLog('✅ Sincronización completada.');
+        } catch (e: any) {
+            addLog(`🚨 ERROR: ${e.message}`);
+            setError(e.message);
         } finally {
             setLoading(false);
-            addLog('--- Proceso Finalizado ---');
         }
     };
 
-    const calculateCommission = (utility: number) => Math.round(utility * 0.10 * 100) / 100;
+    // ── Helpers ───────────────────────────────────────────────────────────────
+    const getSeller = (doc: any): { id: string; name: string } => {
+        // Resolver nombre: mapa manual tiene prioridad sobre API lookup
+        const resolveCCName = (id: string) =>
+            manualCCMap[id] ?? costCentersMap[id] ?? null;
 
-    const getFullSellerSummary = () => {
-        const summary: Record<string, { id: string; name: string; utility: number; commission: number; salesCount: number }> = {};
-        const selectedMonthPrefix = `${year}-${String(month).padStart(2, '0')}`;
-
-        if (activeTab === 'siigo') {
-            if (!Array.isArray(siigoInvoices)) return [];
-            
-            siigoInvoices.forEach(inv => {
-                const sellerData = findSeller(inv);
-                if (!sellerData) return;
-
-                let sellerKey = '';
-                let sellerName = '';
-
-                if (typeof sellerData === 'object') {
-                    sellerKey = String(sellerData.id || sellerData.code || sellerData.identification || '');
-                    sellerName = sellerData.name || (sellerData.first_name ? `${sellerData.first_name} ${sellerData.last_name || ''}` : '');
-                } else {
-                    sellerKey = String(sellerData);
-                }
-
-                if (!sellerKey) return;
-
-                if (!sellerName) {
-                    const sellerObj = siigoSellers.find((s: any) => String(s.id) === sellerKey || String(s.identification) === sellerKey);
-                    const ccObj = siigoCostCenters.find((cc: any) => String(cc.id) === sellerKey || String(cc.code) === sellerKey);
-                    sellerName = sellerObj ? `${sellerObj.first_name} ${sellerObj.last_name}` : (ccObj ? ccObj.name : (aliases[sellerKey] || `ID: ${sellerKey}`));
-                }
-
-                let utility = 0;
-                if (inv.items && inv.items.length > 0) {
-                    inv.items.forEach((item: any) => {
-                        const salePrice = Number(item.price || 0);
-                        const quantity = Number(item.quantity || 1);
-                        const costPrice = productCosts[item.code] || (Number(item.unit_cost) || (salePrice * 0.7));
-                        utility += (salePrice - costPrice) * quantity;
-                    });
-                } else {
-                    utility = (Number(inv.total || 0) - Number(inv.cost || 0)) || (Number(inv.total || 0) * 0.3);
-                }
-                
-                if (!summary[sellerKey]) {
-                    summary[sellerKey] = { id: sellerKey, name: sellerName, utility: 0, commission: 0, salesCount: 0 };
-                }
-                summary[sellerKey].utility += Math.round(utility * 100) / 100;
-                summary[sellerKey].salesCount += 1;
-            });
-
-            // Restar Notas de Crédito (Devoluciones de Venta)
-            siigoCreditNotes.forEach(cn => {
-                if (!cn) return;
-                const sellerData = findSeller(cn);
-                const sellerKey = typeof sellerData === 'object' ? String(sellerData.id || sellerData.code || sellerData.identification || '') : String(sellerData || 'unknown');
-                
-                if (!summary[sellerKey]) return;
-
-                let returnUtility = 0;
-                if (cn.items && cn.items.length > 0) {
-                    cn.items.forEach((item: any) => {
-                        const returnPrice = Number(item.price || 0);
-                        const quantity = Number(item.quantity || 1);
-                        const costPrice = productCosts[item.code] || (Number(item.unit_cost) || (returnPrice * 0.7));
-                        const itemReturnUtility = (returnPrice - costPrice) * quantity;
-                        returnUtility += Math.round(itemReturnUtility * 100) / 100;
-                    });
-                } else {
-                    const totalCN = Number(cn.total || 0);
-                    returnUtility = Math.round((totalCN * 0.3) * 100) / 100;
-                }
-
-                summary[sellerKey].utility -= returnUtility;
-            });
-        } else {
-            if (!Array.isArray(despachos)) return [];
-            
-            // Calculo sobre DESPACHOS facturados (Facturas Locales)
-            despachos
-                .filter(d => d && d.facturado && d.fechaFacturado && d.fechaFacturado.startsWith(selectedMonthPrefix))
-                .forEach(d => {
-                    const quote = cotizaciones.find(q => q.id === d.cotizacionId || q.consecutivo === d.consecutivoCotizacion);
-                    const sellerName = quote?.ejecutivo || 'Desconocido';
-                    
-                    if (!summary[sellerName]) {
-                        summary[sellerName] = { id: sellerName, name: sellerName, utility: 0, commission: 0, salesCount: 0 };
-                    }
-
-                    let dispatchUtility = 0;
-                    if (quote) {
-                        const availableQuoteItems = [...quote.items];
-                        
-                        d.items.forEach(dItem => {
-                            const qItemIndex = availableQuoteItems.findIndex(qi => 
-                                (qi.productoId && dItem.productoId && qi.productoId === dItem.productoId) || 
-                                (qi.id && dItem.productoId && qi.id === dItem.productoId)
-                            );
-                            
-                            let qItem = null;
-                            if (qItemIndex !== -1) {
-                                qItem = availableQuoteItems[qItemIndex];
-                                availableQuoteItems.splice(qItemIndex, 1);
-                            }
-                            
-                            if (qItem) {
-                                // Safeguard: Si precioVenta no existe, intentar reconstruirlo desde margen y costo
-                                let salePrice = Number(qItem.precioVenta || 0);
-                                const costPrice = Number(qItem.costoUnitario || 0);
-                                const marginPercent = Number(qItem.utilidad || 0);
-
-                                if (salePrice <= 0 && marginPercent < 100 && marginPercent > 0) {
-                                    salePrice = costPrice / (1 - (marginPercent / 100));
-                                } else if (salePrice <= 0 && marginPercent === 100) {
-                                    // Si el margen es 100% y no hay precio, algo anda mal, pero asumimos costo 0
-                                    salePrice = costPrice; 
-                                }
-
-                                const itemUtility = (salePrice - costPrice) * dItem.cantidad;
-                                dispatchUtility += Math.round(itemUtility * 100) / 100;
-                            }
-                        });
-                    } else {
-                        dispatchUtility = Math.round((Number(d.total || 0) * 0.15) * 100) / 100;
-                    }
-
-                    summary[sellerName].utility += dispatchUtility;
-                    summary[sellerName].salesCount += 1;
-                });
-
-            // 3. SUMAR VENTAS MANUALES (Local)
-            ventasManuales
-                .filter(v => v && v.fecha && v.fecha.startsWith(selectedMonthPrefix))
-                .forEach(v => {
-                    const sellerName = v.usuarioNombre || 'Desconocido';
-                    if (!summary[sellerName]) {
-                        summary[sellerName] = { id: sellerName, name: sellerName, utility: 0, commission: 0, salesCount: 0 };
-                    }
-                    // Utilidad = Monto - Costo (usando el nuevo campo que añadimos)
-                    const utility = Number(v.monto || 0) - Number((v as any).costo || 0);
-                    summary[sellerName].utility += Math.round(utility * 100) / 100;
-                    summary[sellerName].salesCount += 1;
-                });
-
-            // 4. SUMAR INGRESOS POR ALQUILERES (Equipos actualmente alquilados)
-            alquileres
-                .filter(a => a && a.estado === 'Alquilado')
-                .forEach(a => {
-                    const sellerObj = users.find(u => u.id === a.usuarioId);
-                    const sellerName = sellerObj ? sellerObj.nombre : 'Desconocido';
-                    
-                    if (!summary[sellerName]) {
-                        summary[sellerName] = { id: sellerName, name: sellerName, utility: 0, commission: 0, salesCount: 0 };
-                    }
-                    
-                    // En alquileres la utilidad es el 100% del valor mensual
-                    const rentalIncome = Number(a.valorMensual || 0);
-                    summary[sellerName].utility += rentalIncome;
-                    summary[sellerName].salesCount += 1;
-                });
+        const cc = doc.cost_center;
+        if (cc != null) {
+            if (typeof cc === 'object') {
+                const id = String(cc.id ?? cc.code ?? '');
+                const name = cc.name ?? resolveCCName(id) ?? (id ? `CC-${id}` : null);
+                if (id && name) return { id, name };
+            } else {
+                const id = String(cc);
+                const name = resolveCCName(id) ?? `CC-${id}`;
+                return { id, name };
+            }
         }
+        // Fallback: campo seller/user
+        const raw = doc.seller ?? doc.user ?? doc.salesperson ?? doc.seller_id ?? doc.user_id;
+        if (raw != null) {
+            if (typeof raw === 'object') {
+                const id = String(raw.id ?? raw.code ?? '');
+                const name = raw.name ?? raw.full_name ?? manualCCMap[id] ?? usersMap[id] ?? `Vendedor ${id}`;
+                if (id) return { id, name };
+            } else {
+                const id = String(raw);
+                const name = manualCCMap[id] ?? usersMap[id] ?? `Vendedor ${id}`;
+                return { id, name };
+            }
+        }
+        return { id: 'sin_vendedor', name: 'Sin Vendedor' };
+    };
 
-        // Calcular comisiones sobre los totales acumulados para evitar errores de redondeo por transacción
-        const finalResults = Object.values(summary).map(s => ({
-            ...s,
-            commission: calculateCommission(s.utility)
-        }));
+    const getClient = (doc: any): string => {
+        const c = doc.customer ?? doc.client ?? doc.buyer;
+        if (!c) return '—';
+        return c.name ?? c.commercial_name ?? c.social_reason ?? c.business_name ?? String(c.identification ?? '—');
+    };
 
-        // FILTRO DE SEGURIDAD: Solo mostrar asesores comerciales legítimos
-        return finalResults.filter(s => {
-            // Buscamos al usuario en nuestra lista oficial de usuarios del CRM
-            const user = users.find(u => 
-                u.nombre.toLowerCase() === s.name.toLowerCase() || 
-                u.id === s.id
-            );
+    const lineTotal = (item: any): number => {
+        const qty = Number(item.quantity ?? 1);
+        const price = Number(item.price ?? item.unit_price ?? 0);
+        const disc = Number(item.discount ?? 0);
+        return Math.round(price * qty * (1 - disc / 100) * 100) / 100;
+    };
 
-            if (!user) return false;
+    // ── Resumen por vendedor ──────────────────────────────────────────────────
+    const getVendedorSummary = (): VendedorRow[] => {
+        const map: Record<string, VendedorRow> = {};
+        const get = (id: string, name: string): VendedorRow => {
+            if (!map[id]) map[id] = {
+                id, name,
+                ventasBruto: 0, devoluciones: 0, ventasNetas: 0,
+                costos: 0, utilidad: 0, comision: 0,
+                countFacturas: 0, countDevoluciones: 0,
+            };
+            return map[id];
+        };
 
-            const cargo = (user.cargo || '').toLowerCase();
-            const rol = (user.rol || '').toLowerCase();
-            
-            // Criterios para aparecer en comisiones:
-            const esComercial = 
-                cargo.includes('comercial') || 
-                cargo.includes('ejecutiv') || 
-                cargo.includes('gerente') || 
-                cargo.includes('ventas') ||
-                cargo.includes('asesor') ||
-                (rol === 'comercial' && !cargo.includes('tecnico'));
-
-            return esComercial;
+        // Facturas de venta
+        // Construimos también un índice number→vendedorId para que las notas crédito
+        // puedan encontrar al vendedor correcto aunque la nota no tenga cost_center
+        const invByNumber: Record<string, string> = {};
+        siigoInvoices.forEach(inv => {
+            const { id, name } = getSeller(inv);
+            const row = get(id, name);
+            row.countFacturas++;
+            const num = String(inv.number ?? inv.id ?? '');
+            if (num) invByNumber[num] = id;
+            (inv.items ?? []).forEach((item: any) => {
+                const venta = lineTotal(item);
+                const costo = (productCosts[item.code] ?? 0) * Number(item.quantity ?? 1);
+                row.ventasBruto += venta;
+                row.costos += costo;
+            });
         });
+
+        // Notas de crédito (descuentan ventas y costos del vendedor de la factura original)
+        // Siigo devuelve cn.invoice = {id, name} apuntando a la factura original
+        const invById: Record<string, string> = {};
+        siigoInvoices.forEach(inv => { if (inv.id) invById[String(inv.id)] = getSeller(inv).id; });
+
+        siigoCreditNotes.forEach(cn => {
+            // Buscar vendedor: primero por factura original referenciada, luego por cost_center propio
+            const refId  = String(cn.invoice?.id ?? '');
+            const refNum = String(cn.invoice?.name ?? cn.document?.number ?? cn.invoice_number ?? cn.number ?? '');
+            const refVendorId = invById[refId] ?? invByNumber[refNum];
+            const { id: cnId, name: cnName } = getSeller(cn);
+            const vendorId = refVendorId ?? cnId;
+            const vendorName = refVendorId ? (map[refVendorId]?.name ?? cnName) : cnName;
+
+            const row = map[vendorId] ?? get(vendorId, vendorName);
+            row.countDevoluciones++;
+            (cn.items ?? []).forEach((item: any) => {
+                // Math.abs evita que cantidades negativas de Siigo inviertan el signo
+                const devol = Math.abs(lineTotal(item));
+                const costo = (productCosts[item.code] ?? 0) * Math.abs(Number(item.quantity ?? 1));
+                row.devoluciones += devol;
+                row.costos -= costo;
+            });
+        });
+
+        // Notas crédito ingresadas manualmente para este periodo
+        manualNCs.filter(nc => nc.month === month && nc.year === year).forEach(nc => {
+            const row = map[nc.vendedorId] ?? get(nc.vendedorId, nc.vendedorName);
+            row.countDevoluciones++;
+            row.devoluciones += nc.amount;
+        });
+
+        return Object.values(map)
+            .map(r => {
+                const ventasNetas = r.ventasBruto - r.devoluciones;
+                const utilidad = ventasNetas - r.costos;
+                return { ...r, ventasNetas, utilidad, comision: Math.round(utilidad * 0.10 * 100) / 100 };
+            })
+            .filter(r => selectedVendedor ? r.id === selectedVendedor : true)
+            .sort((a, b) => b.utilidad - a.utilidad);
     };
 
-    const getSellerSummary = () => {
-        let finalSummary = getFullSellerSummary();
-        if (selectedComercial) {
-            finalSummary = finalSummary.filter(s => s.name === selectedComercial);
-        }
-        return finalSummary;
+    // ── Detalle línea a línea ─────────────────────────────────────────────────
+    const getLineas = (): LineaDetalle[] => {
+        const lines: LineaDetalle[] = [];
+
+        siigoInvoices.forEach(inv => {
+            const { id: vid, name: vname } = getSeller(inv);
+            if (selectedVendedor && vid !== selectedVendedor) return;
+            const cliente = getClient(inv);
+            const num = inv.number ?? inv.id ?? '—';
+            const fecha = inv.date ? new Date(inv.date).toLocaleDateString('es-CO') : '—';
+            (inv.items ?? []).forEach((item: any) => {
+                const qty = Number(item.quantity ?? 1);
+                const price = Number(item.price ?? item.unit_price ?? 0);
+                const disc = Number(item.discount ?? 0);
+                const totalV = Math.round(price * qty * (1 - disc / 100) * 100) / 100;
+                const unitCost = productCosts[item.code] ?? 0;
+                const totalC = Math.round(unitCost * qty * 100) / 100;
+                lines.push({
+                    vendedorId: vid, vendedorName: vname,
+                    facturaNum: num, facturaFecha: fecha, clienteNombre: cliente,
+                    code: item.code ?? '—', description: item.description ?? '—',
+                    quantity: qty, unitPrice: price, totalVenta: totalV,
+                    unitCost, totalCosto: totalC,
+                    utilidad: Math.round((totalV - totalC) * 100) / 100,
+                    esDevolucion: false,
+                });
+            });
+        });
+
+        siigoCreditNotes.forEach(cn => {
+            const { id: vid, name: vname } = getSeller(cn);
+            if (selectedVendedor && vid !== selectedVendedor) return;
+            const cliente = getClient(cn);
+            const num = cn.number ?? cn.id ?? '—';
+            const fecha = cn.date ? new Date(cn.date).toLocaleDateString('es-CO') : '—';
+            (cn.items ?? []).forEach((item: any) => {
+                const qty = Number(item.quantity ?? 1);
+                const price = Number(item.price ?? item.unit_price ?? 0);
+                const disc = Number(item.discount ?? 0);
+                const totalV = Math.round(price * qty * (1 - disc / 100) * 100) / 100;
+                const unitCost = productCosts[item.code] ?? 0;
+                const totalC = Math.round(unitCost * qty * 100) / 100;
+                lines.push({
+                    vendedorId: vid, vendedorName: vname,
+                    facturaNum: num, facturaFecha: fecha, clienteNombre: cliente,
+                    code: item.code ?? '—', description: item.description ?? '—',
+                    quantity: qty, unitPrice: price, totalVenta: -totalV,
+                    unitCost, totalCosto: -totalC,
+                    utilidad: -Math.round((totalV - totalC) * 100) / 100,
+                    esDevolucion: true,
+                });
+            });
+        });
+
+        return lines;
     };
 
-    const saveAlias = (id: string, currentName: string) => {
-        const newAlias = prompt(`Asignar nombre para el ID ${id}:`, currentName.startsWith('ID:') ? '' : currentName);
-        if (newAlias !== null) {
-            const updated = { ...aliases, [id]: newAlias };
-            setAliases(updated);
-            localStorage.setItem('siigo_seller_aliases', JSON.stringify(updated));
-        }
+    // ── Vendedores únicos para el filtro ──────────────────────────────────────
+    const vendedoresUnicos = Array.from(
+        new Map(siigoInvoices.map(inv => {
+            const { id, name } = getSeller(inv);
+            return [id, { id, name }];
+        })).values()
+    ).sort((a, b) => a.name.localeCompare(b.name));
+
+    // ── Resumen local CRM ─────────────────────────────────────────────────────
+    const getLocalSummary = () => {
+        const mp = `${year}-${String(month).padStart(2,'0')}`;
+        const s: Record<string, { name: string; utility: number; commission: number; salesCount: number }> = {};
+        const add = (name: string, util: number) => {
+            if (!s[name]) s[name] = { name, utility: 0, commission: 0, salesCount: 0 };
+            s[name].utility += util; s[name].salesCount++;
+        };
+        despachos.filter(d => d?.facturado && d.fechaFacturado?.startsWith(mp)).forEach(d => {
+            const q = cotizaciones.find(c => c.id === d.cotizacionId || c.consecutivo === d.consecutivoCotizacion);
+            let util = 0;
+            if (q) {
+                const qi = [...q.items];
+                d.items.forEach(di => {
+                    const idx = qi.findIndex(x => (x.productoId && x.productoId === di.productoId) || (x.id && x.id === di.productoId));
+                    if (idx >= 0) {
+                        const it = qi.splice(idx, 1)[0];
+                        let sp = Number(it.precioVenta ?? 0);
+                        const cp = Number(it.costoUnitario ?? 0);
+                        const mg = Number(it.utilidad ?? 0);
+                        if (sp <= 0 && mg > 0 && mg < 100) sp = cp / (1 - mg / 100);
+                        util += (sp - cp) * di.cantidad;
+                    }
+                });
+            } else util = Number(d.total ?? 0) * 0.15;
+            add(q?.ejecutivo ?? 'Desconocido', Math.round(util * 100) / 100);
+        });
+        ventasManuales.filter(v => v?.fecha?.startsWith(mp)).forEach(v => add(v.usuarioNombre ?? 'Desconocido', Number(v.monto ?? 0) - Number(v.costo ?? 0)));
+        alquileres.filter(a => a?.estado === 'Alquilado').forEach(a => {
+            const u = users.find(u => u.id === a.usuarioId);
+            add(u?.nombre ?? 'Desconocido', Number(a.valorMensual ?? 0));
+        });
+        return Object.values(s)
+            .map(r => ({ ...r, commission: Math.round(r.utility * 0.10 * 100) / 100 }))
+            .filter(r => {
+                const u = users.find(u => u.nombre.toLowerCase() === r.name.toLowerCase());
+                if (!u) return false;
+                const c = (u.cargo ?? '').toLowerCase(), rl = (u.rol ?? '').toLowerCase();
+                return c.includes('comercial') || c.includes('ejecutiv') || c.includes('gerente') || c.includes('ventas') || c.includes('asesor') || rl === 'comercial';
+            })
+            .filter(r => selectedComercial ? r.name === selectedComercial : true);
     };
 
     const generatePDF = async () => {
@@ -560,206 +644,206 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, pr
         try {
             const { jsPDF } = await import('jspdf');
             const { default: autoTable } = await import('jspdf-autotable');
+            const doc = new jsPDF({ orientation: 'landscape' });
+            const period = `${MONTHS[month-1]} ${year}`;
+            const summary = getVendedorSummary();
+            const totals = summary.reduce((a, r) => ({
+                v: a.v + r.ventasNetas, c: a.c + r.costos, u: a.u + r.utilidad, cm: a.cm + r.comision
+            }), { v: 0, c: 0, u: 0, cm: 0 });
 
-            const doc = new jsPDF();
-            const results = getSellerSummary();
-            const dateStr = `${month}/${year}`;
-
-            doc.setFontSize(18);
-            doc.text(`Reporte de Comisiones v3 (${activeTab === 'siigo' ? 'Siigo' : 'CRM'})`, 14, 20);
-            doc.setFontSize(12);
-            doc.text(`Periodo: ${dateStr}`, 14, 30);
-            doc.text(`Fecha de Reporte: ${new Date().toLocaleDateString()}`, 14, 38);
-
-            const bodyData = results.map(r => [
-                String(r.name || 'Desconocido'),
-                String(r.salesCount || 0),
-                `$ ${(r.utility || 0).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-                `$ ${(r.commission || 0).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-            ]);
-
-            const totals = {
-                count: results.reduce((s, r) => s + (r.salesCount || 0), 0),
-                utility: results.reduce((s, r) => s + (r.utility || 0), 0),
-                commission: results.reduce((s, r) => s + (r.commission || 0), 0)
-            };
-
+            doc.setFontSize(16); doc.text('Reporte de Comisiones por Vendedor — Siigo', 14, 18);
+            doc.setFontSize(11); doc.text(`Periodo: ${period}  |  Fecha: ${new Date().toLocaleDateString('es-CO')}`, 14, 27);
             // @ts-ignore
             autoTable(doc, {
-                startY: 45,
-                head: [['Asesor Comercial', 'Ventas', 'Utilidad Total', 'Comisión (10%)']],
-                body: bodyData,
-                foot: [[
-                    'TOTAL GENERAL',
-                    String(totals.count),
-                    `$ ${totals.utility.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-                    `$ ${totals.commission.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                ]],
+                startY: 33,
+                head: [['Vendedor', '# Facturas', 'Ventas Brutas', 'Devoluciones', 'Ventas Netas', 'Costos', 'Utilidad', 'Comisión 10%']],
+                body: summary.map(r => [
+                    r.name, r.countFacturas,
+                    fmt(r.ventasBruto), fmt(r.devoluciones), fmt(r.ventasNetas),
+                    fmt(r.costos), fmt(r.utilidad), fmt(r.comision),
+                ]),
+                foot: [['TOTALES', '', '', '', fmt(totals.v), fmt(totals.c), fmt(totals.u), fmt(totals.cm)]],
                 theme: 'grid',
                 headStyles: { fillColor: [41, 128, 185], textColor: 255 },
-                footStyles: { fillColor: [240, 240, 240], textColor: 0, fontStyle: 'bold' }
+                footStyles: { fillColor: [241, 245, 249], fontStyle: 'bold' },
+                styles: { fontSize: 8 },
             });
-
-            if (activeTab === 'local') {
-                const selectedMonthPrefix = `${year}-${String(month).padStart(2, '0')}`;
-                const filtered = despachos.filter(d => 
-                    d && d.facturado && d.fechaFacturado && d.fechaFacturado.startsWith(selectedMonthPrefix)
-                ).filter(d => {
-                    if (!selectedComercial) return true;
-                    const quote = cotizaciones.find(q => q.id === d.cotizacionId || q.consecutivo === d.consecutivoCotizacion);
-                    const seller = quote?.ejecutivo || 'Desconocido';
-                    return seller === selectedComercial;
-                });
-
-                const detailBodyData = filtered.flatMap(d => {
-                    const quote = cotizaciones.find(q => q.id === d.cotizacionId || q.consecutivo === d.consecutivoCotizacion);
-                    const seller = quote?.ejecutivo || 'N/A';
-                    const availableQuoteItems = quote ? [...quote.items] : [];
-                    
-                    return (d.items || []).map((dItem) => {
-                        const qItemIndex = availableQuoteItems.findIndex(qi => 
-                            (qi.productoId && dItem.productoId && qi.productoId === dItem.productoId) || 
-                            (qi.id && dItem.productoId && qi.id === dItem.productoId)
-                        );
-                        
-                        let qItem = null;
-                        if (qItemIndex !== -1) {
-                            qItem = availableQuoteItems[qItemIndex];
-                            availableQuoteItems.splice(qItemIndex, 1);
-                        }
-                        
-                        const productName = productos.find(p => p.id === (qItem?.productoId || dItem.productoId))?.nombre 
-                                            || dItem.nombreProducto 
-                                            || 'Producto General';
-                        
-                        let salePrice = Number(qItem?.precioVenta || (dItem as any).precioVenta || 0);
-                        const costPrice = Number(qItem?.costoUnitario || (dItem as any).costoUnitario || 0);
-                        const marginPercent = Number(qItem?.utilidad || 0);
-
-                        if (salePrice <= 0 && marginPercent < 100 && marginPercent > 0) {
-                            salePrice = costPrice / (1 - (marginPercent / 100));
-                        } else if (salePrice <= 0 && marginPercent === 100) {
-                            salePrice = costPrice;
-                        }
-
-                        const utility = (salePrice - costPrice) * (dItem.cantidad || 0);
-
-                        return [
-                            d.fechaFacturado || '',
-                            seller,
-                            d.clienteNombre || '',
-                            `${productName}\nCot: ${quote?.consecutivo || 'N/A'}`,
-                            String(dItem.cantidad || 0),
-                            `$ ${salePrice.toLocaleString('es-CO', { maximumFractionDigits: 0 })}`,
-                            `$ ${costPrice.toLocaleString('es-CO', { maximumFractionDigits: 0 })}`,
-                            `$ ${utility.toLocaleString('es-CO', { maximumFractionDigits: 0 })}`
-                        ];
-                    });
-                });
-
-                // Get finalY carefully
-                let finalY = 100;
-                try {
-                    // @ts-ignore
-                    if (doc.lastAutoTable && doc.lastAutoTable.finalY) {
-                        // @ts-ignore
-                        finalY = Number(doc.lastAutoTable.finalY);
-                    }
-                } catch (e) {
-                    finalY = 100;
-                }
-                
-                if (isNaN(finalY)) finalY = 100;
-
-                doc.setFontSize(14);
-                doc.text('Detalle por Factura CRM', 14, finalY + 15);
-                
-                // @ts-ignore
-                autoTable(doc, {
-                    startY: finalY + 20,
-                    head: [['Fecha', 'Asesor', 'Cliente', 'Producto', 'Cant.', 'Precio V.', 'Costo U.', 'Utilidad']],
-                    body: detailBodyData.length > 0 ? detailBodyData : [['Sin datos', '', '', '', '', '', '', '']],
-                    theme: 'grid',
-                    headStyles: { fillColor: [2, 132, 199], textColor: 255 },
-                    styles: { fontSize: 8, overflow: 'linebreak' },
-                    columnStyles: {
-                        3: { cellWidth: 50 }
-                    }
-                });
-            }
-
-            doc.save(`Reporte_Comisiones_v3_${activeTab}_${month}_${year}.pdf`);
-        } catch (error: any) {
-            alert(`Error al generar el PDF: ${error.message}.`);
-        } finally {
-            setLoading(false);
-        }
+            doc.save(`Comisiones_Vendedores_${month}_${year}.pdf`);
+        } catch (e: any) { alert('Error PDF: ' + e.message); }
+        finally { setLoading(false); }
     };
 
+    // ── Export CSV (abre en Excel) ────────────────────────────────────────────
+    const exportCSV = (mode: 'resumen' | 'detalle') => {
+        const period = `${MONTHS[month-1]}_${year}`;
+        const esc = (v: any) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+        const num = (n: number) => Math.round(n);
+
+        let csv = '';
+        if (mode === 'resumen') {
+            const rows = getVendedorSummary();
+            csv = [
+                ['Vendedor', 'Facturas', 'Devoluciones', 'Ventas Brutas', 'Notas Crédito', 'Ventas Netas', 'Costos Compra', 'Utilidad', 'Comisión 10%'].map(esc).join(';'),
+                ...rows.map(r => [r.name, r.countFacturas, r.countDevoluciones, num(r.ventasBruto), num(r.devoluciones), num(r.ventasNetas), num(r.costos), num(r.utilidad), num(r.comision)].map(esc).join(';')),
+            ].join('\n');
+        } else {
+            const lines = getLineas();
+            csv = [
+                ['Vendedor', 'Factura', 'Fecha', 'Cliente', 'Código', 'Descripción', 'Cantidad', 'Precio Unit.', 'Total Venta', 'Costo Unit.', 'Total Costo', 'Utilidad', 'Tipo'].map(esc).join(';'),
+                ...lines.map(l => [l.vendedorName, l.facturaNum, l.facturaFecha, l.clienteNombre, l.code, l.description, l.quantity, num(l.unitPrice), num(l.totalVenta), num(l.unitCost), num(l.totalCosto), num(l.utilidad), l.esDevolucion ? 'DEVOLUCIÓN' : 'VENTA'].map(esc).join(';')),
+            ].join('\n');
+        }
+
+        const bom = '﻿'; // BOM para UTF-8 en Excel
+        const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `Comisiones_${mode}_${period}.csv`;
+        a.click(); URL.revokeObjectURL(url);
+    };
+
+    // ── Cálculo de totales ────────────────────────────────────────────────────
+    const summary = getVendedorSummary();
+    const totals = summary.reduce((a, r) => ({
+        bruto: a.bruto + r.ventasBruto,
+        devoluciones: a.devoluciones + r.devoluciones,
+        netas: a.netas + r.ventasNetas,
+        costos: a.costos + r.costos,
+        utilidad: a.utilidad + r.utilidad,
+        comision: a.comision + r.comision,
+    }), { bruto: 0, devoluciones: 0, netas: 0, costos: 0, utilidad: 0, comision: 0 });
+
+    const lineas = getLineas();
+
+    // ── Render ────────────────────────────────────────────────────────────────
     return (
         <div className="module-container" id="comisiones-module">
+            {/* Header */}
             <div className="module-header">
                 <div>
-                    <h2>Módulo de Comisiones y Utilidades (CRM)</h2>
-                    <p style={{ color: 'var(--text-muted)' }}>Cálculo automático del 10% sobre la utilidad neta de despachos facturados.</p>
+                    <h2>Módulo de Comisiones</h2>
+                    <p style={{ color: 'var(--text-muted)' }}>Siigo — agrupado por Vendedor · Utilidad = Ventas Netas − Costos de Compra</p>
                 </div>
-                <div style={{ display: 'flex', gap: '1rem' }}>
-                    <button 
-                        onClick={() => setShowDiag(!showDiag)}
-                        className="btn-secondary"
-                        style={{ border: '1px solid #e2e8f0', color: '#64748b' }}
-                        title="Diagnóstico Técnico"
-                    >
-                        {showDiag ? '❌ Cerrar Diag' : '🔍 Diag'}
+                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                    <button onClick={() => setShowDiag(v => !v)} className="btn-secondary" style={{ border: '1px solid #cbd5e1', color: '#64748b' }}>
+                        {showDiag ? '✕ Cerrar Diag' : '🔍 Diag'}
                     </button>
-                    <button onClick={generatePDF} className="btn-secondary" style={{ border: '1px solid var(--primary-blue)', color: 'var(--primary-blue)' }}>
-                        📄 Exportar PDF
-                    </button>
-                    {activeTab === 'siigo' && (
-                        <button onClick={syncSiigoData} disabled={loading} className="btn-success">
-                            {loading ? 'Sincronizando...' : '🔄 Sincronizar Siigo'}
-                        </button>
+                    {mainTab === 'siigo' && (
+                        <>
+                            <button onClick={generatePDF} className="btn-secondary" style={{ border: '1px solid var(--primary-blue)', color: 'var(--primary-blue)' }}>
+                                📄 PDF
+                            </button>
+                            <button onClick={() => exportCSV(siigoSubTab === 'detalle' ? 'detalle' : 'resumen')} className="btn-secondary" style={{ border: '1px solid #16a34a', color: '#16a34a' }}>
+                                📊 Excel
+                            </button>
+                            <button onClick={syncSiigo} disabled={loading} className="btn-success">
+                                {loading ? '⏳ Sincronizando...' : '🔄 Sincronizar Siigo'}
+                            </button>
+                        </>
                     )}
                 </div>
             </div>
 
+            {/* Diagnóstico */}
             {showDiag && (
-                <div className="card" style={{ marginBottom: '2rem', background: '#f8fafc', border: '1px solid #cbd5e1' }}>
-                    <h4 style={{ margin: '0 0 1rem 0' }}>Panel de Diagnóstico Siigo</h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem' }}>
-                        <div><small style={{ color: '#64748b', display: 'block' }}>Facturas Descargadas</small><span style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>{diagInfo.fetchCount}</span></div>
-                        <div><small style={{ color: '#64748b', display: 'block' }}>Asesores Siigo</small><span style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>{diagInfo.sellerCount}</span></div>
-                        <div><small style={{ color: '#64748b', display: 'block' }}>Última Sincronización</small><span style={{ fontWeight: 'bold', fontSize: '1.2rem', color: diagInfo.lastSync.includes('ERROR') ? '#ef4444' : '#1e293b' }}>{diagInfo.lastSync || 'N/A'}</span></div>
-                        <div><small style={{ color: '#64748b', display: 'block' }}>Token Siigo</small><span style={{ fontWeight: 'bold', color: token ? '#22c55e' : '#ef4444' }}>{token ? 'ACTIVO ✅' : 'INACTIVO ❌'}</span></div>
+                <div className="card" style={{ marginBottom: '1.5rem', background: '#f8fafc', border: '1px solid #cbd5e1' }}>
+                    <h4 style={{ margin: '0 0 1rem' }}>Panel de Diagnóstico</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                        {[
+                            { label: 'Token', val: token ? '✅ ACTIVO' : '❌ INACTIVO', color: token ? '#22c55e' : '#ef4444' },
+                            { label: 'Fact. Venta', val: diagInfo.invoices },
+                            { label: 'N. Crédito', val: diagInfo.creditNotes },
+                            { label: 'Fact. Compra', val: diagInfo.purchases },
+                            { label: 'N. Débito', val: diagInfo.debitNotes },
+                            { label: 'Última Sync', val: diagInfo.lastSync || 'N/A' },
+                        ].map(({ label, val, color }) => (
+                            <div key={label}><small style={{ color: '#64748b', display: 'block' }}>{label}</small><span style={{ fontWeight: 700, color: color ?? '#1e293b' }}>{String(val)}</span></div>
+                        ))}
                     </div>
-                    {siigoInvoices.length > 0 && (
-                        <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #e2e8f0', fontSize: '0.8rem' }}>
-                            <p style={{ margin: '0 0 0.5rem 0', fontWeight: 'bold', color: '#1e40af' }}>🔍 CLAVES DETECTADAS EN FACTURA:</p>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '0.5rem' }}>
-                                {Object.keys(siigoInvoices[0]).map(k => (
-                                    <span key={k} style={{ background: '#dbeafe', color: '#1e40af', padding: '1px 6px', borderRadius: '4px', fontSize: '0.7rem' }}>{k}</span>
-                                ))}
+                    <div style={{ background: '#0f172a', padding: '0.75rem', borderRadius: 6, fontFamily: 'monospace', color: '#4ade80', fontSize: '0.75rem', maxHeight: 200, overflowY: 'auto' }}>
+                        {syncLog.length ? syncLog.map((l, i) => <div key={i}>{l}</div>) : '> Esperando sincronización...'}
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+                        <button onClick={testCreditNotes} style={{ padding: '4px 12px', background: 'none', border: '1px solid #7c3aed', borderRadius: 6, color: '#7c3aed', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}>
+                            🔬 Probar NC directo
+                        </button>
+                        <button onClick={openCCEditor} style={{ padding: '4px 12px', background: 'none', border: '1px solid #0891b2', borderRadius: 6, color: '#0891b2', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}>
+                            👥 Centros de Costo ({Object.keys(manualCCMap).length})
+                        </button>
+                    </div>
+
+                    {/* Editor de centros de costo */}
+                    {showCCEditor && (
+                        <div style={{ marginTop: '0.75rem', background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 8, padding: '0.75rem' }}>
+                            <strong style={{ fontSize: '0.85rem', color: '#0369a1' }}>👥 Mapa Centros de Costo — formato: ID=Nombre (uno por línea)</strong>
+                            <textarea
+                                value={ccEditText}
+                                onChange={e => setCCEditText(e.target.value)}
+                                style={{ width: '100%', minHeight: 140, fontFamily: 'monospace', fontSize: '0.82rem', marginTop: '0.5rem', padding: '0.5rem', border: '1px solid #7dd3fc', borderRadius: 6, resize: 'vertical', boxSizing: 'border-box' }}
+                                placeholder="14146=Deicy Rodriguez&#10;15087=Lidy Hernandez"
+                            />
+                            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.4rem' }}>
+                                <button onClick={saveCCEditor} style={{ padding: '4px 14px', background: '#0891b2', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem' }}>
+                                    💾 Guardar
+                                </button>
+                                <button onClick={() => setShowCCEditor(false)} style={{ padding: '4px 12px', background: 'none', border: '1px solid #94a3b8', borderRadius: 6, cursor: 'pointer', fontSize: '0.82rem' }}>
+                                    Cancelar
+                                </button>
                             </div>
-                            <p style={{ margin: '0 0 0.5rem 0', fontWeight: 'bold' }}>JSON Crudo (Muestra):</p>
-                            <pre style={{ margin: 0 }}>
-                                {JSON.stringify(siigoInvoices[0], (k, v) => k === 'items' ? `[${v.length} ítems]` : v, 2)}
-                            </pre>
                         </div>
                     )}
-                    <div style={{ marginTop: '1rem', background: '#000', padding: '1rem', borderRadius: '4px', fontFamily: 'monospace', color: '#4ade80', fontSize: '0.8rem', maxHeight: '200px', overflow: 'auto' }}>
-                        {syncLog.length === 0 ? '> Esperando sincronización...' : syncLog.map((log, i) => <div key={i}>{log}</div>)}
-                    </div>
+                    {siigoInvoices[0] && (
+                        <>
+                            <div style={{ marginTop: '0.75rem', background: '#fef3c7', border: '1px solid #fcd34d', borderRadius: 6, padding: '0.6rem 1rem', fontSize: '0.8rem' }}>
+                                <strong>🔎 Campos vendedor en primera factura:</strong>
+                                <code style={{ display: 'block', marginTop: '0.25rem', fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>
+                                    {['cost_center','seller','user','salesperson','seller_id','user_id','created_by','document_user','observations']
+                                        .filter(k => siigoInvoices[0][k] !== undefined)
+                                        .map(k => `${k}: ${JSON.stringify(siigoInvoices[0][k])}`)
+                                        .join('\n') || '⚠️ Ningún campo conocido encontrado. Ver JSON completo abajo.'}
+                                </code>
+                            </div>
+                            <details style={{ marginTop: '0.5rem' }}>
+                                <summary style={{ cursor: 'pointer', fontSize: '0.8rem', color: '#1e40af', fontWeight: 700 }}>🔍 JSON completo primera factura</summary>
+                                <pre style={{ fontSize: '0.7rem', marginTop: '0.5rem', overflow: 'auto', maxHeight: 250 }}>
+                                    {JSON.stringify(siigoInvoices[0], (k, v) => k === 'items' ? `[${v?.length ?? 0} ítems]` : v, 2)}
+                                </pre>
+                            </details>
+                        </>
+                    )}
+                    {diagInfo.firstCN ? (
+                        <>
+                            <div style={{ marginTop: '0.75rem', background: '#fce7f3', border: '1px solid #f9a8d4', borderRadius: 6, padding: '0.6rem 1rem', fontSize: '0.8rem' }}>
+                                <strong>🔎 Primera Nota Crédito — campos clave:</strong>
+                                <code style={{ display: 'block', marginTop: '0.25rem', fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>
+                                    {['number','document','invoice_number','number_document','reference','cost_center','items']
+                                        .filter(k => diagInfo.firstCN[k] !== undefined)
+                                        .map(k => `${k}: ${JSON.stringify(diagInfo.firstCN[k])}`)
+                                        .join('\n') || '⚠️ Campos esperados no encontrados.'}
+                                </code>
+                            </div>
+                            <details style={{ marginTop: '0.5rem' }}>
+                                <summary style={{ cursor: 'pointer', fontSize: '0.8rem', color: '#be185d', fontWeight: 700 }}>🔍 JSON completo primera nota crédito</summary>
+                                <pre style={{ fontSize: '0.7rem', marginTop: '0.5rem', overflow: 'auto', maxHeight: 250 }}>
+                                    {JSON.stringify(diagInfo.firstCN, (k, v) => k === 'items' ? `[${v?.length ?? 0} ítems]` : v, 2)}
+                                </pre>
+                            </details>
+                        </>
+                    ) : (
+                        <div style={{ marginTop: '0.75rem', background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 6, padding: '0.6rem 1rem', fontSize: '0.8rem', color: '#b91c1c' }}>
+                            ⚠️ <strong>No se encontraron Notas Crédito</strong> en el periodo seleccionado. Verifica que el mes/año sea correcto y que la edge function soporte el endpoint <code>credit-notes</code>.
+                        </div>
+                    )}
                 </div>
             )}
 
-            <div className="card" style={{ marginBottom: '2rem' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '2rem', alignItems: 'center' }}>
+            {/* Filtros */}
+            <div className="card" style={{ marginBottom: '1.5rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '1rem', alignItems: 'end' }}>
                     <div>
-                        <label>Mes de Comisión</label>
+                        <label>Mes</label>
                         <select className="input-field" value={month} onChange={e => setMonth(Number(e.target.value))}>
-                            {['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'].map((m, i) => (
-                                <option key={i} value={i + 1}>{m}</option>
-                            ))}
+                            {MONTHS.map((m, i) => <option key={i} value={i+1}>{m}</option>)}
                         </select>
                     </div>
                     <div>
@@ -768,185 +852,313 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, pr
                             {[2024, 2025, 2026].map(y => <option key={y} value={y}>{y}</option>)}
                         </select>
                     </div>
-                    <div>
-                        <label>Asesor Comercial</label>
-                        <select className="input-field" value={selectedComercial} onChange={e => setSelectedComercial(e.target.value)}>
-                            <option value="">Todos los asesores</option>
-                            {getFullSellerSummary().map(s => (
-                                <option key={s.id} value={s.name}>{s.name}</option>
-                            ))}
-                        </select>
-                    </div>
+                    {mainTab === 'siigo' && vendedoresUnicos.length > 0 && (
+                        <div>
+                            <label>Vendedor</label>
+                            <select className="input-field" value={selectedVendedor} onChange={e => setSelectedVendedor(e.target.value)}>
+                                <option value="">Todos</option>
+                                {vendedoresUnicos.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+                            </select>
+                        </div>
+                    )}
+                    {mainTab === 'local' && (
+                        <div>
+                            <label>Asesor</label>
+                            <select className="input-field" value={selectedComercial} onChange={e => setSelectedComercial(e.target.value)}>
+                                <option value="">Todos</option>
+                                {getLocalSummary().map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
+                            </select>
+                        </div>
+                    )}
                 </div>
             </div>
 
-            <div className="inner-tabs" style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
-                <button onClick={() => setActiveTab('siigo')} className={`tab-btn ${activeTab === 'siigo' ? 'active' : ''}`}>
-                    🌐 Facturas Siigo
-                </button>
-                <button onClick={() => setActiveTab('local')} className={`tab-btn ${activeTab === 'local' ? 'active' : ''}`}>
-                    🏠 Facturas CRM (Despachos)
-                </button>
+            {/* Tabs principales */}
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', borderBottom: '2px solid var(--border-color)' }}>
+                {([['siigo','🌐 Siigo'], ['local','🏠 CRM Local']] as [MainTab, string][]).map(([id, label]) => (
+                    <button key={id} onClick={() => setMainTab(id)}
+                        style={{ background: 'none', border: 'none', padding: '0.6rem 1.25rem', cursor: 'pointer', fontWeight: mainTab === id ? 700 : 500, color: mainTab === id ? 'var(--primary-blue)' : 'var(--text-muted)', borderBottom: mainTab === id ? '3px solid var(--primary-blue)' : '3px solid transparent', fontSize: '0.9rem' }}>
+                        {label}
+                    </button>
+                ))}
             </div>
 
-            {error && <div className="error-box">{error}</div>}
+            {error && <div style={{ background: '#fee2e2', color: '#b91c1c', padding: '0.75rem 1rem', borderRadius: 8, marginBottom: '1rem', border: '1px solid #fecaca' }}>{error}</div>}
 
-            <div className="card table-card animate-fade-in" style={{ marginTop: '2rem' }}>
-                <table className="data-table">
-                    <thead>
-                        <tr>
-                            <th>Asesor Comercial</th>
-                            <th className="num">N° Ventas</th>
-                            <th className="num">Utilidad Generada</th>
-                            <th className="num">Comisión Estimada (10%)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {getSellerSummary().length === 0 ? (
-                            <tr>
-                                <td colSpan={4} style={{ textAlign: 'center', padding: '3rem', opacity: 0.5 }}>
-                                    {loading ? 'Consultando datos...' : 'No hay datos para este periodo.'}
-                                </td>
-                            </tr>
-                        ) : (
-                            getSellerSummary().map((row, idx) => (
-                                <tr key={idx}>
-                                    <td 
-                                        onClick={() => saveAlias(row.id, row.name)}
-                                        style={{ cursor: 'pointer' }}
-                                        title="Haz clic para asignar un nombre real"
-                                    >
-                                        <strong style={{ color: row.name.startsWith('ID:') ? 'var(--primary-blue)' : 'inherit' }}>
-                                            {row.name}
-                                        </strong>
-                                        {row.name.startsWith('ID:') && (
-                                            <span style={{ fontSize: '0.7rem', opacity: 0.6, marginLeft: '8px', display: 'block' }}>
-                                                ✏️ Haz clic para renombrar
-                                            </span>
-                                        )}
-                                    </td>
-                                    <td className="num">{row.salesCount}</td>
-                                    <td className="num" style={{ color: 'var(--success)', fontWeight: 'bold' }}>
-                                        ${row.utility.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                    </td>
-                                    <td className="num" style={{ color: 'var(--primary-blue)', fontSize: '1.1rem', fontWeight: 'bold' }}>
-                                        ${row.commission.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                    </td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
-            </div>
-
-            {activeTab === 'local' && (
-                <div className="card animate-fade-in" style={{ marginTop: '2rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                        <h3 style={{ margin: 0 }}>🔍 Detalle por Factura CRM (Producto por Producto)</h3>
-                        <span className="badge" style={{ background: '#e0f2fe', color: '#0369a1' }}>Periodo: {month}/{year}</span>
+            {/* ── TAB SIIGO ── */}
+            {mainTab === 'siigo' && (
+                <>
+                    {/* Sub-tabs */}
+                    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
+                        {([
+                            ['resumen', '📊 Resumen por Vendedor', '#8b5cf6'],
+                            ['detalle', '📋 Detalle por Línea',    '#0ea5e9'],
+                        ] as [SiigoSubTab, string, string][]).map(([id, label, color]) => (
+                            <button key={id} onClick={() => setSiigoSubTab(id)}
+                                style={{ padding: '0.4rem 1rem', borderRadius: 8, cursor: 'pointer', fontWeight: siigoSubTab === id ? 700 : 500, fontSize: '0.82rem', background: siigoSubTab === id ? `${color}22` : 'transparent', border: `1px solid ${siigoSubTab === id ? color : 'var(--border-color)'}`, color: siigoSubTab === id ? color : 'var(--text-muted)' }}>
+                                {label}
+                            </button>
+                        ))}
                     </div>
-                    <div style={{ overflowX: 'auto', maxHeight: '600px' }}>
-                        <table className="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Fecha Fact.</th>
-                                    <th>Asesor</th>
-                                    <th>Cliente</th>
-                                    <th>Producto/Servicio</th>
-                                    <th className="num">Cant.</th>
-                                    <th className="num">Precio Venta</th>
-                                    <th className="num">Costo Unit.</th>
-                                    <th className="num">Utilidad Item</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {(() => {
-                                    const selectedMonthPrefix = `${year}-${String(month).padStart(2, '0')}`;
-                                    const filtered = despachos.filter(d => 
-                                        d && d.facturado && d.fechaFacturado && d.fechaFacturado.startsWith(selectedMonthPrefix)
-                                    ).filter(d => {
-                                        if (!selectedComercial) return true;
-                                        const quote = cotizaciones.find(q => q.id === d.cotizacionId || q.consecutivo === d.consecutivoCotizacion);
-                                        const seller = quote?.ejecutivo || 'Desconocido';
-                                        return seller === selectedComercial;
-                                    });
 
-                                    if (filtered.length === 0) return <tr><td colSpan={8} style={{ textAlign: 'center', padding: '2rem', opacity: 0.5 }}>No hay ítems facturados en el CRM para este periodo.</td></tr>;
+                    {/* ─── Notas Crédito Manuales ─── */}
+                    {siigoInvoices.length > 0 && (
+                        <div className="card" style={{ marginBottom: '1.25rem', border: '1px solid #fda4af', background: '#fff1f2' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                                <span style={{ fontSize: '1.1rem' }}>📋</span>
+                                <strong style={{ color: '#be123c' }}>Notas Crédito Manuales</strong>
+                                <span style={{ fontSize: '0.75rem', color: '#9f1239', background: '#ffe4e6', padding: '1px 8px', borderRadius: 4, border: '1px solid #fda4af' }}>
+                                    {manualNCs.filter(n => n.month === month && n.year === year).length} ingresadas este periodo
+                                </span>
+                            </div>
 
-                                    return filtered.flatMap(d => {
-                                        const quote = cotizaciones.find(q => q.id === d.cotizacionId || q.consecutivo === d.consecutivoCotizacion);
-                                        const seller = quote?.ejecutivo || 'N/A';
-                                        const availableQuoteItems = quote ? [...quote.items] : [];
-                                        
-                                        return d.items.map((dItem, idx) => {
-                                            const qItemIndex = availableQuoteItems.findIndex(qi => 
-                                                (qi.productoId && dItem.productoId && qi.productoId === dItem.productoId) || 
-                                                (qi.id && dItem.productoId && qi.id === dItem.productoId)
-                                            );
-                                            
-                                            let qItem = null;
-                                            if (qItemIndex !== -1) {
-                                                qItem = availableQuoteItems[qItemIndex];
-                                                availableQuoteItems.splice(qItemIndex, 1);
-                                            }
-                                            
-                                            const productName = productos.find(p => p.id === (qItem?.productoId || dItem.productoId))?.nombre 
-                                                                || dItem.nombreProducto 
-                                                                || 'Producto General / Sin Nombre';
-                                            
-                                            let salePrice = Number(qItem?.precioVenta || dItem.precioVenta || 0);
-                                            const costPrice = Number(qItem?.costoUnitario || dItem.costoUnitario || 0);
-                                            const marginPercent = Number(qItem?.utilidad || 0);
+                            {/* Formulario */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 130px 160px auto', gap: '0.5rem', alignItems: 'end', marginBottom: '0.75rem' }}>
+                                <div>
+                                    <label style={{ fontSize: '0.75rem', color: '#64748b', display: 'block', marginBottom: 2 }}>Vendedor</label>
+                                    <select className="input-field" value={ncForm.vendedorId} onChange={e => setNcForm(f => ({ ...f, vendedorId: e.target.value }))}>
+                                        <option value="">— Seleccionar —</option>
+                                        {vendedoresUnicos.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ fontSize: '0.75rem', color: '#64748b', display: 'block', marginBottom: 2 }}>N° Nota (ej: NC-2-379)</label>
+                                    <input className="input-field" placeholder="NC-2-379" value={ncForm.ncNum} onChange={e => setNcForm(f => ({ ...f, ncNum: e.target.value }))} />
+                                </div>
+                                <div>
+                                    <label style={{ fontSize: '0.75rem', color: '#64748b', display: 'block', marginBottom: 2 }}>Monto sin IVA</label>
+                                    <input className="input-field" type="number" placeholder="50000" value={ncForm.amount} onChange={e => setNcForm(f => ({ ...f, amount: e.target.value }))} />
+                                </div>
+                                <button onClick={addManualNC} disabled={!ncForm.vendedorId || !ncForm.amount} className="btn-success" style={{ height: 38, whiteSpace: 'nowrap' }}>
+                                    + Agregar
+                                </button>
+                            </div>
 
-                                            if (salePrice <= 0 && marginPercent < 100 && marginPercent > 0) {
-                                                salePrice = costPrice / (1 - (marginPercent / 100));
-                                            } else if (salePrice <= 0 && marginPercent === 100) {
-                                                salePrice = costPrice;
-                                            }
+                            {/* Lista de NCs del periodo */}
+                            {manualNCs.filter(n => n.month === month && n.year === year).length > 0 && (
+                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                                    <thead>
+                                        <tr style={{ background: '#ffe4e6' }}>
+                                            <th style={{ padding: '4px 8px', textAlign: 'left', fontWeight: 600 }}>Vendedor</th>
+                                            <th style={{ padding: '4px 8px', textAlign: 'left', fontWeight: 600 }}>N° Nota</th>
+                                            <th style={{ padding: '4px 8px', textAlign: 'right', fontWeight: 600 }}>Monto</th>
+                                            <th style={{ padding: '4px 4px' }}></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {manualNCs.filter(n => n.month === month && n.year === year).map(nc => (
+                                            <tr key={nc.id} style={{ borderTop: '1px solid #fecdd3' }}>
+                                                <td style={{ padding: '4px 8px' }}>{nc.vendedorName}</td>
+                                                <td style={{ padding: '4px 8px', color: '#be123c', fontWeight: 600 }}>{nc.ncNum || '—'}</td>
+                                                <td style={{ padding: '4px 8px', textAlign: 'right', color: '#f43f5e', fontWeight: 700 }}>−{fmt(nc.amount)}</td>
+                                                <td style={{ padding: '4px 4px', textAlign: 'center' }}>
+                                                    <button onClick={() => deleteManualNC(nc.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', fontWeight: 700, fontSize: '1rem', lineHeight: 1 }} title="Eliminar">×</button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            )}
+                        </div>
+                    )}
 
-                                            const utility = (salePrice - costPrice) * dItem.cantidad;
+                    {siigoInvoices.length === 0 && (
+                        <div style={{ textAlign: 'center', padding: '4rem 2rem', color: 'var(--text-muted)', background: 'var(--surface)', borderRadius: 12, border: '1px dashed var(--border-color)' }}>
+                            <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>🔄</div>
+                            <p style={{ fontWeight: 600 }}>No hay datos sincronizados</p>
+                            <p style={{ fontSize: '0.875rem' }}>Haz clic en <strong>Sincronizar Siigo</strong> para cargar los movimientos del periodo.</p>
+                        </div>
+                    )}
 
-                                            return (
-                                                <tr key={`${d.id}-${idx}`}>
-                                                    <td style={{ fontSize: '0.85rem' }}>{d.fechaFacturado}</td>
-                                                    <td style={{ fontWeight: 500 }}>{seller}</td>
-                                                    <td style={{ fontSize: '0.85rem' }}>{d.clienteNombre}</td>
+                    {/* ─── Sub-tab: Resumen por Vendedor ─── */}
+                    {siigoSubTab === 'resumen' && summary.length > 0 && (
+                        <>
+                            {/* KPIs */}
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(155px, 1fr))', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                                {[
+                                    { label: 'Ventas Brutas', val: fmt(totals.bruto), color: '#10b981' },
+                                    { label: 'Devoluciones', val: fmt(totals.devoluciones), color: '#f43f5e' },
+                                    { label: 'Ventas Netas', val: fmt(totals.netas), color: '#0ea5e9' },
+                                    { label: 'Costos Compra', val: fmt(totals.costos), color: '#f59e0b' },
+                                    { label: 'Utilidad Total', val: fmt(totals.utilidad), color: '#8b5cf6' },
+                                    { label: 'Comisión 10%', val: fmt(totals.comision), color: '#3b82f6' },
+                                ].map(({ label, val, color }) => (
+                                    <div key={label} className="card" style={{ padding: '0.85rem', borderTop: `3px solid ${color}` }}>
+                                        <small style={{ color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>{label}</small>
+                                        <span style={{ fontWeight: 800, fontSize: '1rem', color }}>{val}</span>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="card table-card">
+                                <div style={{ overflowX: 'auto' }}>
+                                    <table className="data-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Vendedor</th>
+                                                <th className="num">Facturas</th>
+                                                <th className="num">Devoluciones</th>
+                                                <th className="num">Ventas Brutas (sin IVA)</th>
+                                                <th className="num">Notas Crédito</th>
+                                                <th className="num">Ventas Netas</th>
+                                                <th className="num">Costos Compra</th>
+                                                <th className="num">Utilidad</th>
+                                                <th className="num">Margen %</th>
+                                                <th className="num">Comisión 10%</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {summary.map(row => {
+                                                const mrgn = row.ventasNetas > 0 ? (row.utilidad / row.ventasNetas) * 100 : 0;
+                                                return (
+                                                <tr key={row.id}>
                                                     <td>
-                                                        <div style={{ fontSize: '0.9rem' }}>{productName}</div>
-                                                        <div style={{ fontSize: '0.7rem', color: '#64748b' }}>Cot: {quote?.consecutivo || 'N/A'}</div>
+                                                        <strong>{row.name}</strong>
+                                                        <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>ID: {row.id}</div>
                                                     </td>
-                                                    <td className="num">{dItem.cantidad}</td>
-                                                    <td className="num">${salePrice.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</td>
-                                                    <td className="num">${costPrice.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</td>
-                                                    <td className="num" style={{ color: 'var(--success)', fontWeight: 'bold' }}>
-                                                        ${utility.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
-                                                    </td>
+                                                    <td className="num">{row.countFacturas}</td>
+                                                    <td className="num">{row.countDevoluciones}</td>
+                                                    <td className="num" style={{ color: '#10b981', fontWeight: 600 }}>{fmt(row.ventasBruto)}</td>
+                                                    <td className="num" style={{ color: '#f43f5e', fontWeight: 600 }}>{row.devoluciones > 0 ? `−${fmt(row.devoluciones)}` : '—'}</td>
+                                                    <td className="num" style={{ color: '#0ea5e9', fontWeight: 700 }}>{fmt(row.ventasNetas)}</td>
+                                                    <td className="num" style={{ color: '#f59e0b', fontWeight: 600 }}>{fmt(row.costos)}</td>
+                                                    <td className="num" style={{ color: row.utilidad >= 0 ? '#8b5cf6' : '#ef4444', fontWeight: 700 }}>{fmt(row.utilidad)}</td>
+                                                    <td className="num" style={{ color: mrgn < 10 ? '#ef4444' : '#10b981', fontWeight: 700 }}>{mrgn.toFixed(2)}%</td>
+                                                    <td className="num" style={{ color: '#3b82f6', fontWeight: 800, fontSize: '1.05rem' }}>{fmt(row.comision)}</td>
                                                 </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                        <tfoot>
+                                            <tr style={{ background: '#f1f5f9', fontWeight: 800 }}>
+                                                <td>TOTALES</td>
+                                                <td className="num">{summary.reduce((s,r)=>s+r.countFacturas,0)}</td>
+                                                <td className="num">{summary.reduce((s,r)=>s+r.countDevoluciones,0)}</td>
+                                                <td className="num" style={{ color: '#10b981' }}>{fmt(totals.bruto)}</td>
+                                                <td className="num" style={{ color: '#f43f5e' }}>{totals.devoluciones > 0 ? `−${fmt(totals.devoluciones)}` : '—'}</td>
+                                                <td className="num" style={{ color: '#0ea5e9' }}>{fmt(totals.netas)}</td>
+                                                <td className="num" style={{ color: '#f59e0b' }}>{fmt(totals.costos)}</td>
+                                                <td className="num" style={{ color: '#8b5cf6' }}>{fmt(totals.utilidad)}</td>
+                                                <td className="num" style={{ color: (totals.netas > 0 ? (totals.utilidad / totals.netas) * 100 : 0) < 10 ? '#ef4444' : '#10b981' }}>{(totals.netas > 0 ? (totals.utilidad / totals.netas) * 100 : 0).toFixed(2)}%</td>
+                                                <td className="num" style={{ color: '#3b82f6' }}>{fmt(totals.comision)}</td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </div>
+                        </>
+                    )}
+
+                    {/* ─── Sub-tab: Detalle por línea ─── */}
+                    {siigoSubTab === 'detalle' && lineas.length > 0 && (
+                        <div className="card table-card animate-fade-in">
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                <h3 style={{ margin: 0, color: '#0ea5e9' }}>📋 {lineas.length} líneas de detalle</h3>
+                                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                                    Precio antes de IVA · Costo según última compra por código
+                                </span>
+                            </div>
+                            <div style={{ overflowX: 'auto', maxHeight: 600 }}>
+                                <table className="data-table" style={{ fontSize: '0.82rem' }}>
+                                    <thead>
+                                        <tr>
+                                            <th>Vendedor</th>
+                                            <th>Factura</th>
+                                            <th>Fecha</th>
+                                            <th>Cliente</th>
+                                            <th>Código</th>
+                                            <th>Descripción</th>
+                                            <th className="num">Cant.</th>
+                                            <th className="num">Precio Unit.</th>
+                                            <th className="num">Total Venta</th>
+                                            <th className="num">Costo Unit.</th>
+                                            <th className="num">Total Costo</th>
+                                            <th className="num">Utilidad</th>
+                                            <th className="num">Margen %</th>
+                                            <th>Tipo</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {lineas.map((l, i) => {
+                                            const mLine = Math.abs(l.totalVenta) > 0 ? (l.utilidad / Math.abs(l.totalVenta)) * 100 : 0;
+                                            return (
+                                            <tr key={i} style={{ background: l.esDevolucion ? '#fff1f2' : undefined }}>
+                                                <td style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{l.vendedorName}</td>
+                                                <td style={{ color: '#0ea5e9', fontWeight: 600 }}>{l.facturaNum}</td>
+                                                <td style={{ whiteSpace: 'nowrap' }}>{l.facturaFecha}</td>
+                                                <td style={{ maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={l.clienteNombre}>{l.clienteNombre}</td>
+                                                <td><code style={{ fontSize: '0.78rem', background: '#f1f5f9', padding: '1px 4px', borderRadius: 3 }}>{l.code}</code></td>
+                                                <td style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={l.description}>{l.description}</td>
+                                                <td className="num">{l.quantity}</td>
+                                                <td className="num">{fmt(l.unitPrice)}</td>
+                                                <td className="num" style={{ color: l.esDevolucion ? '#f43f5e' : '#10b981', fontWeight: 600 }}>{fmt(Math.abs(l.totalVenta))}</td>
+                                                <td className="num" style={{ color: '#f59e0b' }}>{l.unitCost > 0 ? fmt(l.unitCost) : <span style={{ color: '#94a3b8' }}>N/D</span>}</td>
+                                                <td className="num" style={{ color: '#f59e0b' }}>{l.totalCosto !== 0 ? fmt(Math.abs(l.totalCosto)) : <span style={{ color: '#94a3b8' }}>N/D</span>}</td>
+                                                <td className="num" style={{ color: l.utilidad >= 0 ? '#8b5cf6' : '#ef4444', fontWeight: 700 }}>{fmt(l.utilidad)}</td>
+                                                <td className="num" style={{ color: mLine < 10 ? '#ef4444' : '#10b981', fontWeight: 700 }}>{mLine.toFixed(2)}%</td>
+                                                <td>
+                                                    <span style={{ background: l.esDevolucion ? '#fee2e2' : '#dcfce7', color: l.esDevolucion ? '#b91c1c' : '#166534', padding: '2px 7px', borderRadius: 4, fontSize: '0.72rem', fontWeight: 700 }}>
+                                                        {l.esDevolucion ? 'DEVOL.' : 'VENTA'}
+                                                    </span>
+                                                </td>
+                                            </tr>
                                             );
-                                        });
-                                    });
-                                })()}
-                            </tbody>
-                        </table>
-                    </div>
+                                        })}
+                                    </tbody>
+                                    <tfoot>
+                                        <tr style={{ background: '#f1f5f9', fontWeight: 800 }}>
+                                            <td colSpan={8}>TOTALES</td>
+                                            <td className="num" style={{ color: '#10b981' }}>{fmt(lineas.reduce((s,l)=>s+l.totalVenta,0))}</td>
+                                            <td></td>
+                                            <td className="num" style={{ color: '#f59e0b' }}>{fmt(lineas.reduce((s,l)=>s+l.totalCosto,0))}</td>
+                                            <td className="num" style={{ color: '#8b5cf6' }}>{fmt(lineas.reduce((s,l)=>s+l.utilidad,0))}</td>
+                                            {(() => {
+                                                const sumV = lineas.reduce((s,l)=>s+Math.abs(l.totalVenta),0);
+                                                const sumU = lineas.reduce((s,l)=>s+l.utilidad,0);
+                                                const mT = sumV > 0 ? (sumU / sumV) * 100 : 0;
+                                                return <td className="num" style={{ color: mT < 10 ? '#ef4444' : '#10b981' }}>{mT.toFixed(2)}%</td>;
+                                            })()}
+                                            <td></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+                </>
+            )}
+
+            {/* ── TAB LOCAL CRM ── */}
+            {mainTab === 'local' && (
+                <div className="card table-card animate-fade-in">
+                    <table className="data-table">
+                        <thead>
+                            <tr>
+                                <th>Asesor Comercial</th>
+                                <th className="num">N° Ventas</th>
+                                <th className="num">Utilidad</th>
+                                <th className="num">Comisión 10%</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {getLocalSummary().length === 0 ? (
+                                <tr><td colSpan={4} style={{ textAlign: 'center', padding: '3rem', opacity: 0.5 }}>No hay datos para este periodo.</td></tr>
+                            ) : getLocalSummary().map((row, i) => (
+                                <tr key={i}>
+                                    <td><strong>{row.name}</strong></td>
+                                    <td className="num">{row.salesCount}</td>
+                                    <td className="num" style={{ color: 'var(--success)', fontWeight: 700 }}>{fmt(row.utility)}</td>
+                                    <td className="num" style={{ color: 'var(--primary-blue)', fontWeight: 800, fontSize: '1.05rem' }}>{fmt(row.commission)}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
             )}
 
             <style>{`
-                #comisiones-module .inner-tabs { border-bottom: 2px solid var(--border-color); }
-                #comisiones-module .tab-btn { 
-                    background: none; border: none; padding: 0.75rem 1.5rem; cursor: pointer;
-                    color: var(--text-muted); font-weight: 500; transition: all 0.2s;
-                }
-                #comisiones-module .tab-btn.active {
-                    color: var(--primary-blue); font-weight: 700;
-                    border-bottom: 3px solid var(--primary-blue);
-                }
                 #comisiones-module .num { text-align: right; }
-                #comisiones-module .error-box { 
-                    background: #fee2e2; color: #b91c1c; padding: 1rem; border-radius: 8px;
-                    margin-bottom: 1rem; border: 1px solid #fecaca;
-                }
+                #comisiones-module .data-table tfoot td { font-weight: 800; }
             `}</style>
         </div>
     );

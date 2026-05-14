@@ -1,0 +1,250 @@
+<svg width="1100" height="800" viewBox="0 0 1100 800" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    text { font-family: 'Segoe UI', Arial, sans-serif; }
+  </style>
+
+  <!-- Fondo -->
+  <rect width="1100" height="800" fill="#0d1117"/>
+
+  <!-- Barra de título -->
+  <rect width="1100" height="68" fill="#161b27"/>
+  <text x="550" y="26" text-anchor="middle" fill="#ffffff" font-size="19" font-weight="bold">FocusClip V1 — Diagrama de Conexión (Versión Corregida)</text>
+  <text x="550" y="52" text-anchor="middle" fill="#8892b0" font-size="12">ESP32 DevKit V1 · MPU-6050 · LEDs 220Ω · Buzzer Pasivo · Motor Vibración + BC547 + 1N4001</text>
+
+  <!-- ══ RIELES DE ALIMENTACIÓN ══ -->
+  <!-- 3.3V rail (horizontal discontinuo, y=82) -->
+  <line x1="60" y1="82" x2="900" y2="82" stroke="#ef4444" stroke-width="2" stroke-dasharray="10,5"/>
+  <rect x="62" y="74" width="40" height="16" fill="#ef4444" rx="3"/>
+  <text x="82" y="86" text-anchor="middle" fill="white" font-size="10" font-weight="bold">3.3V</text>
+
+  <!-- GND rail (horizontal discontinuo, y=716) -->
+  <line x1="60" y1="716" x2="900" y2="716" stroke="#475569" stroke-width="2" stroke-dasharray="10,5"/>
+  <rect x="62" y="708" width="38" height="16" fill="#475569" rx="3"/>
+  <text x="81" y="720" text-anchor="middle" fill="white" font-size="10" font-weight="bold">GND</text>
+
+  <!-- ══ MPU-6050 ══ -->
+  <rect x="72" y="145" width="148" height="148" fill="#0c2340" stroke="#22d3ee" stroke-width="2" rx="6"/>
+  <rect x="72" y="145" width="148" height="28" fill="#22d3ee" rx="6"/>
+  <text x="146" y="157" text-anchor="middle" fill="#0c2340" font-size="12" font-weight="bold">MPU-6050</text>
+  <text x="146" y="169" text-anchor="middle" fill="#0c2340" font-size="9">Acelerómetro + Giroscopio I2C</text>
+  <!-- Pines derecho del MPU -->
+  <circle cx="220" cy="190" r="4" fill="#ef4444"/>
+  <line x1="220" y1="190" x2="242" y2="190" stroke="#ef4444" stroke-width="2"/>
+  <text x="218" y="187" text-anchor="end" fill="#fca5a5" font-size="10">VCC</text>
+  <circle cx="220" cy="218" r="4" fill="#475569"/>
+  <line x1="220" y1="218" x2="242" y2="218" stroke="#475569" stroke-width="2"/>
+  <text x="218" y="215" text-anchor="end" fill="#94a3b8" font-size="10">GND</text>
+  <circle cx="220" cy="248" r="4" fill="#fbbf24"/>
+  <line x1="220" y1="248" x2="242" y2="248" stroke="#fbbf24" stroke-width="2"/>
+  <text x="218" y="245" text-anchor="end" fill="#fde68a" font-size="10">SDA</text>
+  <circle cx="220" cy="278" r="4" fill="#34d399"/>
+  <line x1="220" y1="278" x2="242" y2="278" stroke="#34d399" stroke-width="2"/>
+  <text x="218" y="275" text-anchor="end" fill="#6ee7b7" font-size="10">SCL</text>
+  <text x="146" y="308" text-anchor="middle" fill="#374151" font-size="9">AD0 / INT — sin conectar</text>
+
+  <!-- ══ ESP32 DEVKIT V1 ══ -->
+  <rect x="368" y="88" width="204" height="560" fill="#111827" stroke="#3b82f6" stroke-width="2.5" rx="8"/>
+  <rect x="368" y="88" width="204" height="36" fill="#1d4ed8" rx="8"/>
+  <text x="470" y="103" text-anchor="middle" fill="white" font-size="12" font-weight="bold">ESP32 DevKit V1</text>
+  <text x="470" y="117" text-anchor="middle" fill="#bfdbfe" font-size="9">240MHz · 520KB RAM · WiFi · Bluetooth</text>
+  <!-- Chip visual -->
+  <rect x="404" y="310" width="128" height="148" fill="#1e293b" stroke="#334155" stroke-width="1" rx="4"/>
+  <text x="468" y="388" text-anchor="middle" fill="#4b5563" font-size="11">ESP32</text>
+  <text x="468" y="404" text-anchor="middle" fill="#374151" font-size="9">WROOM-32</text>
+
+  <!-- PINES IZQUIERDA (sale hacia MPU) -->
+  <!-- 3.3V -->
+  <line x1="348" y1="152" x2="368" y2="152" stroke="#ef4444" stroke-width="2.5"/>
+  <circle cx="348" cy="152" r="4" fill="#ef4444"/>
+  <text x="364" y="149" text-anchor="end" fill="#ef4444" font-size="10" font-weight="bold">3.3V</text>
+  <!-- GND izq -->
+  <line x1="348" y1="185" x2="368" y2="185" stroke="#475569" stroke-width="2"/>
+  <circle cx="348" cy="185" r="4" fill="#475569"/>
+  <text x="364" y="182" text-anchor="end" fill="#94a3b8" font-size="10">GND</text>
+  <!-- IO21 SDA -->
+  <line x1="348" y1="248" x2="368" y2="248" stroke="#fbbf24" stroke-width="2.5"/>
+  <circle cx="348" cy="248" r="4" fill="#fbbf24"/>
+  <text x="364" y="245" text-anchor="end" fill="#fde68a" font-size="10">IO21 SDA</text>
+  <!-- IO22 SCL -->
+  <line x1="348" y1="284" x2="368" y2="284" stroke="#34d399" stroke-width="2.5"/>
+  <circle cx="348" cy="284" r="4" fill="#34d399"/>
+  <text x="364" y="281" text-anchor="end" fill="#6ee7b7" font-size="10">IO22 SCL</text>
+
+  <!-- PINES DERECHA -->
+  <!-- GPIO25 LED R -->
+  <line x1="572" y1="360" x2="604" y2="360" stroke="#f87171" stroke-width="2.5"/>
+  <circle cx="604" cy="360" r="4" fill="#f87171"/>
+  <text x="574" y="356" fill="#f87171" font-size="10">GPIO25</text>
+  <!-- GPIO26 LED G -->
+  <line x1="572" y1="400" x2="604" y2="400" stroke="#4ade80" stroke-width="2.5"/>
+  <circle cx="604" cy="400" r="4" fill="#4ade80"/>
+  <text x="574" y="396" fill="#4ade80" font-size="10">GPIO26</text>
+  <!-- GPIO27 Buzzer -->
+  <line x1="572" y1="450" x2="604" y2="450" stroke="#c084fc" stroke-width="2.5"/>
+  <circle cx="604" cy="450" r="4" fill="#c084fc"/>
+  <text x="574" y="446" fill="#c084fc" font-size="10">GPIO27</text>
+  <!-- GPIO33 Motor -->
+  <line x1="572" y1="502" x2="604" y2="502" stroke="#fb923c" stroke-width="2.5"/>
+  <circle cx="604" cy="502" r="4" fill="#fb923c"/>
+  <text x="574" y="498" fill="#fb923c" font-size="10">GPIO33</text>
+  <!-- GND der -->
+  <line x1="572" y1="558" x2="604" y2="558" stroke="#475569" stroke-width="2"/>
+  <circle cx="604" cy="558" r="4" fill="#475569"/>
+  <text x="574" y="554" fill="#94a3b8" font-size="10">GND</text>
+
+  <!-- ══ CABLES MPU → ESP32 ══ -->
+  <!-- VCC: MPU → sube a rail 3.3V → baja a ESP32 3.3V -->
+  <polyline points="242,190 284,190 284,82" stroke="#ef4444" stroke-width="2" fill="none"/>
+  <circle cx="284" cy="82" r="4" fill="#ef4444"/>
+  <polyline points="284,82 338,82 338,152 348,152" stroke="#ef4444" stroke-width="2" fill="none"/>
+  <!-- GND: MPU → baja a rail GND -->
+  <polyline points="242,218 294,218 294,716" stroke="#475569" stroke-width="2" fill="none"/>
+  <circle cx="294" cy="716" r="4" fill="#475569"/>
+  <!-- GND ESP32 izq → rail GND -->
+  <polyline points="348,185 326,185 326,716" stroke="#475569" stroke-width="2" fill="none"/>
+  <circle cx="326" cy="716" r="4" fill="#475569"/>
+  <!-- SDA: MPU SDA → ESP32 IO21 (línea directa horizontal con pequeño jog) -->
+  <polyline points="242,248 348,248" stroke="#fbbf24" stroke-width="2" fill="none"/>
+  <!-- SCL: MPU SCL → ESP32 IO22 -->
+  <polyline points="242,278 352,278 352,284 348,284" stroke="#34d399" stroke-width="2" fill="none"/>
+
+  <!-- ══ LED ROJO ══ -->
+  <!-- Símbolo LED: círculo con ánodo arriba, cátodo abajo -->
+  <circle cx="730" cy="376" r="26" fill="#3b0000" stroke="#ef4444" stroke-width="2.5"/>
+  <text x="730" y="372" text-anchor="middle" fill="#f87171" font-size="12" font-weight="bold">LED</text>
+  <text x="730" y="387" text-anchor="middle" fill="#fca5a5" font-size="10">ROJO</text>
+  <!-- Ánodo (+) arriba -->
+  <line x1="730" y1="350" x2="730" y2="320" stroke="#f87171" stroke-width="2"/>
+  <!-- Resistencia 220Ω -->
+  <rect x="718" y="304" width="24" height="16" fill="#1e1e2e" stroke="#f87171" stroke-width="1.5" rx="2"/>
+  <text x="730" y="316" text-anchor="middle" fill="#fca5a5" font-size="9">220Ω</text>
+  <line x1="730" y1="296" x2="730" y2="304" stroke="#f87171" stroke-width="2"/>
+  <line x1="730" y1="320" x2="730" y2="350" stroke="#f87171" stroke-width="2"/>
+  <!-- Cátodo (-) abajo → GND -->
+  <line x1="730" y1="402" x2="730" y2="716" stroke="#475569" stroke-width="2"/>
+  <circle cx="730" cy="716" r="4" fill="#475569"/>
+  <!-- Signo + en ánodo -->
+  <text x="742" y="344" fill="#f87171" font-size="13" font-weight="bold">+</text>
+  <text x="742" y="406" fill="#64748b" font-size="13">−</text>
+  <!-- GPIO25 → resistencia → LED ánodo -->
+  <polyline points="604,360 650,360 650,296 730,296" stroke="#f87171" stroke-width="2" fill="none"/>
+
+  <!-- ══ LED VERDE ══ -->
+  <circle cx="820" cy="376" r="26" fill="#002200" stroke="#22c55e" stroke-width="2.5"/>
+  <text x="820" y="372" text-anchor="middle" fill="#4ade80" font-size="12" font-weight="bold">LED</text>
+  <text x="820" y="387" text-anchor="middle" fill="#86efac" font-size="10">VERDE</text>
+  <!-- Ánodo (+) arriba -->
+  <line x1="820" y1="350" x2="820" y2="320" stroke="#4ade80" stroke-width="2"/>
+  <!-- Resistencia 220Ω -->
+  <rect x="808" y="304" width="24" height="16" fill="#1e1e2e" stroke="#4ade80" stroke-width="1.5" rx="2"/>
+  <text x="820" y="316" text-anchor="middle" fill="#86efac" font-size="9">220Ω</text>
+  <line x1="820" y1="296" x2="820" y2="304" stroke="#4ade80" stroke-width="2"/>
+  <line x1="820" y1="320" x2="820" y2="350" stroke="#4ade80" stroke-width="2"/>
+  <!-- Cátodo (-) abajo → GND -->
+  <line x1="820" y1="402" x2="820" y2="716" stroke="#475569" stroke-width="2"/>
+  <circle cx="820" cy="716" r="4" fill="#475569"/>
+  <text x="832" y="344" fill="#4ade80" font-size="13" font-weight="bold">+</text>
+  <text x="832" y="406" fill="#64748b" font-size="13">−</text>
+  <!-- GPIO26 → resistencia → LED verde ánodo -->
+  <polyline points="604,400 656,400 656,296 820,296" stroke="#4ade80" stroke-width="2" fill="none"/>
+
+  <!-- ══ BUZZER PASIVO ══ -->
+  <rect x="692" y="490" width="110" height="62" fill="#1a0c2e" stroke="#c084fc" stroke-width="2" rx="5"/>
+  <text x="747" y="512" text-anchor="middle" fill="#c084fc" font-size="11" font-weight="bold">BUZZER</text>
+  <text x="747" y="526" text-anchor="middle" fill="#a855f7" font-size="10">PASIVO</text>
+  <text x="747" y="541" text-anchor="middle" fill="#6b21a8" font-size="9">piezoeléctrico (gris)</text>
+  <!-- Buzzer (+) → desde GPIO27 -->
+  <line x1="718" y1="490" x2="718" y2="472" stroke="#c084fc" stroke-width="2"/>
+  <text x="708" y="470" fill="#c084fc" font-size="12" font-weight="bold">+</text>
+  <!-- Buzzer (−) → GND -->
+  <line x1="776" y1="552" x2="776" y2="716" stroke="#475569" stroke-width="2"/>
+  <circle cx="776" cy="716" r="4" fill="#475569"/>
+  <text x="786" y="556" fill="#64748b" font-size="12">−</text>
+  <!-- GPIO27 → Buzzer (+) -->
+  <polyline points="604,450 666,450 666,472 718,472" stroke="#c084fc" stroke-width="2" fill="none"/>
+
+  <!-- ══ CIRCUITO DRIVER MOTOR (panel) ══ -->
+  <rect x="382" y="618" width="506" height="110" fill="#0c1806" stroke="#374151" stroke-width="1" rx="5" stroke-dasharray="5,3"/>
+  <text x="635" y="634" text-anchor="middle" fill="#4b5563" font-size="10">Circuito driver de motor — corrección requerida</text>
+
+  <!-- Motor (circulo) -->
+  <circle cx="770" cy="676" r="30" fill="#1c0a00" stroke="#fb923c" stroke-width="2.5"/>
+  <text x="770" y="672" text-anchor="middle" fill="#fdba74" font-size="10" font-weight="bold">MOTOR</text>
+  <text x="770" y="686" text-anchor="middle" fill="#fb923c" font-size="9">VIBRACIÓN</text>
+  <!-- Motor (+) → 3.3V rail -->
+  <line x1="770" y1="646" x2="770" y2="626" stroke="#ef4444" stroke-width="2"/>
+  <polyline points="770,626 860,626 860,82" stroke="#ef4444" stroke-width="2" fill="none"/>
+  <circle cx="860" cy="82" r="4" fill="#ef4444"/>
+  <!-- Motor (−) → BC547 colector (nodo j1) -->
+  <line x1="770" y1="706" x2="770" y2="720" stroke="#fb923c" stroke-width="2"/>
+
+  <!-- 1N4001 Diodo de protección (paralelo al motor, a la derecha) -->
+  <!-- Ánodo (abajo, lado motor−) línea -->
+  <line x1="820" y1="720" x2="820" y2="700" stroke="#fde68a" stroke-width="2"/>
+  <!-- Cuerpo diodo: triángulo apuntando ARRIBA (corriente fluye hacia arriba en back-EMF) -->
+  <polygon points="812,700 828,700 820,684" fill="#fde68a"/>
+  <!-- Barra cátodo (arriba, lado motor+) -->
+  <line x1="812" y1="684" x2="828" y2="684" stroke="#fde68a" stroke-width="2.5"/>
+  <!-- Cátodo → línea arriba → nodo motor+ -->
+  <line x1="820" y1="684" x2="820" y2="626" stroke="#fde68a" stroke-width="1.5"/>
+  <polyline points="820,626 770,626" stroke="#fde68a" stroke-width="1.5" fill="none"/>
+  <circle cx="770" cy="626" r="3" fill="#ef4444"/>
+  <!-- Ánodo → línea abajo → nodo motor− -->
+  <polyline points="820,720 770,720" stroke="#fde68a" stroke-width="1.5" fill="none"/>
+  <circle cx="770" cy="720" r="3" fill="#fb923c"/>
+  <text x="834" y="706" fill="#fde68a" font-size="9">1N4001</text>
+  <text x="834" y="717" fill="#a16207" font-size="8">diodo flyback</text>
+
+  <!-- BC547 Transistor NPN -->
+  <rect x="454" y="650" width="86" height="58" fill="#1a1a08" stroke="#f59e0b" stroke-width="2" rx="4"/>
+  <text x="497" y="668" text-anchor="middle" fill="#fbbf24" font-size="11" font-weight="bold">BC547</text>
+  <text x="497" y="681" text-anchor="middle" fill="#d97706" font-size="10">NPN Transistor</text>
+  <text x="497" y="698" text-anchor="middle" fill="#78350f" font-size="9">B · C · E</text>
+  <!-- Base (izq) -->
+  <line x1="454" y1="676" x2="432" y2="676" stroke="#f59e0b" stroke-width="2"/>
+  <text x="450" y="671" text-anchor="end" fill="#f59e0b" font-size="9">Base</text>
+  <!-- Colector (arriba) → Motor (−) -->
+  <line x1="497" y1="650" x2="497" y2="636" stroke="#fb923c" stroke-width="2"/>
+  <polyline points="497,636 770,636 770,720" stroke="#fb923c" stroke-width="2" fill="none"/>
+  <circle cx="770" cy="636" r="3" fill="#fb923c"/>
+  <text x="502" y="646" fill="#f97316" font-size="9">Colector→Motor(−)</text>
+  <!-- Emisor (abajo) → GND -->
+  <line x1="497" y1="708" x2="497" y2="716" stroke="#475569" stroke-width="2"/>
+  <circle cx="497" cy="716" r="4" fill="#475569"/>
+  <text x="502" y="714" fill="#64748b" font-size="9">Emisor→GND</text>
+
+  <!-- Resistencia 1kΩ entre GPIO33 y Base BC547 -->
+  <rect x="394" y="670" width="30" height="14" fill="#1e1e2e" stroke="#f59e0b" stroke-width="1.5" rx="2"/>
+  <text x="409" y="681" text-anchor="middle" fill="#fbbf24" font-size="9">1kΩ</text>
+  <line x1="424" y1="676" x2="454" y2="676" stroke="#f59e0b" stroke-width="2"/>
+  <line x1="394" y1="676" x2="388" y2="676" stroke="#fb923c" stroke-width="2"/>
+
+  <!-- GPIO33 → baja → 1kΩ → BC547 Base -->
+  <polyline points="604,502 850,502 850,642 409,642 409,670 394,670" stroke="#fb923c" stroke-width="2" fill="none"/>
+
+  <!-- GND ESP32 der → rail GND -->
+  <polyline points="604,558 878,558 878,716" stroke="#475569" stroke-width="2" fill="none"/>
+  <circle cx="878" cy="716" r="4" fill="#475569"/>
+
+  <!-- ══ LEYENDA ══ -->
+  <rect x="0" y="744" width="1100" height="56" fill="#0d1117"/>
+  <line x1="0" y1="745" x2="1100" y2="745" stroke="#1f2937" stroke-width="1"/>
+
+  <text x="60" y="762" fill="#6b7280" font-size="10" font-weight="bold">COLORES:</text>
+  <line x1="116" y1="758" x2="148" y2="758" stroke="#ef4444" stroke-width="2.5"/>
+  <text x="151" y="762" fill="#ef4444" font-size="10">3.3V / VCC</text>
+  <line x1="224" y1="758" x2="256" y2="758" stroke="#475569" stroke-width="2.5"/>
+  <text x="259" y="762" fill="#94a3b8" font-size="10">GND</text>
+  <line x1="300" y1="758" x2="332" y2="758" stroke="#fbbf24" stroke-width="2.5"/>
+  <text x="335" y="762" fill="#fde68a" font-size="10">SDA (I2C)</text>
+  <line x1="406" y1="758" x2="438" y2="758" stroke="#34d399" stroke-width="2.5"/>
+  <text x="441" y="762" fill="#6ee7b7" font-size="10">SCL (I2C)</text>
+  <line x1="510" y1="758" x2="542" y2="758" stroke="#fb923c" stroke-width="2.5"/>
+  <text x="545" y="762" fill="#fb923c" font-size="10">Señal GPIO</text>
+  <line x1="618" y1="758" x2="650" y2="758" stroke="#fde68a" stroke-width="2.5"/>
+  <text x="653" y="762" fill="#fde68a" font-size="10">1N4001</text>
+
+  <text x="60" y="788" fill="#f59e0b" font-size="10" font-weight="bold">⚠ CORRECCIONES:</text>
+  <text x="168" y="788" fill="#6b7280" font-size="10">Buzzer PASIVO (gris sin punto).  Motor requiere BC547 + 1kΩ + 1N4001 flyback.  MPU-6050 a 3.3V (NO 5V).  LEDs: 220Ω cada uno.</text>
+
+</svg>

@@ -31,6 +31,9 @@ import { PostScheduler }          from './components/social/PostScheduler';
 import { SocialConnector }        from './components/social/SocialConnector';
 import { CommunityHub }           from './components/CommunityHub';
 
+// Módulo Licitaciones
+import { LicitacionesHub }        from './components/licitaciones/LicitacionesHub';
+
 export type Tab =
   // Agente
   | 'dashboard' | 'agent' | 'agentlog'
@@ -43,7 +46,9 @@ export type Tab =
   // Herramientas
   | 'gmb' | 'rental'
   // Ventas & CRM
-  | 'remisiones';
+  | 'remisiones'
+  // Licitaciones
+  | 'licitaciones';
 
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
@@ -80,6 +85,9 @@ function App() {
 
       // ── Ventas & CRM ─────────────────────────────────────────────
       case 'remisiones': return <Remissions />;
+
+      // ── Licitaciones ─────────────────────────────────────────────
+      case 'licitaciones': return <LicitacionesHub />;
 
       default:           return null;
     }
