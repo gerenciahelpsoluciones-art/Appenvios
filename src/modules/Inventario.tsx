@@ -71,45 +71,46 @@ const InventarioModule: React.FC = () => {
         try {
             setLoading(true);
             setError(null);
-            console.log('Obteniendo productos de Siigo...');
+            console.log('Obteniendo productos de Siigo (paginado)...');
 
-            const res = await fetch(`${EDGE_FUNCTION_URL}?action=products`, {
-                method: 'GET',
-                headers: {
-                    ...getBaseHeaders(),
-                    'x-siigo-token': accessToken,
-                },
-            });
+            let allProducts: any[] = [];
+            
+            for (let p = 1; p <= 100; p++) {
+                const res = await fetch(`${EDGE_FUNCTION_URL}?action=products&page=${p}&page_size=100`, {
+                    method: 'GET',
+                    headers: {
+                        ...getBaseHeaders(),
+                        'x-siigo-token': accessToken,
+                    },
+                });
 
-            const data = await res.json();
-            setDebugInfo(data); // Guardar para diagnóstico
+                const data = await res.json();
+                
+                if (p === 1) {
+                    setDebugInfo(data); // Guardar para diagnóstico
+                }
 
-            console.log('Sync Inventario - Metadatos:', {
-                resultsLength: data.results?.length,
-                total: data.total,
-                hasSample: !!data._sample,
-                hasDebugRaw: !!data._debug_first_raw
-            });
+                if (!res.ok) {
+                    throw new Error(`Error al obtener productos p${p}: ${data.error || res.status}`);
+                }
 
-            if (!res.ok) {
-                throw new Error(`Error al obtener productos: ${data.error || res.status}`);
+                const rows = data.results ?? data.data ?? [];
+                if (rows.length === 0) break;
+                
+                allProducts = [...allProducts, ...rows];
+                
+                // Si la cantidad retornada es menor al tamaño de la página, ya no hay más páginas
+                if (rows.length < 100) break;
             }
 
-            if (!data.results || data.results.length === 0) {
+            if (allProducts.length === 0) {
                 setProducts([]);
                 const now = new Date().toLocaleTimeString();
-                setError(`(v3 @ ${now}) La cuenta de Siigo respondió pero no devolvió productos. Revise el panel de depuración abajo.`);
+                setError(`(v4 @ ${now}) La cuenta de Siigo respondió pero no devolvió productos. Revise el panel de depuración abajo.`);
                 return;
             }
 
-            // DEBUG: Loguear el primer producto para ver campos reales de Siigo
-            if (data.results.length > 0) {
-                const raw = data.results[0];
-                console.log('=== SIIGO PRODUCTO RAW (primer item) ===');
-                console.log('Data:', JSON.stringify(raw, null, 2));
-            }
-
-            const mapped: SiigoProduct[] = data.results
+            const mapped: SiigoProduct[] = allProducts
                 .map((p: any) => {
                     const desc = [
                         p.name,
@@ -133,8 +134,9 @@ const InventarioModule: React.FC = () => {
                         stock: Number(p.stock_control ? (p.available_quantity ?? 0) : 0),
                     };
                 }).filter((p: SiigoProduct) => p.stock > 0);
+                
             setProducts(mapped);
-            console.log(`${mapped.length} productos con stock > 0 cargados.`);
+            console.log(`${mapped.length} productos con stock > 0 cargados de un total de ${allProducts.length} productos en Siigo.`);
         } catch (err: any) {
             setError(err.message);
         } finally {
