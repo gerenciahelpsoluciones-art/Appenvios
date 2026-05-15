@@ -95,7 +95,9 @@ Deno.serve(async (req: Request) => {
                 'bill-detail': '/v1/bills',
                 'debit-notes': '/v1/debit-notes',
                 'debit-note-detail': '/v1/debit-notes',
-                'products': '/v1/products'
+                'products': '/v1/products',
+                'purchase-support-documents': '/v1/purchase-support-documents',
+                'purchase-support-document-detail': '/v1/purchase-support-documents'
             };
 
             if (action && endpointMap[action]) {

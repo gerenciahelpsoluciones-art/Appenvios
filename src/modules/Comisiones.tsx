@@ -67,7 +67,7 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, ve
     const [token, setToken] = useState<string | null>(null);
     const [syncLog, setSyncLog] = useState<string[]>([]);
     const [showDiag, setShowDiag] = useState(false);
-    const [diagInfo, setDiagInfo] = useState<{ invoices: number; creditNotes: number; purchases: number; debitNotes: number; lastSync: string; firstCN?: any }>({ invoices: 0, creditNotes: 0, purchases: 0, debitNotes: 0, lastSync: '' });
+    const [diagInfo, setDiagInfo] = useState<{ invoices: number; creditNotes: number; purchases: number; supportDocs: number; debitNotes: number; lastSync: string; firstCN?: any }>({ invoices: 0, creditNotes: 0, purchases: 0, supportDocs: 0, debitNotes: 0, lastSync: '' });
 
     // Mapa manual de centros de costo (persiste en localStorage, tiene prioridad sobre API)
     const DEFAULT_CC_MAP: Record<string, string> = {
@@ -360,36 +360,97 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, ve
             addLog(`Notas de crédito cargadas: ${detailedCN.length}`);
 
             // Facturas de compra → mapa de costos por código (último costo)
-            addLog('Cargando Facturas de Compra (buscando el costo más reciente)...');
-            // Usamos date_start y date_end que son los campos soportados por purchases/bills
-            const pStart = `${year}-01-01`; 
-            const pEnd   = `${year}-${String(month).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
+            addLog('Cargando Historial de Compras (últimos 365 días)...');
+            // Calculamos 1 año atrás desde la fecha de corte para encontrar compras antiguas
+            const dateRef = new Date(year, month - 1, lastDay);
+            const dateStart = new Date(dateRef);
+            dateStart.setDate(dateStart.getDate() - 365);
+            
+            const pStart = dateStart.toISOString().split('T')[0];
+            const pEnd   = dateRef.toISOString().split('T')[0];
             const pq = `date_start=${pStart}&date_end=${pEnd}`;
-            const [purchases, bills] = await Promise.all([
+            const [purchases, bills, supportDocs] = await Promise.all([
                 fetchPages(tk, 'purchases', pq),
                 fetchPages(tk, 'bills', pq),
+                fetchPages(tk, 'purchase-support-documents', pq),
             ]);
             
             // Ordenamos de la compra más reciente a la más antigua
-            const allPurchases = [...purchases, ...bills].sort((a, b) => {
+            const allPurchases = [...purchases, ...bills, ...supportDocs].sort((a, b) => {
                 const dA = new Date(a.date ?? a.created_at ?? 0).getTime();
                 const dB = new Date(b.date ?? b.created_at ?? 0).getTime();
                 return dB - dA;
             });
-            addLog(`Documentos de compra encontrados en el año: ${allPurchases.length}`);
-
+            addLog(`Documentos de compra encontrados en el año: ${allPurchases.length}. Detallando los más recientes...`);
+            
             // Construir mapa código → costo unitario (tomar estrictamente el ÚLTIMO costo)
             const costs: Record<string, number> = {};
+            const costsByDesc: Record<string, number> = {};
+            
+            const registerCost = (item: any) => {
+                const c = String(item.code || item.product_code || '').trim();
+                const rawDesc = String(item.description || '').trim().toLowerCase();
+                // Normalización robusta de tildes
+                const d = rawDesc.replace(/[áàäâ]/g, 'a').replace(/[éèëê]/g, 'e').replace(/[íìïî]/g, 'i').replace(/[óòöô]/g, 'o').replace(/[úùüû]/g, 'u');
+                
+                let price = Number(item.price ?? item.unit_price ?? item.value ?? 0);
+
+                // EXCEPCIÓN: Servicios y logística (forzar a $0)
+                const keywords = ['flete', 'envio', 'visita tecnica', 'mensajer', 'transporte', 'domicilio'];
+                const isExcluded = ['6035', '9289'].includes(c) || keywords.some(k => d.includes(k));
+                
+                if (isExcluded) {
+                    if (c) costs[c] = 0;
+                    if (d) costsByDesc[d] = 0;
+                    // Log silencioso solo la primera vez que lo bloqueamos
+                    if (c && costs[c] === 0) { /* ya bloqueado */ } 
+                    return;
+                }
+
+                if (price <= 0) return;
+
+                // Regla simple: El primero que encontremos (el más nuevo) gana
+                if (c && costs[c] === undefined) costs[c] = price;
+                if (d && costsByDesc[d] === undefined) costsByDesc[d] = price;
+            };
+
+            // Heurística: Algunos documentos ya traen ítems en la lista inicial
             allPurchases.forEach((p: any) => {
-                (p.items ?? []).forEach((item: any) => {
-                    // Si no tiene costo asignado aún (como ordenamos DESC, el primero que encuentra es el más nuevo)
-                    if (item.code && costs[item.code] === undefined) {
-                        costs[item.code] = Number(item.price ?? item.unit_price ?? 0);
-                    }
-                });
+                (p.items ?? []).forEach(registerCost);
             });
+
+            // Detallado profundo (top 200 para cubrir todo el periodo)
+            const docsToDetail = allPurchases.slice(0, 200);
+            
+            for (let i = 0; i < docsToDetail.length; i++) {
+                const doc = docsToDetail[i];
+                let detailAction = 'purchase-detail';
+                
+                if (supportDocs.some((sd: any) => sd.id === doc.id)) detailAction = 'purchase-support-document-detail';
+                else if (bills.some((b: any) => b.id === doc.id)) detailAction = 'bill-detail';
+
+                // Solo detallamos si no hemos encontrado todos los costos (opcional, por ahora detallamos todos los top 200)
+                try {
+                    const r = await fetch(`${EDGE_FUNCTION_URL}?action=${detailAction}&id=${doc.id}`, {
+                        headers: { ...baseHeaders(), 'x-siigo-token': tk }
+                    });
+                    if (r.ok) {
+                        const fullDoc = await r.json();
+                        (fullDoc.items ?? []).forEach(registerCost);
+                    }
+                } catch (e: any) {
+                    addLog(`  Error detallando ${doc.id}: ${e.message}`);
+                }
+                
+                // Concurrencia leve: pausa cada 10 docs para no saturar
+                if (i % 10 === 0) await new Promise(r => setTimeout(r, 50));
+            }
+
             setProductCosts(costs);
-            addLog(`Códigos con costo mapeado: ${Object.keys(costs).length}`);
+            // Guardamos también el mapa de descripciones en un estado para usarlo en processReport
+            // (Necesitaremos agregar setProductCostsByDesc al componente)
+            (window as any)._costsByDesc = costsByDesc; // Fallback rápido
+            addLog(`Códigos con costo: ${Object.keys(costs).length}. Descripciones con costo: ${Object.keys(costsByDesc).length}`);
 
             // Notas débito
             addLog('Cargando Notas Débito...');
@@ -398,7 +459,8 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, ve
 
             setDiagInfo({
                 invoices: detailedInv.length, creditNotes: detailedCN.length,
-                purchases: allPurchases.length, debitNotes: debitNotes.length,
+                purchases: allPurchases.length, supportDocs: supportDocs.length,
+                debitNotes: debitNotes.length,
                 lastSync: new Date().toLocaleTimeString(),
                 firstCN: detailedCN[0] ?? null,
             });
@@ -483,7 +545,14 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, ve
             if (num) invByNumber[num] = id;
             (inv.items ?? []).forEach((item: any) => {
                 const venta = lineTotal(item);
-                const costo = (productCosts[item.code] ?? 0) * Number(item.quantity ?? 1);
+                const c = String(item.code || '').trim();
+                const d = String(item.description || '').trim().toLowerCase().replace(/[áàäâ]/g, 'a').replace(/[éèëê]/g, 'e').replace(/[íìïî]/g, 'i').replace(/[óòöô]/g, 'o').replace(/[úùüû]/g, 'u');
+                
+                // CINTURON DE SEGURIDAD: Forzar 0 si es servicio/logística
+                const isSvc = ['6035', '9289'].includes(c) || d.includes('flete') || d.includes('envio') || d.includes('mensajer') || d.includes('visita tecnica');
+                const uCost = isSvc ? 0 : (productCosts[c] ?? (window as any)._costsByDesc?.[d] ?? 0);
+                
+                const costo = uCost * Number(item.quantity ?? 1);
                 row.ventasBruto += venta;
                 row.costos += costo;
             });
@@ -494,25 +563,29 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, ve
         const invById: Record<string, string> = {};
         siigoInvoices.forEach(inv => { if (inv.id) invById[String(inv.id)] = getSeller(inv).id; });
 
-        siigoCreditNotes.forEach(cn => {
-            // Buscar vendedor: primero por factura original referenciada, luego por cost_center propio
-            const refId  = String(cn.invoice?.id ?? '');
-            const refNum = String(cn.invoice?.name ?? cn.document?.number ?? cn.invoice_number ?? cn.number ?? '');
-            const refVendorId = invById[refId] ?? invByNumber[refNum];
-            const { id: cnId, name: cnName } = getSeller(cn);
-            const vendorId = refVendorId ?? cnId;
-            const vendorName = refVendorId ? (map[refVendorId]?.name ?? cnName) : cnName;
+            siigoCreditNotes.forEach(cn => {
+                const refId  = String(cn.invoice?.id ?? '');
+                const refNum = String(cn.invoice?.name ?? cn.document?.number ?? cn.invoice_number ?? cn.number ?? '');
+                const refVendorId = invById[refId] ?? invByNumber[refNum];
+                const { id: cnId, name: cnName } = getSeller(cn);
+                const vendorId = refVendorId ?? cnId;
+                const vendorName = refVendorId ? (map[refVendorId]?.name ?? cnName) : cnName;
 
-            const row = map[vendorId] ?? get(vendorId, vendorName);
-            row.countDevoluciones++;
-            (cn.items ?? []).forEach((item: any) => {
-                // Math.abs evita que cantidades negativas de Siigo inviertan el signo
-                const devol = Math.abs(lineTotal(item));
-                const costo = (productCosts[item.code] ?? 0) * Math.abs(Number(item.quantity ?? 1));
-                row.devoluciones += devol;
-                row.costos -= costo;
+                const row = map[vendorId] ?? get(vendorId, vendorName);
+                row.countDevoluciones++;
+                (cn.items ?? []).forEach((item: any) => {
+                    const devol = Math.abs(lineTotal(item));
+                    const c = String(item.code || '').trim();
+                    const d = String(item.description || '').trim().toLowerCase().replace(/[áàäâ]/g, 'a').replace(/[éèëê]/g, 'e').replace(/[íìïî]/g, 'i').replace(/[óòöô]/g, 'o').replace(/[úùüû]/g, 'u');
+                    
+                    const isSvc = ['6035', '9289'].includes(c) || d.includes('flete') || d.includes('envio') || d.includes('mensajer') || d.includes('visita tecnica');
+                    const uCost = isSvc ? 0 : (productCosts[c] ?? (window as any)._costsByDesc?.[d] ?? 0);
+                    
+                    const costo = uCost * Math.abs(Number(item.quantity ?? 1));
+                    row.devoluciones += devol;
+                    row.costos -= costo;
+                });
             });
-        });
 
         // Notas crédito ingresadas manualmente para este periodo
         manualNCs.filter(nc => nc.month === month && nc.year === year).forEach(nc => {
@@ -546,7 +619,10 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, ve
                 const price = Number(item.price ?? item.unit_price ?? 0);
                 const disc = Number(item.discount ?? 0);
                 const totalV = Math.round(price * qty * (1 - disc / 100) * 100) / 100;
-                const unitCost = productCosts[item.code] ?? 0;
+                const c = String(item.code || '').trim();
+                const d = String(item.description || '').trim().toLowerCase().replace(/[áàäâ]/g, 'a').replace(/[éèëê]/g, 'e').replace(/[íìïî]/g, 'i').replace(/[óòöô]/g, 'o').replace(/[úùüû]/g, 'u');
+                const isSvc = ['6035', '9289'].includes(c) || d.includes('flete') || d.includes('envio') || d.includes('mensajer') || d.includes('visita tecnica');
+                const unitCost = isSvc ? 0 : (productCosts[c] ?? (window as any)._costsByDesc?.[d] ?? 0);
                 const totalC = Math.round(unitCost * qty * 100) / 100;
                 lines.push({
                     vendedorId: vid, vendedorName: vname,
@@ -571,7 +647,10 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, ve
                 const price = Number(item.price ?? item.unit_price ?? 0);
                 const disc = Number(item.discount ?? 0);
                 const totalV = Math.round(price * qty * (1 - disc / 100) * 100) / 100;
-                const unitCost = productCosts[item.code] ?? 0;
+                const c = String(item.code || '').trim();
+                const d = String(item.description || '').trim().toLowerCase().replace(/[áàäâ]/g, 'a').replace(/[éèëê]/g, 'e').replace(/[íìïî]/g, 'i').replace(/[óòöô]/g, 'o').replace(/[úùüû]/g, 'u');
+                const isSvc = ['6035', '9289'].includes(c) || d.includes('flete') || d.includes('envio') || d.includes('mensajer') || d.includes('visita tecnica');
+                const unitCost = isSvc ? 0 : (productCosts[c] ?? (window as any)._costsByDesc?.[d] ?? 0);
                 const totalC = Math.round(unitCost * qty * 100) / 100;
                 lines.push({
                     vendedorId: vid, vendedorName: vname,
@@ -817,6 +896,7 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, ve
                             { label: 'Fact. Venta', val: diagInfo.invoices },
                             { label: 'N. Crédito', val: diagInfo.creditNotes },
                             { label: 'Fact. Compra', val: diagInfo.purchases },
+                            { label: 'Doc. Soporte', val: diagInfo.supportDocs || 0 },
                             { label: 'N. Débito', val: diagInfo.debitNotes },
                             { label: 'Última Sync', val: diagInfo.lastSync || 'N/A' },
                         ].map(({ label, val, color }) => (
