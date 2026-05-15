@@ -646,29 +646,92 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, ve
             const { default: autoTable } = await import('jspdf-autotable');
             const doc = new jsPDF({ orientation: 'landscape' });
             const period = `${MONTHS[month-1]} ${year}`;
-            const summary = getVendedorSummary();
-            const totals = summary.reduce((a, r) => ({
-                v: a.v + r.ventasNetas, c: a.c + r.costos, u: a.u + r.utilidad, cm: a.cm + r.comision
-            }), { v: 0, c: 0, u: 0, cm: 0 });
 
-            doc.setFontSize(16); doc.text('Reporte de Comisiones por Vendedor — Siigo', 14, 18);
-            doc.setFontSize(11); doc.text(`Periodo: ${period}  |  Fecha: ${new Date().toLocaleDateString('es-CO')}`, 14, 27);
-            // @ts-ignore
-            autoTable(doc, {
-                startY: 33,
-                head: [['Vendedor', '# Facturas', 'Ventas Brutas', 'Devoluciones', 'Ventas Netas', 'Costos', 'Utilidad', 'Comisión 10%']],
-                body: summary.map(r => [
-                    r.name, r.countFacturas,
-                    fmt(r.ventasBruto), fmt(r.devoluciones), fmt(r.ventasNetas),
-                    fmt(r.costos), fmt(r.utilidad), fmt(r.comision),
-                ]),
-                foot: [['TOTALES', '', '', '', fmt(totals.v), fmt(totals.c), fmt(totals.u), fmt(totals.cm)]],
-                theme: 'grid',
-                headStyles: { fillColor: [41, 128, 185], textColor: 255 },
-                footStyles: { fillColor: [241, 245, 249], fontStyle: 'bold' },
-                styles: { fontSize: 8 },
-            });
-            doc.save(`Comisiones_Vendedores_${month}_${year}.pdf`);
+            if (siigoSubTab === 'resumen') {
+                const summary = getVendedorSummary();
+                const totals = summary.reduce((a, r) => ({
+                    v: a.v + r.ventasNetas, c: a.c + r.costos, u: a.u + r.utilidad, cm: a.cm + r.comision
+                }), { v: 0, c: 0, u: 0, cm: 0 });
+
+                doc.setFontSize(16); doc.text('Reporte de Comisiones por Vendedor — Siigo', 14, 18);
+                doc.setFontSize(11); doc.text(`Periodo: ${period}  |  Fecha: ${new Date().toLocaleDateString('es-CO')}`, 14, 27);
+                // @ts-ignore
+                autoTable(doc, {
+                    startY: 33,
+                    head: [['Vendedor', '# Facturas', 'Ventas Brutas', 'Devoluciones', 'Ventas Netas', 'Costos', 'Utilidad', 'Comisión 10%']],
+                    body: summary.map(r => [
+                        r.name, r.countFacturas,
+                        fmt(r.ventasBruto), fmt(r.devoluciones), fmt(r.ventasNetas),
+                        fmt(r.costos), fmt(r.utilidad), fmt(r.comision),
+                    ]),
+                    foot: [['TOTALES', '', '', '', fmt(totals.v), fmt(totals.c), fmt(totals.u), fmt(totals.cm)]],
+                    theme: 'grid',
+                    headStyles: { fillColor: [41, 128, 185], textColor: 255 },
+                    footStyles: { fillColor: [241, 245, 249], fontStyle: 'bold' },
+                    styles: { fontSize: 8 },
+                });
+                doc.save(`Comisiones_Vendedores_${month}_${year}.pdf`);
+            } else {
+                // Detalle por línea
+                const lines = getLineas();
+                doc.setFontSize(16); doc.text('Detalle de Comisiones por Línea — Siigo', 14, 18);
+                doc.setFontSize(11); doc.text(`Periodo: ${period}  |  Fecha: ${new Date().toLocaleDateString('es-CO')}`, 14, 27);
+                
+                // Group lines by vendedorId
+                const grouped: Record<string, {name: string, lines: LineaDetalle[]}> = {};
+                lines.forEach(l => {
+                    if (!grouped[l.vendedorId]) grouped[l.vendedorId] = { name: l.vendedorName, lines: [] };
+                    grouped[l.vendedorId].lines.push(l);
+                });
+
+                let currentY = 33;
+                
+                Object.values(grouped).sort((a,b) => a.name.localeCompare(b.name)).forEach((group) => {
+                    // Check if we need a page break before starting a new group
+                    if (currentY > 170) {
+                        doc.addPage();
+                        currentY = 20;
+                    }
+                    doc.setFontSize(12);
+                    doc.setFont("helvetica", "bold");
+                    doc.text(`Comercial: ${group.name}`, 14, currentY);
+                    
+                    const groupTotals = group.lines.reduce((acc, l) => {
+                        acc.totalVenta += l.totalVenta;
+                        acc.totalCosto += l.totalCosto;
+                        acc.utilidad += l.utilidad;
+                        return acc;
+                    }, { totalVenta: 0, totalCosto: 0, utilidad: 0 });
+
+                    // @ts-ignore
+                    autoTable(doc, {
+                        startY: currentY + 4,
+                        head: [['Factura', 'Fecha', 'Cliente', 'Código', 'Desc.', 'Cant.', 'Vr. Venta', 'Vr. Costo', 'Utilidad', 'Tipo']],
+                        body: group.lines.map(l => [
+                            l.facturaNum, l.facturaFecha, l.clienteNombre.length > 25 ? l.clienteNombre.substring(0, 25) + '...' : l.clienteNombre, 
+                            l.code, l.description.length > 30 ? l.description.substring(0, 30) + '...' : l.description, l.quantity,
+                            fmt(l.totalVenta), fmt(l.totalCosto), fmt(l.utilidad),
+                            l.esDevolucion ? 'DEV' : 'VTA'
+                        ]),
+                        foot: [['TOTAL', '', '', '', '', '', fmt(groupTotals.totalVenta), fmt(groupTotals.totalCosto), fmt(groupTotals.utilidad), '']],
+                        theme: 'grid',
+                        headStyles: { fillColor: [41, 128, 185], textColor: 255 },
+                        footStyles: { fillColor: [241, 245, 249], fontStyle: 'bold' },
+                        styles: { fontSize: 7, cellPadding: 2 },
+                        columnStyles: {
+                            0: { cellWidth: 20 },
+                            1: { cellWidth: 20 },
+                            2: { cellWidth: 45 },
+                            3: { cellWidth: 25 },
+                            4: { cellWidth: 55 },
+                        }
+                    });
+                    // @ts-ignore
+                    currentY = (doc as any).lastAutoTable.finalY + 15;
+                });
+                
+                doc.save(`Comisiones_Detalle_${month}_${year}.pdf`);
+            }
         } catch (e: any) { alert('Error PDF: ' + e.message); }
         finally { setLoading(false); }
     };
