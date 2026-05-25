@@ -1,7 +1,19 @@
+import type { Metadata } from 'next';
 import React from 'react';
 import { Wrench, Clock, Server, Smartphone, Headphones, ShieldCheck, CheckCircle2, ArrowRight, Settings } from 'lucide-react';
 import Link from 'next/link';
 import Button from '@/components/ui/Button';
+
+export const metadata: Metadata = {
+  title: 'Mantenimiento Preventivo y Correctivo | Help Soluciones',
+  description: 'Mantenimiento preventivo y correctivo para PCs, servidores y redes en Colombia. Planes con SLA garantizado y atención en menos de 2 horas. Pida su plan.',
+  alternates: { canonical: 'https://www.helpsoluciones.com.co/mantenimiento' },
+  openGraph: {
+    title: 'Mantenimiento Preventivo y Correctivo | Help Soluciones',
+    description: 'Mantenimiento preventivo y correctivo para PCs, servidores y redes en Colombia. Planes con SLA garantizado y atención en menos de 2 horas. Pida su plan.',
+    url: 'https://www.helpsoluciones.com.co/mantenimiento',
+  },
+};
 
 export default function MantenimientoPage() {
     const services = [

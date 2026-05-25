@@ -1,7 +1,19 @@
+import type { Metadata } from 'next';
 import React from 'react';
 import { UserX, MessageSquareWarning, DoorOpen, Usb, ArrowRight, ShieldAlert, Fingerprint, Lock } from 'lucide-react';
 import Link from 'next/link';
 import Button from '@/components/ui/Button';
+
+export const metadata: Metadata = {
+  title: 'Ingeniería Social y Pentesting | Help Soluciones',
+  description: 'Simulacros de phishing, pruebas de penetración y auditorías de seguridad para empresas en Colombia. Detectamos sus vulnerabilidades antes que los atacantes.',
+  alternates: { canonical: 'https://www.helpsoluciones.com.co/ingenieria-social' },
+  openGraph: {
+    title: 'Ingeniería Social y Pentesting | Help Soluciones',
+    description: 'Simulacros de phishing, pruebas de penetración y auditorías de seguridad para empresas en Colombia. Detectamos sus vulnerabilidades antes que los atacantes.',
+    url: 'https://www.helpsoluciones.com.co/ingenieria-social',
+  },
+};
 
 export default function IngenieriaSocialPage() {
     const techniques = [

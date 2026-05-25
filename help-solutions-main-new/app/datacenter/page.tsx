@@ -1,7 +1,19 @@
+import type { Metadata } from 'next';
 import React from "react";
 import { Server, Wind, Battery, Flame, Database } from "lucide-react";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
+
+export const metadata: Metadata = {
+  title: 'Datacenter y Centros de Datos | Help Soluciones',
+  description: 'Diseño, implementación y administración de centros de datos en Colombia. Alta disponibilidad, virtualización y almacenamiento para su empresa. Consúltenos.',
+  alternates: { canonical: 'https://www.helpsoluciones.com.co/datacenter' },
+  openGraph: {
+    title: 'Datacenter y Centros de Datos | Help Soluciones',
+    description: 'Diseño, implementación y administración de centros de datos en Colombia. Alta disponibilidad, virtualización y almacenamiento para su empresa. Consúltenos.',
+    url: 'https://www.helpsoluciones.com.co/datacenter',
+  },
+};
 
 export default function DatacenterPage() {
   const features = [

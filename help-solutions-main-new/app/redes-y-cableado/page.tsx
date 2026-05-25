@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import React from "react";
 import {
   Network,
@@ -8,6 +9,17 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
+
+export const metadata: Metadata = {
+  title: 'Redes y Cableado Estructurado | Help Soluciones',
+  description: 'Cableado estructurado Cat6A certificado e instalación de redes WiFi empresarial en Bogotá. Infraestructura sin cuellos de botella. Solicite diagnóstico.',
+  alternates: { canonical: 'https://www.helpsoluciones.com.co/redes-y-cableado' },
+  openGraph: {
+    title: 'Redes y Cableado Estructurado | Help Soluciones',
+    description: 'Cableado estructurado Cat6A certificado e instalación de redes WiFi empresarial en Bogotá. Infraestructura sin cuellos de botella. Solicite diagnóstico.',
+    url: 'https://www.helpsoluciones.com.co/redes-y-cableado',
+  },
+};
 
 export default function RedesYCableadoPage() {
   const features = [

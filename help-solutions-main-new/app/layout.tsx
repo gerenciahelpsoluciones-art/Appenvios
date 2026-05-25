@@ -91,21 +91,29 @@ export default function RootLayout({
         <DynamicLayout />
         <WhatsAppWidget />
 
-        {/* Structured Data (JSON-LD) for Local Business */}
-        <Script id="structured-data" type="application/ld+json" strategy="afterInteractive">
-          {`
-            {
+        {/* JSON-LD: LocalBusiness — server-rendered para que Google lo vea sin JS */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
               "@context": "https://schema.org",
-              "@type": "LocalBusiness",
-              "name": "Help Soluciones",
+              "@type": ["LocalBusiness", "ProfessionalService"],
+              "name": "Help Soluciones Informáticas",
+              "alternateName": "Help Soluciones",
+              "description": "Empresa colombiana especializada en mantenimiento de servidores, cableado estructurado, ciberseguridad y soporte TI para empresas. 12 años de experiencia. Respuesta en menos de 2 horas.",
               "image": "https://www.helpsoluciones.com.co/images/premium_hero_1.png",
-              "@id": "https://www.helpsoluciones.com.co",
+              "logo": "https://www.helpsoluciones.com.co/images/logo.png",
+              "@id": "https://www.helpsoluciones.com.co/#organization",
               "url": "https://www.helpsoluciones.com.co",
               "telephone": "+573102172251",
+              "email": "ventasonline@helpsoluciones.com.co",
+              "priceRange": "$$",
               "address": {
                 "@type": "PostalAddress",
                 "streetAddress": "Carrera 93 F 127 B 12",
                 "addressLocality": "Bogotá",
+                "addressRegion": "Cundinamarca",
+                "postalCode": "111611",
                 "addressCountry": "CO"
               },
               "geo": {
@@ -113,29 +121,41 @@ export default function RootLayout({
                 "latitude": 4.711,
                 "longitude": -74.0721
               },
-              "openingHoursSpecification": {
-                "@type": "OpeningHoursSpecification",
-                "dayOfWeek": [
-                  "Monday",
-                  "Tuesday",
-                  "Wednesday",
-                  "Thursday",
-                  "Friday"
-                ],
-                "opens": "08:00",
-                "closes": "18:00"
-              },
+              "areaServed": [
+                { "@type": "City", "name": "Bogotá" },
+                { "@type": "City", "name": "Medellín" },
+                { "@type": "City", "name": "Cali" },
+                { "@type": "Country", "name": "Colombia" }
+              ],
+              "openingHoursSpecification": [
+                {
+                  "@type": "OpeningHoursSpecification",
+                  "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday"],
+                  "opens": "08:00",
+                  "closes": "18:00"
+                },
+                {
+                  "@type": "OpeningHoursSpecification",
+                  "dayOfWeek": ["Saturday"],
+                  "opens": "08:00",
+                  "closes": "13:00"
+                }
+              ],
+              "hasMap": "https://maps.google.com/?q=Help+Soluciones+Bogota+Colombia",
               "sameAs": [
                 "https://www.facebook.com/helpsoluciones",
-                "https://www.instagram.com/helpsoluciones"
+                "https://www.instagram.com/helpsoluciones",
+                "https://www.linkedin.com/company/help-soluciones"
               ]
-            }
-          `}
-        </Script>
+            })
+          }}
+        />
 
-        <Script id="faq-schema" type="application/ld+json" strategy="afterInteractive">
-          {`
-            {
+        {/* JSON-LD: FAQPage — server-rendered, 5 preguntas completas */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "FAQPage",
               "mainEntity": [
@@ -144,7 +164,7 @@ export default function RootLayout({
                   "name": "¿Por qué es vital el mantenimiento preventivo de servidores para mi empresa?",
                   "acceptedAnswer": {
                     "@type": "Answer",
-                    "text": "El mantenimiento preventivo garantiza la continuidad de su negocio al detectar fallas potenciales antes de que causen una interrupción. Asegura un uptime del 99.9% mediante optimización y actualizaciones críticas."
+                    "text": "El mantenimiento preventivo garantiza la continuidad de su negocio al detectar fallas potenciales antes de que causen una interrupción. En Help Soluciones realizamos limpieza física, optimización de software, revisión de backups y actualizaciones de seguridad críticas para asegurar un uptime del 99.9%."
                   }
                 },
                 {
@@ -152,7 +172,7 @@ export default function RootLayout({
                   "name": "¿Qué beneficios ofrece un cableado estructurado certificado?",
                   "acceptedAnswer": {
                     "@type": "Answer",
-                    "text": "Un cableado certificado elimina cuellos de botella, reduce interferencias y cumple con normativas internacionales, soportando tecnologías de alta demanda como videollamadas 4K y VoIP sin latencia."
+                    "text": "Un cableado certificado (Categoría 6A o superior) elimina los cuellos de botella en la transferencia de datos, reduce interferencias y cumple con normativas internacionales. Esto asegura que su infraestructura soporte tecnologías de alta demanda como videollamadas 4K, VoIP y grandes transferencias de archivos sin latencia."
                   }
                 },
                 {
@@ -160,13 +180,29 @@ export default function RootLayout({
                   "name": "¿Brindan soporte técnico remoto y presencial en toda Colombia?",
                   "acceptedAnswer": {
                     "@type": "Answer",
-                    "text": "Sí, ofrecemos soporte técnico remoto inmediato y cobertura presencial en Bogotá y las principales ciudades de Colombia para infraestructura física y hardware."
+                    "text": "Sí, contamos con ingenieros para brindar soporte técnico remoto inmediato para problemas de software y configuración. Para requerimientos de hardware o infraestructura física, ofrecemos cobertura presencial en Bogotá y las principales ciudades de Colombia."
+                  }
+                },
+                {
+                  "@type": "Question",
+                  "name": "¿Cómo funciona el servicio de Outsourcing Tecnológico?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "A través del outsourcing, su empresa puede acceder a hardware de última generación (servidores, laptops, redes) sin realizar una gran inversión inicial. Nosotros nos encargamos del mantenimiento, las garantías y la actualización tecnológica, permitiéndole enfocarse al 100% en su negocio."
+                  }
+                },
+                {
+                  "@type": "Question",
+                  "name": "¿Sus soluciones de ciberseguridad protegen contra Ransomware?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Implementamos capas de seguridad robustas que incluyen firewalls de próxima generación, sistemas de detección de intrusos (IDS) y estrategias de respaldo inmutable. Nuestro enfoque es prevenir ataques y asegurar que, en caso de cualquier incidente, su información pueda ser recuperada en tiempo récord."
                   }
                 }
               ]
-            }
-          `}
-        </Script>
+            })
+          }}
+        />
 
         {/* HelpMarketer Visitor Tracker */}
         <Script id="helpmarketer-tracker" strategy="afterInteractive">

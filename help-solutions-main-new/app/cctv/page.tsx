@@ -1,7 +1,19 @@
+import type { Metadata } from 'next';
 import React from "react";
 import { Video, Eye, HardDrive, ShieldAlert, Camera } from "lucide-react";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
+
+export const metadata: Metadata = {
+  title: 'CCTV y Videovigilancia Empresarial | Help Soluciones',
+  description: 'Sistemas de videovigilancia IP y CCTV HD para empresas en Colombia. Monitoreo remoto, cámaras inteligentes y analítica de video. Proteja sus instalaciones.',
+  alternates: { canonical: 'https://www.helpsoluciones.com.co/cctv' },
+  openGraph: {
+    title: 'CCTV y Videovigilancia Empresarial | Help Soluciones',
+    description: 'Sistemas de videovigilancia IP y CCTV HD para empresas en Colombia. Monitoreo remoto, cámaras inteligentes y analítica de video. Proteja sus instalaciones.',
+    url: 'https://www.helpsoluciones.com.co/cctv',
+  },
+};
 
 export default function CCTVPage() {
   const features = [

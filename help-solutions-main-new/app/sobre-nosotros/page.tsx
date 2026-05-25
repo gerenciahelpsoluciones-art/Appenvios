@@ -1,6 +1,18 @@
+import type { Metadata } from 'next';
 import React from 'react';
 import { Target, Eye, CheckCircle, Lightbulb, RefreshCw, TrendingUp, ShieldCheck, Headset, Users, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+
+export const metadata: Metadata = {
+  title: 'Sobre Nosotros | Help Soluciones',
+  description: '12 años protegiendo la infraestructura TI de más de 500 empresas en Colombia. Conozca el equipo de Help Soluciones y nuestra historia de confianza.',
+  alternates: { canonical: 'https://www.helpsoluciones.com.co/sobre-nosotros' },
+  openGraph: {
+    title: 'Sobre Nosotros | Help Soluciones',
+    description: '12 años protegiendo la infraestructura TI de más de 500 empresas en Colombia. Conozca el equipo de Help Soluciones y nuestra historia de confianza.',
+    url: 'https://www.helpsoluciones.com.co/sobre-nosotros',
+  },
+};
 
 // Use a relative import to ensure compatibility if @/components alias is not fully defined for all paths
 import Button from '@/components/ui/Button';

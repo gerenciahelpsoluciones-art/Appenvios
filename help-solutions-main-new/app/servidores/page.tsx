@@ -1,7 +1,19 @@
+import type { Metadata } from 'next';
 import React from "react";
 import { Database, HardDrive, Cloud, Save, Layers } from "lucide-react";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
+
+export const metadata: Metadata = {
+  title: 'Servidores y Almacenamiento | Help Soluciones',
+  description: 'Instalación y mantenimiento de servidores HP, Dell y Lenovo en Colombia. Virtualización, SAN/NAS y recuperación ante desastres. Cotice gratis hoy.',
+  alternates: { canonical: 'https://www.helpsoluciones.com.co/servidores' },
+  openGraph: {
+    title: 'Servidores y Almacenamiento | Help Soluciones',
+    description: 'Instalación y mantenimiento de servidores HP, Dell y Lenovo en Colombia. Virtualización, SAN/NAS y recuperación ante desastres. Cotice gratis hoy.',
+    url: 'https://www.helpsoluciones.com.co/servidores',
+  },
+};
 
 export default function ServidoresPage() {
   const features = [

@@ -1,7 +1,19 @@
+import type { Metadata } from 'next';
 import React from 'react';
 import { Shield, Lock, Search, AlertTriangle, CreditCard, Activity, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import Button from '@/components/ui/Button';
+
+export const metadata: Metadata = {
+  title: 'Ciberseguridad Empresarial | Help Soluciones',
+  description: 'Pentesting, firewall de próxima generación y protección anti-ransomware para empresas en Colombia. Proteja sus datos con ingenieros certificados.',
+  alternates: { canonical: 'https://www.helpsoluciones.com.co/ciberseguridad' },
+  openGraph: {
+    title: 'Ciberseguridad Empresarial | Help Soluciones',
+    description: 'Pentesting, firewall de próxima generación y protección anti-ransomware para empresas en Colombia. Proteja sus datos con ingenieros certificados.',
+    url: 'https://www.helpsoluciones.com.co/ciberseguridad',
+  },
+};
 
 export default function CiberseguridadPage() {
     const services = [

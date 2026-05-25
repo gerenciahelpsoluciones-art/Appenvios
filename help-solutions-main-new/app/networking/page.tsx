@@ -1,7 +1,19 @@
+import type { Metadata } from 'next';
 import React from "react";
 import { Wifi, Router, Globe, Shield, ServerCog } from "lucide-react";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
+
+export const metadata: Metadata = {
+  title: 'Networking Empresarial | Help Soluciones',
+  description: 'Switches Cisco, routers, firewalls y SD-WAN para empresas en Colombia. Redes escalables con monitoreo 24/7 y soporte en menos de 2 horas.',
+  alternates: { canonical: 'https://www.helpsoluciones.com.co/networking' },
+  openGraph: {
+    title: 'Networking Empresarial | Help Soluciones',
+    description: 'Switches Cisco, routers, firewalls y SD-WAN para empresas en Colombia. Redes escalables con monitoreo 24/7 y soporte en menos de 2 horas.',
+    url: 'https://www.helpsoluciones.com.co/networking',
+  },
+};
 
 export default function NetworkingPage() {
   const features = [
