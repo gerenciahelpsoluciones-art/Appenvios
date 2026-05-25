@@ -149,10 +149,8 @@ const InformesModule: React.FC<IProps> = ({
                     const marginPercent = Number(qItem.utilidad || 0);
                     let salePrice = Number(qItem.precioVenta || 0);
                     
-                    if (salePrice <= 0 && marginPercent < 100) {
-                        salePrice = costPrice / (1 - (marginPercent / 100));
-                    } else if (salePrice <= 0) {
-                        salePrice = costPrice;
+                    if (salePrice <= 0) {
+                        salePrice = costPrice * (1 + (marginPercent / 100));
                     }
                     dispatchUtility += (salePrice - costPrice) * dItem.cantidad;
                 } else {
@@ -250,10 +248,8 @@ const InformesModule: React.FC<IProps> = ({
                     const marginPercent = Number(qItem.utilidad || 0);
                     let salePrice = Number(qItem.precioVenta || 0);
                     
-                    if (salePrice <= 0 && marginPercent < 100) {
-                        salePrice = costPrice / (1 - (marginPercent / 100));
-                    } else if (salePrice <= 0) {
-                        salePrice = costPrice;
+                    if (salePrice <= 0) {
+                        salePrice = costPrice * (1 + (marginPercent / 100));
                     }
 
                     dispatchTotal += salePrice * dItem.cantidad;
@@ -302,10 +298,8 @@ const InformesModule: React.FC<IProps> = ({
                     const marginPercent = Number(qItem.utilidad || 0);
                     let salePrice = Number(qItem.precioVenta || 0);
                     
-                    if (salePrice <= 0 && marginPercent < 100) {
-                        salePrice = costPrice / (1 - (marginPercent / 100));
-                    } else if (salePrice <= 0) {
-                        salePrice = costPrice;
+                    if (salePrice <= 0) {
+                        salePrice = costPrice * (1 + (marginPercent / 100));
                     }
 
                     dispatchTotal += salePrice * dItem.cantidad;
@@ -550,11 +544,15 @@ const InformesModule: React.FC<IProps> = ({
     };
 
     const calcVenta = (item: EditItem) => {
-        const margin = Math.min(item.utilidad, 99.99) / 100;
-        return item.costoUnitario / (1 - margin);
+        const util = Number(item.utilidad || 0);
+        return item.costoUnitario * (1 + (util / 100));
     };
     const calcSubtotal = (item: EditItem) => calcVenta(item) * item.cantidad;
-    const calcIVA = (item: EditItem) => calcSubtotal(item) * (item.iva / 100);
+    const calcIVA = (item: EditItem) => {
+        const cliente = clientes.find(c => c.id === editClienteId);
+        if (cliente?.regimen === 'Régimen Simplificado') return 0;
+        return calcSubtotal(item) * (item.iva / 100);
+    };
     const calcTotal = (item: EditItem) => calcSubtotal(item) + calcIVA(item);
 
     const editSubtotal = editItems.reduce((acc, i) => acc + calcSubtotal(i), 0);
@@ -564,6 +562,12 @@ const InformesModule: React.FC<IProps> = ({
     const saveEdit = () => {
         if (!editingQuote) return;
         const cliente = clientes.find(c => c.id === editClienteId);
+        const calculatedProfitTotal = editItems.reduce((acc, i) => {
+            const salePrice = calcVenta(i);
+            const costPrice = Number(i.costoUnitario || 0);
+            return acc + (salePrice - costPrice) * i.cantidad;
+        }, 0);
+
         const updated: Cotizacion = {
             ...editingQuote,
             clienteId: editClienteId,
@@ -577,10 +581,12 @@ const InformesModule: React.FC<IProps> = ({
                 costoUnitario: i.costoUnitario,
                 utilidad: i.utilidad,
                 iva: i.iva,
+                precioVenta: calcVenta(i)
             })),
             subtotal: editSubtotal,
             iva: editIVATotal,
             total: editGrandTotal,
+            utilidadTotal: calculatedProfitTotal,
             observaciones: editObservaciones,
             ejecutivo: editEjecutivo,
             ejecutivoEmail: editEjecutivoEmail,

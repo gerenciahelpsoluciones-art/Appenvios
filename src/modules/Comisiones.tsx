@@ -695,7 +695,7 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, ve
                         let sp = Number(it.precioVenta ?? 0);
                         const cp = Number(it.costoUnitario ?? 0);
                         const mg = Number(it.utilidad ?? 0);
-                        if (sp <= 0 && mg > 0 && mg < 100) sp = cp / (1 - mg / 100);
+                        if (sp <= 0 && mg > 0) sp = cp * (1 + mg / 100);
                         util += (sp - cp) * di.cantidad;
                     }
                 });

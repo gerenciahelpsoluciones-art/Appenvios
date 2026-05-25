@@ -33,10 +33,8 @@ export const calculateDespachoNeto = (d: Despacho, cotizaciones: Cotizacion[], c
             const marginPercent = Number(qItem.utilidad || 0);
             let salePrice = Number(qItem.precioVenta || 0);
             
-            if (salePrice <= 0 && marginPercent < 100) {
-                salePrice = costPrice / (1 - (marginPercent / 100));
-            } else if (salePrice <= 0) {
-                salePrice = costPrice;
+            if (salePrice <= 0) {
+                salePrice = costPrice * (1 + (marginPercent / 100));
             }
             
             itemNeto = salePrice * (dItem.cantidad || 0);
