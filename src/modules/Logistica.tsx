@@ -1302,10 +1302,10 @@ const LogisticaModule: React.FC<IProps> = ({
                                                 {productos
                                                     .filter(p => 
                                                         p.nombre.toLowerCase().includes(productSearch.toLowerCase()) || 
-                                                        p.numPart.toLowerCase().includes(productSearch.toLowerCase())
+                                                        (p.numPart && p.numPart.toLowerCase().includes(productSearch.toLowerCase()))
                                                     )
                                                     .slice(0, 100)
-                                                    .map(p => <option key={p.id} value={p.id}>[{p.numPart}] {p.nombre}</option>)
+                                                    .map(p => <option key={p.id} value={p.id}>{p.numPart ? `[${p.numPart}] ` : ''}{p.nombre}</option>)
                                                 }
                                             </select>
                                         </div>
