@@ -11,14 +11,15 @@ const Header = () => {
   const navLinks = [
     { name: 'Inicio', href: '#inicio' },
     { name: 'Nosotros', href: '#nosotros' },
-    { 
-      name: 'Servicios', 
+    {
+      name: 'Servicios',
       href: '#servicios',
       submenu: [
-        { name: 'Eventos y Convenciones', href: '#eventos' },
-        { name: 'Marketing Experiencial', href: '#marketing' },
-        { name: 'Catering', href: '#catering' },
-        { name: 'Suministros', href: '#suministros' },
+        { name: 'Eventos y Convenciones', href: '#servicios' },
+        { name: 'Marketing Experiencial', href: '#servicios' },
+        { name: 'Catering', href: '#servicios' },
+        { name: 'Suministros', href: '#productos' },
+        { name: 'Venta de Tecnología', href: '#servicios' },
       ]
     },
     { name: 'Productos', href: '#productos' },

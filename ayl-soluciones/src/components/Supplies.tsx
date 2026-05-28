@@ -1,4 +1,3 @@
-import React from 'react';
 import { ShoppingBag, Star, Package, Check, ShieldCheck } from 'lucide-react';
 
 const products = [
@@ -6,7 +5,7 @@ const products = [
     name: 'Kits Corporativos Premium',
     category: 'Merchandising',
     price: 'Desde $45k',
-    image: 'https://images.unsplash.com/photo-1549463591-24357389aa10?q=80&w=2070',
+    image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=2070',
     tags: ['Personalizable', 'Eco-friendly']
   },
   {
@@ -20,7 +19,7 @@ const products = [
     name: 'Mobiliario para Ferias',
     category: 'Logística',
     price: 'Desde $120k/día',
-    image: 'https://images.unsplash.com/photo-1531050171651-a3a4ca0b7245?q=80&w=2070',
+    image: 'https://images.unsplash.com/photo-1577720643272-265e434fc6f0?q=80&w=2070',
     tags: ['Diseño', 'Montaje']
   },
   {
