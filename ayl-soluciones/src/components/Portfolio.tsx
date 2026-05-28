@@ -98,10 +98,10 @@ const Portfolio = () => {
         </div>
 
         <div className="mt-16 text-center">
-           <button className="px-12 py-5 bg-emerald-deep text-white font-bold rounded-full hover:bg-emerald-deep/90 transition-all flex items-center gap-3 mx-auto group">
+           <a href="#contacto" className="px-12 py-5 bg-emerald-deep text-white font-bold rounded-full hover:bg-emerald-deep/90 transition-all flex items-center gap-3 mx-auto group">
              Ver Portafolio Completo
              <Layers size={20} className="group-hover:rotate-12 transition-transform" />
-           </button>
+           </a>
         </div>
       </div>
     </section>

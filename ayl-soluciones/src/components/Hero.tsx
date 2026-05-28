@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, Play, CheckCircle } from 'lucide-react';
+import { ArrowRight, Play } from 'lucide-react';
 
 const Hero = () => {
   return (
@@ -35,19 +35,19 @@ const Hero = () => {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-8">
-            <button className="w-full sm:w-auto px-12 py-6 bg-white text-emerald-deep font-bold rounded-2xl hover:bg-accent hover:text-white transition-all duration-500 shadow-2xl shadow-emerald-light/20 flex items-center justify-center gap-3 group overflow-hidden relative">
+            <a href="#contacto" className="w-full sm:w-auto px-12 py-6 bg-white text-emerald-deep font-bold rounded-2xl hover:bg-accent hover:text-white transition-all duration-500 shadow-2xl shadow-emerald-light/20 flex items-center justify-center gap-3 group overflow-hidden relative">
               <span className="relative z-10 flex items-center gap-3">
                 Materializar Visión
                 <ArrowRight className="group-hover:translate-x-2 transition-transform duration-500" />
               </span>
-            </button>
-            
-            <button className="w-full sm:w-auto px-12 py-6 glass border-white/20 text-white font-bold rounded-2xl hover:bg-white/10 transition-all flex items-center justify-center gap-4 group">
+            </a>
+
+            <a href="#proyectos" className="w-full sm:w-auto px-12 py-6 glass border-white/20 text-white font-bold rounded-2xl hover:bg-white/10 transition-all flex items-center justify-center gap-4 group">
               <div className="p-2 rounded-full bg-white/10 group-hover:bg-accent transition-all duration-500 group-hover:scale-110">
                 <Play fill="white" size={16} className="ml-1" />
               </div>
               Experience Showreel
-            </button>
+            </a>
           </div>
 
           {/* Quick Metrics */}

@@ -49,9 +49,9 @@ const Supplies = () => {
               Recursos de <span className="text-accent italic">Alto Linaje</span> para Líderes <span className="text-gradient">Visionarios</span>
             </h3>
           </div>
-          <button className="px-10 py-5 glass border-white/20 text-white font-bold rounded-2xl hover:bg-white/10 transition-all shadow-2xl">
+          <a href="#contacto" className="px-10 py-5 glass border-white/20 text-white font-bold rounded-2xl hover:bg-white/10 transition-all shadow-2xl">
             Catálogo de Excelencia
-          </button>
+          </a>
         </div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
