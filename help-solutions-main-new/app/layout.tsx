@@ -204,6 +204,27 @@ export default function RootLayout({
           }}
         />
 
+        {/* JSON-LD: WebSite + SearchAction — habilita Sitelinks Searchbox en Google */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              "name": "Help Soluciones",
+              "url": "https://www.helpsoluciones.com.co",
+              "potentialAction": {
+                "@type": "SearchAction",
+                "target": {
+                  "@type": "EntryPoint",
+                  "urlTemplate": "https://www.helpsoluciones.com.co/productos?q={search_term_string}"
+                },
+                "query-input": "required name=search_term_string"
+              }
+            })
+          }}
+        />
+
         {/* HelpMarketer Visitor Tracker */}
         <Script id="helpmarketer-tracker" strategy="afterInteractive">
           {`

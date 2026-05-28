@@ -5,8 +5,9 @@ import Link from "next/link";
 import Button from "@/components/ui/Button";
 
 export const metadata: Metadata = {
-  title: 'Servidores y Almacenamiento | Help Soluciones',
+  title: 'Servidores y Almacenamiento',
   description: 'Instalación y mantenimiento de servidores HP, Dell y Lenovo en Colombia. Virtualización, SAN/NAS y recuperación ante desastres. Cotice gratis hoy.',
+  keywords: ['servidores HP Colombia', 'instalación servidores Dell', 'mantenimiento servidores Bogotá', 'virtualización VMware Colombia', 'almacenamiento SAN NAS', 'backup empresarial Colombia', 'servidores empresariales'],
   alternates: { canonical: 'https://www.helpsoluciones.com.co/servidores' },
   openGraph: {
     title: 'Servidores y Almacenamiento | Help Soluciones',
@@ -45,6 +46,7 @@ export default function ServidoresPage() {
 
   return (
     <div className="flex flex-col min-h-screen">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{ "@type": "ListItem", "position": 1, "name": "Inicio", "item": "https://www.helpsoluciones.com.co" }, { "@type": "ListItem", "position": 2, "name": "Servidores y Almacenamiento", "item": "https://www.helpsoluciones.com.co/servidores" }] }) }} />
       <section className="relative bg-[#101822] py-20 px-4 md:px-10 overflow-hidden min-h-[500px] flex items-center">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900/20 via-[#101822] to-[#101822] pointer-events-none" />
         <div className="max-w-6xl mx-auto relative z-10 text-center flex flex-col items-center gap-8 w-full">

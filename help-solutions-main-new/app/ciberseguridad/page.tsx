@@ -5,8 +5,9 @@ import Link from 'next/link';
 import Button from '@/components/ui/Button';
 
 export const metadata: Metadata = {
-  title: 'Ciberseguridad Empresarial | Help Soluciones',
+  title: 'Ciberseguridad Empresarial',
   description: 'Pentesting, firewall de próxima generación y protección anti-ransomware para empresas en Colombia. Proteja sus datos con ingenieros certificados.',
+  keywords: ['ciberseguridad empresarial Colombia', 'pentesting Bogotá', 'firewall empresarial Colombia', 'protección ransomware', 'seguridad informática empresas Colombia', 'análisis de vulnerabilidades', 'ingenieros ciberseguridad Colombia'],
   alternates: { canonical: 'https://www.helpsoluciones.com.co/ciberseguridad' },
   openGraph: {
     title: 'Ciberseguridad Empresarial | Help Soluciones',
@@ -46,6 +47,7 @@ export default function CiberseguridadPage() {
 
     return (
         <div className="flex flex-col min-h-screen">
+            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{ "@type": "ListItem", "position": 1, "name": "Inicio", "item": "https://www.helpsoluciones.com.co" }, { "@type": "ListItem", "position": 2, "name": "Ciberseguridad Empresarial", "item": "https://www.helpsoluciones.com.co/ciberseguridad" }] }) }} />
             {/* Hero Section */}
             <section className="relative bg-[#101822] py-20 px-4 md:px-10 overflow-hidden min-h-[900px]">
                 <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900/20 via-[#101822] to-[#101822] pointer-events-none" />

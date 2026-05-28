@@ -5,8 +5,9 @@ import Link from 'next/link';
 import Button from '@/components/ui/Button';
 
 export const metadata: Metadata = {
-  title: 'Mantenimiento Preventivo y Correctivo | Help Soluciones',
+  title: 'Mantenimiento Preventivo y Correctivo',
   description: 'Mantenimiento preventivo y correctivo para PCs, servidores y redes en Colombia. Planes con SLA garantizado y atención en menos de 2 horas. Pida su plan.',
+  keywords: ['mantenimiento preventivo TI Colombia', 'mantenimiento correctivo PCs Bogotá', 'soporte técnico empresarial Colombia', 'mantenimiento servidores SLA', 'help desk Colombia', 'soporte TI empresas', 'mantenimiento hardware empresarial'],
   alternates: { canonical: 'https://www.helpsoluciones.com.co/mantenimiento' },
   openGraph: {
     title: 'Mantenimiento Preventivo y Correctivo | Help Soluciones',
@@ -69,6 +70,7 @@ export default function MantenimientoPage() {
 
     return (
         <div className="flex flex-col min-h-screen">
+            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{ "@type": "ListItem", "position": 1, "name": "Inicio", "item": "https://www.helpsoluciones.com.co" }, { "@type": "ListItem", "position": 2, "name": "Mantenimiento Preventivo y Correctivo", "item": "https://www.helpsoluciones.com.co/mantenimiento" }] }) }} />
             {/* Hero Section */}
             <section className="relative bg-[#101822] py-20 px-4 md:px-10 overflow-hidden min-h-[900px]">
                 <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900/20 via-[#101822] to-[#101822] pointer-events-none" />

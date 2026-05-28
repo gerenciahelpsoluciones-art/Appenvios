@@ -19,6 +19,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
     '/datacenter',
     '/cctv',
     '/productos',
+    '/ingenieria-social',
+    '/politica-privacidad',
+    '/politica-garantias',
+    '/terminos-condiciones',
+    '/pqrs',
   ].map((route) => ({
     url: `${baseUrl}${route}`,
     lastModified: new Date(),

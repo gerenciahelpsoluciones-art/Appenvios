@@ -23,10 +23,16 @@ export async function generateMetadata(
   return {
     title: shortTitle,
     description: post.excerpt,
+    alternates: {
+      canonical: `https://www.helpsoluciones.com.co/blog/${slug}`,
+    },
     openGraph: {
+      type: 'article',
       title: post.title,
       description: post.excerpt,
+      url: `https://www.helpsoluciones.com.co/blog/${slug}`,
       images: [{ url: post.image, width: 1200, height: 630 }],
+      publishedTime: post.date,
     },
   };
 }
@@ -39,8 +45,36 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
     notFound();
   }
 
+  const articleSchema = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": post.title,
+    "description": post.excerpt,
+    "image": post.image,
+    "datePublished": post.date,
+    "author": {
+      "@type": "Person",
+      "name": post.author.name,
+      "jobTitle": post.author.role,
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "Help Soluciones",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://www.helpsoluciones.com.co/images/logo.png",
+      },
+    },
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": `https://www.helpsoluciones.com.co/blog/${slug}`,
+    },
+  };
+
   return (
-    <main className="min-h-screen bg-slate-50">
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
+      <main className="min-h-screen bg-slate-50">
       
       {/* Article Header */}
       <div className="bg-[#0f172a] pt-40 pb-32">
@@ -118,5 +152,6 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
       </div>
 
     </main>
+    </>
   );
 }

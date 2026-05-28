@@ -11,8 +11,9 @@ import Link from "next/link";
 import Button from "@/components/ui/Button";
 
 export const metadata: Metadata = {
-  title: 'Redes y Cableado Estructurado | Help Soluciones',
+  title: 'Redes y Cableado Estructurado',
   description: 'Cableado estructurado Cat6A certificado e instalación de redes WiFi empresarial en Bogotá. Infraestructura sin cuellos de botella. Solicite diagnóstico.',
+  keywords: ['cableado estructurado Cat6A Colombia', 'redes WiFi empresarial Bogotá', 'instalación redes Colombia', 'cableado certificado empresas', 'infraestructura de red empresarial', 'redes ethernet Bogotá', 'soporte redes Colombia'],
   alternates: { canonical: 'https://www.helpsoluciones.com.co/redes-y-cableado' },
   openGraph: {
     title: 'Redes y Cableado Estructurado | Help Soluciones',
@@ -51,6 +52,7 @@ export default function RedesYCableadoPage() {
 
   return (
     <div className="flex flex-col min-h-screen">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{ "@type": "ListItem", "position": 1, "name": "Inicio", "item": "https://www.helpsoluciones.com.co" }, { "@type": "ListItem", "position": 2, "name": "Redes y Cableado Estructurado", "item": "https://www.helpsoluciones.com.co/redes-y-cableado" }] }) }} />
       <section className="relative bg-[#101822] py-20 px-4 md:px-10 overflow-hidden min-h-[500px] flex items-center">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900/20 via-[#101822] to-[#101822] pointer-events-none" />
         <div className="max-w-6xl mx-auto relative z-10 text-center flex flex-col items-center gap-8 w-full">
