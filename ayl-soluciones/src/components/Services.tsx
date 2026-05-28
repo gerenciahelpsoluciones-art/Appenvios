@@ -1,14 +1,10 @@
-import React from 'react';
-import { 
-  Calendar, 
-  Target, 
-  Utensils, 
-  Package, 
+import {
+  Calendar,
+  Target,
+  Utensils,
+  Package,
   ArrowRight,
   Monitor,
-  Mic2,
-  Camera,
-  Layers
 } from 'lucide-react';
 
 const services = [
@@ -39,6 +35,13 @@ const services = [
     icon: Package,
     color: 'accent',
     features: ['Merchandising', 'Equipo Audiovisual', 'Mobiliario para Ferias']
+  },
+  {
+    title: 'Venta de Tecnología',
+    description: 'Equipos tecnológicos para empresas: computadores, impresoras, periféricos, redes y soluciones audiovisuales de última generación.',
+    icon: Monitor,
+    color: 'emerald',
+    features: ['Computadores & Laptops', 'Redes & Conectividad', 'Equipos Audiovisuales']
   }
 ];
 
@@ -58,8 +61,8 @@ const Services = () => {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-10">
-          {services.map((service, idx) => (
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-10">
+          {services.map((service) => (
             <div 
               key={service.title}
               className="group p-10 rounded-[40px] bg-white border border-emerald-deep/5 hover:bg-emerald-deep hover:-translate-y-4 transition-all duration-700 cursor-default shadow-xl hover:shadow-emerald-deep/20"
