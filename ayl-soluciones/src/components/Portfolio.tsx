@@ -1,4 +1,3 @@
-import React from 'react';
 import { ExternalLink, Layers, MapPin } from 'lucide-react';
 
 const projects = [
@@ -6,7 +5,7 @@ const projects = [
     title: 'Congreso Internacional de Tecnología',
     location: 'Bogotá, Colombia',
     type: 'Logística & Eventos',
-    image: 'https://images.unsplash.com/photo-1540575861501-7c00117fb3af?q=80&w=2072',
+    image: 'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?q=80&w=2070',
     size: 'large'
   },
   {

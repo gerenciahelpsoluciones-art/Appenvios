@@ -12,21 +12,21 @@ const products = [
     name: 'Sistemas Audiovisuales 4K',
     category: 'Tecnología',
     price: 'Cotización Especial',
-    image: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?q=80&w=2070',
+    image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?q=80&w=2070',
     tags: ['Alquiler', 'Soporte Técnico']
   },
   {
     name: 'Mobiliario para Ferias',
     category: 'Logística',
     price: 'Desde $120k/día',
-    image: 'https://images.unsplash.com/photo-1577720643272-265e434fc6f0?q=80&w=2070',
+    image: 'https://images.unsplash.com/photo-1591115765373-5207764f72e7?q=80&w=2070',
     tags: ['Diseño', 'Montaje']
   },
   {
     name: 'Material Publicitario BTL',
     category: 'Publicidad',
     price: 'Según Volumen',
-    image: 'https://images.unsplash.com/photo-1583508915901-b5f84c1dcde1?q=80&w=2070',
+    image: 'https://images.unsplash.com/photo-1542744094-3a31f272c490?q=80&w=2070',
     tags: ['Alta Calidad', 'Entrega Rápida']
   }
 ];
