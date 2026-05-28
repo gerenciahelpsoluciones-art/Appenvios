@@ -28,7 +28,7 @@ const Contact = () => {
                 </div>
                 <div>
                   <div className="text-xs font-bold text-primary/40 uppercase tracking-widest mb-1">Teléfono</div>
-                  <div className="text-lg font-bold text-emerald-deep">+57 300 000 0000</div>
+                  <div className="text-lg font-bold text-emerald-deep">+57 310 556 6421</div>
                 </div>
               </div>
 
@@ -38,7 +38,7 @@ const Contact = () => {
                 </div>
                 <div>
                   <div className="text-xs font-bold text-primary/40 uppercase tracking-widest mb-1">Correo Electrónico</div>
-                  <div className="text-lg font-bold text-emerald-deep">comercial@aylsoluciones.com</div>
+                  <div className="text-lg font-bold text-emerald-deep">gerencia@ayl.com</div>
                 </div>
               </div>
 
@@ -55,8 +55,10 @@ const Contact = () => {
 
             {/* Social / WhatsApp CTA */}
             <div className="mt-12 flex items-center gap-6">
-              <a 
-                href="#" 
+              <a
+                href="https://wa.me/573105566421"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="flex items-center gap-3 px-8 py-4 bg-[#25D366] text-white font-bold rounded-2xl hover:scale-105 transition-transform shadow-xl shadow-green-500/20"
               >
                 <MessageCircle size={22} />
