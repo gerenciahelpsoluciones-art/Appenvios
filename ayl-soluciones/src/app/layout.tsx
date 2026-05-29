@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -12,9 +12,15 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-space-grotesk",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+});
+
 export const metadata: Metadata = {
   title: "A&L Soluciones Integrales S.A.S. | Eventos, Catering y Suministros en Colombia",
-  description: "Empresa líder en organización de eventos corporativos, marketing experiencial, catering y suministro empresarial en Bogotá y más de 15 ciudades de Colombia. Más de 10 años de experiencia.",
+  description: "Empresa especializada en organización de eventos corporativos, marketing experiencial, catering y suministro empresarial en Bogotá y más de 15 ciudades de Colombia.",
   keywords: ["organización de eventos Bogotá", "catering corporativo Colombia", "marketing experiencial", "suministros empresariales", "eventos corporativos Colombia", "logística de eventos Bogotá", "A&L Soluciones"],
   openGraph: {
     type: "website",
@@ -66,7 +72,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${spaceGrotesk.variable} antialiased`}
       >
         {children}
       </body>

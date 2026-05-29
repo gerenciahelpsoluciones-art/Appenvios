@@ -5,28 +5,28 @@ const products = [
     name: 'Kits Corporativos Premium',
     category: 'Merchandising',
     price: 'Desde $45k',
-    image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=2070',
+    image: 'https://images.unsplash.com/photo-1712903276151-25b35dd61a92?q=80&w=2070',
     tags: ['Personalizable', 'Eco-friendly']
   },
   {
     name: 'Sistemas Audiovisuales 4K',
     category: 'Tecnología',
     price: 'Cotización Especial',
-    image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?q=80&w=2070',
+    image: 'https://images.unsplash.com/photo-1582192730841-2a682d7375f9?q=80&w=2070',
     tags: ['Alquiler', 'Soporte Técnico']
   },
   {
     name: 'Mobiliario para Ferias',
     category: 'Logística',
     price: 'Desde $120k/día',
-    image: 'https://images.unsplash.com/photo-1591115765373-5207764f72e7?q=80&w=2070',
+    image: 'https://images.unsplash.com/photo-1766802981817-776406db6807?q=80&w=2070',
     tags: ['Diseño', 'Montaje']
   },
   {
     name: 'Material Publicitario BTL',
     category: 'Publicidad',
     price: 'Según Volumen',
-    image: 'https://images.unsplash.com/photo-1542744094-3a31f272c490?q=80&w=2070',
+    image: 'https://images.unsplash.com/photo-1712903276879-9de15f1b9e81?q=80&w=2070',
     tags: ['Alta Calidad', 'Entrega Rápida']
   }
 ];
@@ -41,15 +41,15 @@ const Supplies = () => {
       <div className="layout-container relative z-10">
         <div className="flex flex-col md:flex-row justify-between items-end gap-10 mb-20">
           <div className="max-w-3xl">
-            <h2 className="text-sm font-bold tracking-[0.4em] text-accent uppercase mb-6">
-              Suministro Estratégico Corporativo
+            <h2 className="text-xs font-bold tracking-[0.4em] text-accent uppercase mb-6">
+              Suministros & Productos
             </h2>
             <h3 className="text-5xl md:text-7xl font-display font-bold text-white leading-tight">
-              Recursos de <span className="text-accent italic">Alto Linaje</span> para Líderes <span className="text-gradient">Visionarios</span>
+              Todo lo que su evento <span className="text-accent italic">necesita</span>
             </h3>
           </div>
-          <a href="#contacto" className="px-10 py-5 glass border-white/20 text-white font-bold rounded-2xl hover:bg-white/10 transition-all shadow-2xl">
-            Catálogo de Excelencia
+          <a href="#contacto" className="px-8 py-4 glass border-white/20 text-white font-semibold rounded-xl hover:bg-white/10 transition-all">
+            Ver Catálogo Completo
           </a>
         </div>
 

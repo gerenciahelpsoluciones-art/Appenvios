@@ -5,28 +5,28 @@ const projects = [
     title: 'Congreso Internacional de Tecnología',
     location: 'Bogotá, Colombia',
     type: 'Logística & Eventos',
-    image: 'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?q=80&w=2070',
+    image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=2070',
     size: 'large'
   },
   {
     title: 'Activación de Marca Automotriz',
     location: 'Medellín, Colombia',
     type: 'Marketing Experiencial',
-    image: 'https://images.unsplash.com/photo-1505373877841-8d25f7d46678?q=80&w=2012',
+    image: 'https://images.unsplash.com/photo-1617788138017-80ad40651399?q=80&w=2070',
     size: 'small'
   },
   {
     title: 'Lanzamiento Nueva Colección Moda',
     location: 'Cartagena, Colombia',
     type: 'Producción Audiovisual',
-    image: 'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?q=80&w=2070',
+    image: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?q=80&w=2070',
     size: 'small'
   },
   {
     title: 'Cena de Gala Empresarial',
     location: 'Cali, Colombia',
     type: 'Catering & Logística',
-    image: 'https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?q=80&w=2047',
+    image: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?q=80&w=2070',
     size: 'small'
   }
 ];
@@ -37,16 +37,16 @@ const Portfolio = () => {
       <div className="layout-container">
         <div className="grid lg:grid-cols-2 gap-20 items-center mb-24">
           <div>
-             <h2 className="text-sm font-bold tracking-[0.4em] text-primary uppercase mb-6">
-              Arquitectura de Trascendencia
+             <h2 className="text-xs font-bold tracking-[0.4em] text-primary uppercase mb-6">
+              Nuestra Experiencia
             </h2>
             <h3 className="text-5xl md:text-8xl font-display font-bold text-emerald-deep leading-[0.95] tracking-tighter">
-              Evolucionamos <span className="text-accent italic">Marcas</span> hacia el <span className="text-gradient">Mañana</span>
+              Proyectos que <span className="text-gradient">hablan</span> por sí solos
             </h3>
           </div>
           <div className="space-y-6">
             <p className="text-xl text-emerald-deep/70 leading-relaxed font-medium">
-              Nuestra trayectoria no se mide en metros cuadrados, sino en la <span className="text-primary font-bold">densidad del impacto generado</span>. Operamos en la frontera de la logística y la emoción.
+              Más de 500 eventos producidos en 15 ciudades. Desde congresos internacionales hasta activaciones de marca y cenas de gala para los <span className="text-primary font-bold">sectores más exigentes de Colombia</span>.
             </p>
             <div className="h-px w-full bg-gradient-to-r from-accent to-transparent" />
           </div>
@@ -56,7 +56,7 @@ const Portfolio = () => {
           {projects.map((project, idx) => (
             <div 
               key={project.title} 
-              className={`relative group rounded-[40px] overflow-hidden cursor-pointer ${
+              className={`relative group rounded-2xl overflow-hidden cursor-pointer ${
                 idx === 0 ? 'md:col-span-12 lg:col-span-8 h-[600px]' : 
                 idx === 1 ? 'md:col-span-6 lg:col-span-4 h-[300px] lg:h-[600px]' :
                 'md:col-span-6 lg:col-span-4 h-[300px]'

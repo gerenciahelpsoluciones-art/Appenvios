@@ -1,4 +1,3 @@
-import React from 'react';
 import { Mail, Phone, MapPin, Send, MessageCircle } from 'lucide-react';
 
 const Contact = () => {
@@ -11,14 +10,14 @@ const Contact = () => {
         <div className="grid lg:grid-cols-2 gap-24 items-start">
           {/* Info Side */}
           <div className="max-w-xl">
-             <h2 className="text-sm font-bold tracking-[0.4em] text-primary uppercase mb-6">
-              Convergencia Estratégica
+             <h2 className="text-xs font-bold tracking-[0.4em] text-primary uppercase mb-6">
+              Hablemos
             </h2>
-            <h3 className="text-5xl md:text-8xl font-display font-bold text-emerald-deep mb-10 leading-[0.95] tracking-tighter">
-              Inicie su <span className="text-accent italic">Legado</span> de <span className="text-gradient">Excelencia</span>
+            <h3 className="text-5xl md:text-7xl font-display font-bold text-emerald-deep mb-8 leading-[0.95] tracking-tighter">
+              Cuéntenos su <span className="text-accent italic">proyecto</span>
             </h3>
-            <p className="text-xl text-emerald-deep/60 mb-14 leading-relaxed font-medium">
-              Estamos listos para transformar su visión en una realidad disruptiva. Cada gran proyecto comienza con una <span className="text-primary font-bold">conversación trascendental</span>.
+            <p className="text-lg text-emerald-deep/60 mb-12 leading-relaxed font-medium">
+              Respondemos en menos de 24 horas con una propuesta ajustada a su presupuesto y necesidades. Sin compromisos.
             </p>
 
             <div className="space-y-8">
@@ -68,7 +67,7 @@ const Contact = () => {
           </div>
 
           {/* Form Side */}
-          <div className="p-10 rounded-[40px] bg-emerald-deep shadow-2xl relative overflow-hidden">
+          <div className="p-10 rounded-3xl bg-emerald-deep shadow-2xl relative overflow-hidden">
             {/* Form Background Pattern */}
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 blur-3xl rounded-full" />
             

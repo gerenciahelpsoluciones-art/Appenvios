@@ -38,7 +38,7 @@ const services = [
   },
   {
     title: 'Venta de Tecnología',
-    description: 'Equipos tecnológicos para empresas: computadores, impresoras, periféricos, redes y soluciones audiovisuales de última generación.',
+    description: 'Equipos tecnológicos para empresas: computadores, impresoras, periféricos, redes y soluciones audiovisuales.',
     icon: Monitor,
     color: 'emerald',
     features: ['Computadores & Laptops', 'Redes & Conectividad', 'Equipos Audiovisuales']
@@ -49,54 +49,54 @@ const Services = () => {
   return (
     <section id="servicios" className="py-32 bg-white relative overflow-hidden mesh-green">
       <div className="layout-container">
-        <div className="text-center max-w-4xl mx-auto mb-24">
-          <h2 className="text-sm font-bold tracking-[0.4em] text-primary uppercase mb-6">
-            Ecosistemas de Ejecución
+        <div className="text-center max-w-3xl mx-auto mb-20">
+          <h2 className="text-xs font-bold tracking-[0.4em] text-primary uppercase mb-5">
+            Lo que hacemos
           </h2>
-          <h3 className="text-5xl md:text-7xl font-display font-bold text-emerald-deep leading-[1.1]">
-            Ingeniería de <span className="text-accent italic">Experiencias</span> que Desafían lo <span className="text-gradient">Convencional</span>
+          <h3 className="text-4xl md:text-6xl font-display font-bold text-emerald-deep leading-[1.05] tracking-tight">
+            Servicios que <span className="text-accent italic">cubren</span> todo el ciclo del evento
           </h3>
-          <p className="mt-8 text-lg text-emerald-deep/60 max-w-2xl mx-auto">
-            Fusionamos la precisión logística con la disrupción creativa para materializar visiones empresariales que trascienden el tiempo y el espacio.
+          <p className="mt-6 text-base text-emerald-deep/55 max-w-xl mx-auto leading-relaxed">
+            Un solo proveedor para logística, producción, alimentación, suministros y tecnología. Menos coordinación, mejores resultados.
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {services.map((service) => (
-            <div 
+            <div
               key={service.title}
-              className="group p-10 rounded-[40px] bg-white border border-emerald-deep/5 hover:bg-emerald-deep hover:-translate-y-4 transition-all duration-700 cursor-default shadow-xl hover:shadow-emerald-deep/20"
+              className="group p-8 rounded-3xl bg-white border border-emerald-deep/6 hover:bg-emerald-deep hover:-translate-y-2 transition-all duration-300 cursor-default shadow-sm hover:shadow-2xl hover:shadow-emerald-deep/15"
             >
-              <div className={`w-20 h-20 rounded-3xl flex items-center justify-center mb-10 border transition-all duration-700 ${
-                service.color === 'emerald' 
-                  ? 'bg-emerald-deep/5 border-emerald-deep/10 group-hover:bg-white/10 group-hover:border-white/20' 
-                  : 'bg-accent/5 border-accent/10 group-hover:bg-white/10 group-hover:border-white/20'
+              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-8 border transition-all duration-300 ${
+                service.color === 'emerald'
+                  ? 'bg-emerald-deep/5 border-emerald-deep/10 group-hover:bg-white/10 group-hover:border-white/20'
+                  : 'bg-accent/8 border-accent/15 group-hover:bg-white/10 group-hover:border-white/20'
               }`}>
-                <service.icon size={36} className={`transition-all duration-700 ${
+                <service.icon size={26} className={`transition-colors duration-300 ${
                   service.color === 'emerald' ? 'text-emerald-deep group-hover:text-accent' : 'text-accent group-hover:text-white'
                 }`} />
               </div>
 
-              <h4 className="text-2xl font-bold text-emerald-deep group-hover:text-white mb-6 transition-colors tracking-tight">
+              <h4 className="text-xl font-bold text-emerald-deep group-hover:text-white mb-4 transition-colors tracking-tight">
                 {service.title}
               </h4>
-              
-              <p className="text-emerald-deep/70 group-hover:text-white/70 mb-10 leading-relaxed transition-colors text-sm">
+
+              <p className="text-emerald-deep/65 group-hover:text-white/65 mb-8 leading-relaxed transition-colors text-sm">
                 {service.description}
               </p>
 
-              <ul className="space-y-4 mb-10">
+              <ul className="space-y-3 mb-8">
                 {service.features.map(feature => (
-                  <li key={feature} className="flex items-center gap-3 text-sm text-emerald-deep/60 group-hover:text-white/60 transition-colors font-medium">
-                    <div className="w-1.5 h-1.5 rounded-full bg-accent group-hover:scale-150 transition-transform" />
+                  <li key={feature} className="flex items-center gap-2.5 text-sm text-emerald-deep/55 group-hover:text-white/55 transition-colors">
+                    <div className="w-1 h-1 rounded-full bg-accent flex-shrink-0" />
                     {feature}
                   </li>
                 ))}
               </ul>
 
-              <button className="flex items-center gap-2 text-xs font-bold text-accent group-hover:text-white transition-all uppercase tracking-[0.2em]">
-                Explorar Potencial
-                <ArrowRight size={16} className="group-hover:translate-x-2 transition-transform duration-500" />
+              <button className="flex items-center gap-2 text-xs font-bold text-accent group-hover:text-accent/80 transition-all uppercase tracking-[0.15em]">
+                Ver más
+                <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform duration-300" />
               </button>
             </div>
           ))}

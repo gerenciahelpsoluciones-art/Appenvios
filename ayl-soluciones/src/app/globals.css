@@ -45,8 +45,8 @@
   --color-emerald-light: #10b981;
   --color-border: #e2e8f0;
   
-  --font-display: "Space Grotesk", system-ui, sans-serif;
-  --font-body: "Inter", system-ui, sans-serif;
+  --font-display: var(--font-space-grotesk), system-ui, sans-serif;
+  --font-body: var(--font-geist-sans), system-ui, sans-serif;
 
   --radius-xl: 1rem;
   --radius-2xl: 1.5rem;

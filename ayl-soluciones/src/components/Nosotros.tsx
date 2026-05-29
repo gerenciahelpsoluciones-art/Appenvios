@@ -9,7 +9,7 @@ const values = [
   {
     icon: Users,
     title: 'Equipo Especializado',
-    description: 'Profesionales con más de 10 años de experiencia en logística, marketing y gastronomía.',
+    description: 'Profesionales con amplia trayectoria en logística de eventos, marketing experiencial y gastronomía corporativa.',
   },
   {
     icon: Award,
@@ -31,20 +31,19 @@ const Nosotros = () => {
       <div className="layout-container">
         <div className="grid lg:grid-cols-2 gap-20 items-center mb-24">
           <div>
-            <h2 className="text-sm font-bold tracking-[0.4em] text-primary uppercase mb-6">
+            <h2 className="text-xs font-bold tracking-[0.4em] text-primary uppercase mb-6">
               Quiénes Somos
             </h2>
             <h3 className="text-5xl md:text-7xl font-display font-bold text-emerald-deep leading-[0.95] tracking-tighter mb-10">
-              Más de una Década <br />
-              <span className="text-accent italic">Construyendo</span>{' '}
-              <span className="text-gradient">Experiencias</span>
+              Un equipo <span className="text-accent italic">comprometido</span><br />
+              con cada detalle
             </h3>
             <p className="text-xl text-emerald-deep/60 leading-relaxed font-medium mb-6">
               A&amp;L Soluciones Integrales S.A.S. nació con la convicción de que cada evento, cada activación y cada suministro es una oportunidad para{' '}
               <span className="text-primary font-bold">dejar una huella duradera</span> en quienes participan.
             </p>
             <p className="text-lg text-emerald-deep/50 leading-relaxed">
-              Desde Bogotá, operamos en más de 15 ciudades de Colombia, gestionando logística integral para empresas que exigen los más altos estándares de calidad y creatividad.
+              Desde Bogotá operamos en más de 15 ciudades de Colombia, gestionando logística integral para empresas que exigen los más altos estándares de calidad y creatividad.
             </p>
           </div>
 
