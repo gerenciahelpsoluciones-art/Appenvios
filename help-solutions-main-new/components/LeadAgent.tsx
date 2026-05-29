@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Send, Bot, Loader2, Minus, Sparkles } from 'lucide-react';
@@ -75,7 +75,7 @@ const LeadAgent: React.FC = () => {
         ...prev,
         {
           role: 'assistant',
-          content: 'Lo siento, tuve un problema técnico. Contáctenos directamente: **+57 310 2172251** o **ventasonline@helpsoluciones.com.co**',
+          content: 'Lo siento, tuve un problema técnico. Contáctenos directamente: **+57 310 2172251** o **gerencia@helpsoluciones.com.co**',
           timestamp: new Date(),
         },
       ]);

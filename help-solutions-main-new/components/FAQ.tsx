@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from 'react';
 import { ChevronDown, ChevronUp, HelpCircle } from 'lucide-react';
@@ -83,7 +83,7 @@ const FAQ: React.FC = () => {
         <div className="mt-16 text-center">
           <p className="text-zinc-500 font-medium mb-6">¿Tiene una pregunta diferente?</p>
           <a 
-            href="https://wa.me/573102172251" 
+            href="https://wa.me/573043358650" 
             target="_blank" 
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 bg-primary text-white font-bold py-4 px-10 rounded-2xl shadow-lg hover:bg-primary-hover hover:scale-105 transition-all"

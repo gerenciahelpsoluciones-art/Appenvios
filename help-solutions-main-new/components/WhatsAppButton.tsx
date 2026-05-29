@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { MessageCircle, User, Mail, X, Send } from 'lucide-react';
@@ -32,7 +32,7 @@ const WhatsAppButton: React.FC = () => {
       name: 'Soporte General',
       role: 'Centro de Soluciones',
       phone: '573113522760',
-      email: 'ventasonline@helpsoluciones.com.co'
+      email: 'gerencia@helpsoluciones.com.co'
     }
   ];
 

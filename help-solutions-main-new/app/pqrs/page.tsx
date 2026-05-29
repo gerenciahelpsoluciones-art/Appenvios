@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useRef, useState } from 'react';
 import { Mail, Send, FileText, AlertCircle, HelpCircle, ThumbsUp, MessageSquare } from 'lucide-react';
@@ -24,7 +24,7 @@ export default function PQRSPage() {
         data._captcha = "false"; 
         data._template = "table";
 
-        fetch("https://formsubmit.co/ajax/ventasonline@helpsoluciones.com.co", {
+        fetch("https://formsubmit.co/ajax/gerencia@helpsoluciones.com.co", {
             method: "POST",
             headers: { 
                 'Content-Type': 'application/json',

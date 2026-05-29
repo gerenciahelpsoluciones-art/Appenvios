@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useRef, useState } from 'react';
 import { Mail, Phone, MapPin, Send, MessageSquare } from 'lucide-react';
@@ -23,7 +23,7 @@ export default function ContactPage() {
         data._captcha = "false"; // Desactivar captcha para una mejor UX inicial (opcional)
         data._template = "table"; // Estilo de correo en tabla
 
-        fetch("https://formsubmit.co/ajax/ventasonline@helpsoluciones.com.co", {
+        fetch("https://formsubmit.co/ajax/gerencia@helpsoluciones.com.co", {
             method: "POST",
             headers: { 
                 'Content-Type': 'application/json',
@@ -159,7 +159,7 @@ export default function ContactPage() {
                                 </div>
                                 <div>
                                     <h3 className="font-bold text-slate-900 mb-1">Email</h3>
-                                    <p className="text-slate-600 text-sm">ventasonline@helpsoluciones.com.co</p>
+                                    <p className="text-slate-600 text-sm">gerencia@helpsoluciones.com.co</p>
                                     <p className="text-slate-400 text-xs mt-1">Respuesta en 24h</p>
                                 </div>
                             </div>

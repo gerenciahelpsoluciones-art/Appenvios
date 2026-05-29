@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Mail, Phone, Linkedin, Facebook, Instagram } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -47,7 +47,7 @@ const Footer: React.FC = () => {
               <h4 className="text-zinc-900 font-bold text-sm uppercase tracking-wider">Contacto</h4>
               <div className="flex items-center gap-2 text-zinc-600 text-sm">
                 <Mail size={16} />
-                <span>ventasonline@helpsoluciones.com.co</span>
+                <span>gerencia@helpsoluciones.com.co</span>
               </div>
               <div className="flex items-center gap-2 text-zinc-600 text-sm">
                 <Phone size={16} />

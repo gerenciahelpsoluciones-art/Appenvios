@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import React, { useState } from 'react';
 
 const ContactCTA: React.FC = () => {
@@ -11,7 +11,7 @@ const ContactCTA: React.FC = () => {
 
         setStatus('sending');
 
-        fetch("https://formsubmit.co/ajax/ventasonline@helpsoluciones.com.co", {
+        fetch("https://formsubmit.co/ajax/gerencia@helpsoluciones.com.co", {
             method: "POST",
             headers: { 
                 'Content-Type': 'application/json',

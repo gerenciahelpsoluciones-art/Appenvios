@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { Noto_Sans, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import Header from "../components/Header";
@@ -105,8 +105,8 @@ export default function RootLayout({
               "logo": "https://www.helpsoluciones.com.co/images/logo.png",
               "@id": "https://www.helpsoluciones.com.co/#organization",
               "url": "https://www.helpsoluciones.com.co",
-              "telephone": "+573102172251",
-              "email": "ventasonline@helpsoluciones.com.co",
+              "telephone": "+573043358650",
+              "email": "gerencia@helpsoluciones.com.co",
               "priceRange": "$$",
               "address": {
                 "@type": "PostalAddress",

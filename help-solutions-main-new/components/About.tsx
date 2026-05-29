@@ -1,4 +1,4 @@
-import Link from 'next/link';
+﻿import Link from 'next/link';
 import Image from 'next/image';
 import { BadgeCheck, ArrowRight } from 'lucide-react';
 
@@ -103,7 +103,7 @@ const About: React.FC = () => {
               <ArrowRight size={20} className="group-hover:translate-x-1" />
             </Link>
             <a
-              href="https://wa.me/573102172251"
+              href="https://wa.me/573043358650"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-6 py-3 rounded-xl transition-all hover:scale-105 active:scale-95 shadow-lg shadow-emerald-500/20 text-sm"

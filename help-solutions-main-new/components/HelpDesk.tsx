@@ -1,4 +1,4 @@
-import Image from 'next/image';
+﻿import Image from 'next/image';
 import Link from 'next/link';
 import { Phone, Clock, Users, BarChart3, Shield, MonitorCheck, ArrowRight, CheckCircle2 } from 'lucide-react';
 
@@ -106,7 +106,7 @@ const HelpDesk: React.FC = () => {
               <ArrowRight size={16} />
             </Link>
             <a
-              href="https://wa.me/573102172251"
+              href="https://wa.me/573043358650"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 text-primary font-bold text-sm hover:underline underline-offset-4"

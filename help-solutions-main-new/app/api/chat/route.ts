@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const GEMINI_KEY = process.env.GEMINI_API_KEY;
@@ -27,7 +27,7 @@ SERVICIOS QUE OFRECEMOS:
 
 COBERTURA: Bogotá (presencial) y toda Colombia (remoto)
 TELÉFONO: +57 310 2172251
-EMAIL: ventasonline@helpsoluciones.com.co
+EMAIL: gerencia@helpsoluciones.com.co
 CONTACTOS: Juan Pérez (Soporte técnico), Deicy Rodríguez (Ventas y cotizaciones)
 
 INSTRUCCIONES:
@@ -36,7 +36,7 @@ INSTRUCCIONES:
 - Para soporte urgente: ofrece contacto directo por WhatsApp +57 310 2172251
 - Si el cliente pregunta precios: explica que depende del alcance y ofrece agendar una visita diagnóstico sin costo
 - Máximo 3 oraciones por respuesta — conciso y útil
-- Si no puedes ayudar, dirige a ventasonline@helpsoluciones.com.co`;
+- Si no puedes ayudar, dirige a gerencia@helpsoluciones.com.co`;
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
