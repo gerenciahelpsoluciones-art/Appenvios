@@ -75,7 +75,7 @@ const LeadAgent: React.FC = () => {
         ...prev,
         {
           role: 'assistant',
-          content: 'Lo siento, tuve un problema técnico. Contáctenos directamente: **+57 310 2172251** o **gerencia@helpsoluciones.com.co**',
+          content: 'Lo siento, tuve un problema técnico. Contáctenos directamente: **+57 304 3358650** o **gerencia@helpsoluciones.com.co**',
           timestamp: new Date(),
         },
       ]);
@@ -258,7 +258,7 @@ const LeadAgent: React.FC = () => {
               </button>
             </form>
             <p className="text-[9px] text-center mt-2 text-zinc-400 tracking-wide">
-              Helpi IA · Help Soluciones · +57 310 2172251
+              Helpi IA · Help Soluciones · +57 304 3358650
             </p>
           </div>
         </>

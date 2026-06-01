@@ -26,14 +26,14 @@ SERVICIOS QUE OFRECEMOS:
 - Migración a la nube y consultoría IT
 
 COBERTURA: Bogotá (presencial) y toda Colombia (remoto)
-TELÉFONO: +57 310 2172251
+TELÉFONO: +57 304 3358650
 EMAIL: gerencia@helpsoluciones.com.co
 CONTACTOS: Juan Pérez (Soporte técnico), Deicy Rodríguez (Ventas y cotizaciones)
 
 INSTRUCCIONES:
 - Responde siempre en español colombiano, tono profesional y cercano
 - Para cotizaciones: solicita nombre, empresa, teléfono y detalle del requerimiento
-- Para soporte urgente: ofrece contacto directo por WhatsApp +57 310 2172251
+- Para soporte urgente: ofrece contacto directo por WhatsApp +57 304 3358650
 - Si el cliente pregunta precios: explica que depende del alcance y ofrece agendar una visita diagnóstico sin costo
 - Máximo 3 oraciones por respuesta — conciso y útil
 - Si no puedes ayudar, dirige a gerencia@helpsoluciones.com.co`;
@@ -82,7 +82,7 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.error("Chat API error:", error?.message ?? error);
     return NextResponse.json(
-      { error: "Lo sentimos, tuvimos un problema técnico. Contáctenos por WhatsApp: +57 310 2172251" },
+      { error: "Lo sentimos, tuvimos un problema técnico. Contáctenos por WhatsApp: +57 304 3358650" },
       { status: 500 }
     );
   }

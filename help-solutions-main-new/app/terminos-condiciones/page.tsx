@@ -98,7 +98,7 @@ export default function TerminosCondiciones() {
             </p>
             <ul>
               <li>Correo electrónico: <strong>gerencia@helpsoluciones.com.co</strong></li>
-              <li>WhatsApp: <strong>+57 310 217 2251</strong></li>
+              <li>WhatsApp: <strong>+57 304 3358650</strong></li>
               <li>Dirección: Carrera 93 F 127 B 12, Bogotá, Colombia</li>
             </ul>
 
