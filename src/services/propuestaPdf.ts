@@ -12,6 +12,24 @@ const LIGHT_GRAY: [number, number, number] = [248, 250, 252];
 const TEXT_DARK: [number, number, number] = [30, 41, 59];
 const TEXT_MUTED: [number, number, number] = [100, 116, 139];
 
+const emojiToDataUrl = (emoji: string, size = 64): string => {
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return '';
+    ctx.clearRect(0, 0, size, size);
+    ctx.font = `${Math.floor(size * 0.72)}px serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(emoji, size / 2, size / 2 + 2);
+    return canvas.toDataURL('image/png');
+  } catch (_) {
+    return '';
+  }
+};
+
 const formatCurrency = (amount: number, moneda: 'COP' | 'USD') =>
   moneda === 'COP'
     ? `$${Math.round(amount).toLocaleString('es-CO')}`
@@ -158,7 +176,7 @@ export const generatePropuestaPDF = (propuesta: Propuesta, action: 'save' | 'vie
 
   // Infographic grid: 3 columns × 2 rows
   const cardW = (W - 28 - 8) / 3;
-  const cardH = 32;
+  const cardH = 38;
   template.pasosInfografia.forEach((paso, idx) => {
     const col = idx % 3;
     const row = Math.floor(idx / 3);
@@ -170,23 +188,31 @@ export const generatePropuestaPDF = (propuesta: Propuesta, action: 'save' | 'vie
     doc.setLineWidth(0.3);
     doc.roundedRect(x, cy, cardW, cardH, 2, 2, 'FD');
 
+    // Step number circle
     doc.setFillColor(...INDIGO);
-    doc.circle(x + cardW / 2, cy + 8, 5, 'F');
-    doc.setFontSize(8);
+    doc.circle(x + cardW / 2, cy + 6, 4.5, 'F');
+    doc.setFontSize(7.5);
     doc.setTextColor(...WHITE);
     doc.setFont('helvetica', 'bold');
-    doc.text(String(idx + 1), x + cardW / 2, cy + 10.5, { align: 'center' });
+    doc.text(String(idx + 1), x + cardW / 2, cy + 8, { align: 'center' });
+
+    // Emoji icon rendered via Canvas → PNG
+    const iconUrl = emojiToDataUrl(paso.icono, 64);
+    if (iconUrl) {
+      const iconSize = 10;
+      doc.addImage(iconUrl, 'PNG', x + cardW / 2 - iconSize / 2, cy + 12, iconSize, iconSize);
+    }
 
     doc.setFontSize(7.5);
     doc.setTextColor(...TEXT_DARK);
     doc.setFont('helvetica', 'bold');
-    doc.text(paso.titulo, x + cardW / 2, cy + 19, { align: 'center' });
+    doc.text(paso.titulo, x + cardW / 2, cy + 26, { align: 'center' });
 
     doc.setFontSize(6.2);
     doc.setTextColor(...TEXT_MUTED);
     doc.setFont('helvetica', 'normal');
     const descLines = doc.splitTextToSize(paso.descripcion, cardW - 4);
-    doc.text(descLines, x + cardW / 2, cy + 24, { align: 'center' });
+    doc.text(descLines, x + cardW / 2, cy + 31, { align: 'center' });
   });
 
   y += 2 * (cardH + 3) + 4;
