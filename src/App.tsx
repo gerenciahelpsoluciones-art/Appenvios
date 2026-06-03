@@ -2038,8 +2038,11 @@ function App() {
           currentTrm={currentTrm}
         />;
       case 'propuestas':
+        const filteredPropuestas = currentUser.rol === 'Admin'
+          ? propuestas
+          : propuestas.filter(p => p.usuarioId === currentUser.id);
         return <PropuestasModule
-          propuestas={propuestas}
+          propuestas={filteredPropuestas}
           clientes={clientes}
           currentUser={currentUser}
           onAdd={addPropuesta}
