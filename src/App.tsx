@@ -21,10 +21,17 @@ import RegistrosWeb, { type RegistroPendiente } from './modules/RegistrosWeb'
 import AgenteInformesModule from './modules/AgenteInformes'
 import RemisionesModule from './modules/Remisiones'
 import ComisionesModule from './modules/Comisiones'
+import PropuestasModule from './modules/Propuestas'
 import { supabase } from './lib/supabaseClient'
 import RegistrationForm from './modules/RegistrationForm';
 import { logoBase64 } from './assets/logoBase64'
 import AIAssistant from './components/AIAssistant'
+import {
+  DEMO_USER, DEMO_USERS, DEMO_CLIENTES, DEMO_PROVEEDORES, DEMO_PRODUCTOS,
+  DEMO_COTIZACIONES, DEMO_CONDUCTORES, DEMO_DESPACHOS, DEMO_VENTAS, DEMO_BUDGETS
+} from './data/crmDemoData'
+
+const IS_DEMO = import.meta.env.VITE_DEMO_MODE === 'true';
 
 // Types for shared data
 export interface AppUser {
@@ -197,6 +204,14 @@ export interface Cotizacion {
   ordenCompraUrl?: string;
   trm?: number;
   validez_oferta?: string;
+  metadata?: {
+    reminders?: {
+      id: string;
+      date: string;
+      note: string;
+      completed: boolean;
+    }[];
+  };
 }
 
 export interface Conductor {
@@ -309,6 +324,28 @@ export interface VentaManual {
   costo?: number;
 }
 
+export interface Propuesta {
+  id: string;
+  consecutivo: string;
+  fecha: string;
+  clienteId: string;
+  clienteNombre: string;
+  clienteNit?: string;
+  clienteCiudad?: string;
+  clienteContacto?: string;
+  tipoServicioId: string;
+  tipoServicioNombre: string;
+  moneda: 'COP' | 'USD';
+  valor: number;
+  incluyeIva: boolean;
+  vigencia: string;
+  observaciones: string;
+  estado: 'Borrador' | 'Enviada' | 'Aceptada';
+  comercialNombre: string;
+  comercialTelefono: string;
+  usuarioId: string;
+}
+
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard')
 
@@ -325,6 +362,7 @@ function App() {
   const [devoluciones, setDevoluciones] = useState<Devolucion[]>([]);
   const [ventasManuales, setVentasManuales] = useState<VentaManual[]>([]);
   const [budgets, setBudgets] = useState<SalesBudget[]>([]);
+  const [propuestas, setPropuestas] = useState<Propuesta[]>([]);
   const [users, setUsers] = useState<AppUser[]>([]);
   const [clientesWeb, setClientesWeb] = useState<ClienteWeb[]>([]);
   const [registros, setRegistros] = useState<RegistroPendiente[]>([]);
@@ -332,8 +370,9 @@ function App() {
   const [currentTrm, setCurrentTrm] = useState<number>(0);
 
   // Session state
-  const [isLoggedIn, setIsLoggedIn] = useState(() => localStorage.getItem('hs_is_logged_in') === 'true');
+  const [isLoggedIn, setIsLoggedIn] = useState(() => IS_DEMO || localStorage.getItem('hs_is_logged_in') === 'true');
   const [currentUser, setCurrentUser] = useState<AppUser | null>(() => {
+    if (IS_DEMO) return DEMO_USER;
     const saved = localStorage.getItem('hs_current_user');
     return saved ? JSON.parse(saved) : null;
   });
@@ -343,6 +382,25 @@ function App() {
   }, []);
 
   const fetchInitialData = async () => {
+    if (IS_DEMO) {
+      setUsers(DEMO_USERS);
+      setClientes(DEMO_CLIENTES);
+      setProveedores(DEMO_PROVEEDORES);
+      setProductos(DEMO_PRODUCTOS);
+      setCotizaciones(DEMO_COTIZACIONES);
+      setOrdenesCompra([]);
+      setDespachos(DEMO_DESPACHOS);
+      setConductores(DEMO_CONDUCTORES);
+      setAlquileres([]);
+      setReparaciones([]);
+      setDevoluciones([]);
+      setBudgets(DEMO_BUDGETS);
+      setVentasManuales(DEMO_VENTAS);
+      setClientesWeb([]);
+      setRegistros([]);
+      setCurrentTrm(4200);
+      return;
+    }
     try {
       console.log('Cargando datos iniciales de Supabase...');
       const { data: userData, error: userError } = await supabase.from('app_users').select('*');
@@ -428,7 +486,8 @@ function App() {
           ordenCompraUrl: c.orden_compra_url,
           observaciones: c.observaciones || '',
           condiciones: c.condiciones || '',
-          trm: c.trm || 0
+          trm: c.trm || 0,
+          metadata: c.metadata || {}
         })));
       }
 
@@ -560,6 +619,31 @@ function App() {
         setRegistros(registrosData as RegistroPendiente[]);
       }
 
+      const { data: propuestasData } = await supabase.from('propuestas').select('*');
+      if (propuestasData) {
+        setPropuestas(propuestasData.map((p: any) => ({
+          id: p.id,
+          consecutivo: p.consecutivo,
+          fecha: p.fecha,
+          clienteId: p.cliente_id,
+          clienteNombre: p.cliente_nombre,
+          clienteNit: p.cliente_nit,
+          clienteCiudad: p.cliente_ciudad,
+          clienteContacto: p.cliente_contacto,
+          tipoServicioId: p.tipo_servicio_id,
+          tipoServicioNombre: p.tipo_servicio_nombre,
+          moneda: p.moneda || 'COP',
+          valor: p.valor || 0,
+          incluyeIva: !!p.incluye_iva,
+          vigencia: p.vigencia || '30 días',
+          observaciones: p.observaciones || '',
+          estado: p.estado || 'Borrador',
+          comercialNombre: p.comercial_nombre || '',
+          comercialTelefono: p.comercial_telefono || '',
+          usuarioId: p.usuario_id,
+        } as Propuesta)));
+      }
+
       // Fetch TRM
       try {
         const res = await fetch('https://co.dolarapi.com/v1/trm');
@@ -576,6 +660,7 @@ function App() {
   };
 
   useEffect(() => {
+    if (IS_DEMO) return;
     let channel: any;
 
     const setupSubscription = () => {
@@ -634,11 +719,12 @@ function App() {
     };
   }, []);
 
-  useEffect(() => { localStorage.setItem('hs_is_logged_in', isLoggedIn ? 'true' : 'false'); }, [isLoggedIn]);
-  useEffect(() => { localStorage.setItem('hs_current_user', JSON.stringify(currentUser)); }, [currentUser]);
+  useEffect(() => { if (!IS_DEMO) localStorage.setItem('hs_is_logged_in', isLoggedIn ? 'true' : 'false'); }, [isLoggedIn]);
+  useEffect(() => { if (!IS_DEMO) localStorage.setItem('hs_current_user', JSON.stringify(currentUser)); }, [currentUser]);
 
   // Update handlers
   const addCliente = async (c: Cliente) => {
+    if (IS_DEMO) { setClientes(prev => [...prev, { ...c, id: crypto.randomUUID() }]); alert('Cliente añadido (modo demo).'); return; }
     if (!currentUser) {
       alert('Error: Debe iniciar sesión para añadir un cliente.');
       return;
@@ -698,6 +784,7 @@ function App() {
   };
 
   const updateCliente = async (c: Cliente) => {
+    if (IS_DEMO) { setClientes(prev => prev.map(i => i.id === c.id ? c : i)); alert('Cambios guardados (modo demo).'); return; }
     // Explicitly build the payload for Update (snake_case)
     const payload = {
       nombre: c.nombre,
@@ -736,6 +823,7 @@ function App() {
   };
 
   const deleteCliente = async (id: string) => {
+    if (IS_DEMO) { setClientes(prev => prev.filter(c => c.id !== id)); return; }
     const { error } = await supabase.from('clientes').delete().eq('id', id);
     if (error) {
       console.error('Error al eliminar cliente:', error);
@@ -746,6 +834,7 @@ function App() {
   };
 
   const addProveedor = async (p: Proveedor) => {
+    if (IS_DEMO) { setProveedores(prev => [...prev, { ...p, id: crypto.randomUUID() }]); return; }
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, ...newP } = p;
     const { data, error } = await supabase.from('proveedores').insert([newP]).select();
@@ -756,6 +845,7 @@ function App() {
     }
   };
   const updateProveedor = async (p: Proveedor) => {
+    if (IS_DEMO) { setProveedores(prev => prev.map(i => i.id === p.id ? p : i)); return; }
     const { error } = await supabase.from('proveedores').update(p).eq('id', p.id);
     if (!error) {
       setProveedores(proveedores.map(item => item.id === p.id ? p : item));
@@ -765,11 +855,13 @@ function App() {
     }
   };
   const deleteProveedor = async (id: string) => {
+    if (IS_DEMO) { setProveedores(prev => prev.filter(p => p.id !== id)); return; }
     const { error } = await supabase.from('proveedores').delete().eq('id', id);
     if (!error) setProveedores(proveedores.filter(p => p.id !== id));
   };
 
   const addProducto = async (p: Producto) => {
+    if (IS_DEMO) { setProductos(prev => [...prev, { ...p, id: crypto.randomUUID() }]); return; }
     // Explicitamente extraemos todos los campos camelCase para evitar enviar columnas inválidas a Supabase
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, numPart, precioCompra, exentoIva, moneda, trmReferencia, tipo, nombre, descripcion, unidad, history } = p;
@@ -803,6 +895,7 @@ function App() {
     }
   };
   const updateProducto = async (p: Producto) => {
+    if (IS_DEMO) { setProductos(prev => prev.map(i => i.id === p.id ? p : i)); return; }
     // Explicitamente mapeamos todos los campos para evitar errores de schema cache
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, numPart, precioCompra, exentoIva, moneda, trmReferencia, tipo, nombre, descripcion, unidad, history } = p;
@@ -822,11 +915,13 @@ function App() {
     else alert('Error al actualizar producto: ' + error.message);
   };
   const deleteProducto = async (id: string) => {
+    if (IS_DEMO) { setProductos(prev => prev.filter(p => p.id !== id)); return; }
     const { error } = await supabase.from('productos').delete().eq('id', id);
     if (!error) setProductos(productos.filter(p => p.id !== id));
   };
 
   const updateDespacho = async (d: Despacho) => {
+    if (IS_DEMO) { setDespachos(prev => prev.map(i => i.id === d.id ? d : i)); return; }
     const oldDespacho = despachos.find(item => item.id === d.id);
 
     console.log('Intentando actualizar despacho (mapa explícito):', d);
@@ -886,11 +981,13 @@ function App() {
     }
   };
   const deleteDespacho = async (id: string) => {
+    if (IS_DEMO) { setDespachos(prev => prev.filter(d => d.id !== id)); return; }
     const { error } = await supabase.from('despachos').delete().eq('id', id);
     if (!error) setDespachos(despachos.filter(d => d.id !== id));
   };
 
   const addReparacion = async (r: Reparacion) => {
+    if (IS_DEMO) { setReparaciones(prev => [{ ...r, id: crypto.randomUUID() }, ...prev]); alert('Reparación registrada (modo demo).'); return; }
     // 1. Re-calculate the absolute maximum consecutive from the database to avoid collisions
     const { data: latestREPs, error: fetchError } = await supabase
       .from('reparaciones')
@@ -947,6 +1044,7 @@ function App() {
     }
   };
   const updateReparacion = async (r: Reparacion) => {
+    if (IS_DEMO) { setReparaciones(prev => prev.map(i => i.id === r.id ? r : i)); return; }
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, clienteId, clienteNombre, tipoServicio, proveedorId, proveedorNombre, conductorId, conductorNombre, fechaIngreso, ...cleanR } = r;
     const { error } = await supabase.from('reparaciones').update({
@@ -964,6 +1062,7 @@ function App() {
     if (!error) setReparaciones(prev => prev.map(item => item.id === r.id ? r : item));
   };
   const deleteReparacion = async (id: string) => {
+    if (IS_DEMO) { setReparaciones(prev => prev.filter(r => r.id !== id)); return; }
     const { error } = await supabase.from('reparaciones').delete().eq('id', id);
     if (!error) setReparaciones(prev => prev.filter(r => r.id !== id));
   };
@@ -1053,6 +1152,7 @@ function App() {
   };
 
   const addCotizacion = async (c: Cotizacion) => {
+    if (IS_DEMO) { setCotizaciones(prev => [{ ...c, id: crypto.randomUUID() }, ...prev]); setActiveTab('informes'); return; }
     const { data, error } = await supabase.from('cotizaciones').insert([{
       fecha: c.fecha,
       consecutivo: c.consecutivo,
@@ -1078,7 +1178,8 @@ function App() {
       validez_oferta: c.validez_oferta || 3,
       comprador_nombre: c.compradorNombre || '',
       comprador_telefono: c.compradorTelefono || '',
-      comprador_email: c.compradorEmail || ''
+      comprador_email: c.compradorEmail || '',
+      metadata: c.metadata || {}
     }]).select();
 
     if (error) {
@@ -1106,7 +1207,8 @@ function App() {
         trm: dbC.trm || 0,
         validez_oferta: dbC.validez_oferta || 3,
         ordenCompraCliente: dbC.orden_compra_cliente,
-        ordenCompraUrl: dbC.orden_compra_url
+        ordenCompraUrl: dbC.orden_compra_url,
+        metadata: dbC.metadata || {}
       } as Cotizacion, ...prev]);
       
       // Auto-navigate to Informes
@@ -1115,6 +1217,24 @@ function App() {
   };
 
   const updateCotizacion = async (c: Cotizacion) => {
+    if (IS_DEMO) {
+      const oldQuote = cotizaciones.find(q => q.id === c.id);
+      setCotizaciones(prev => prev.map(i => i.id === c.id ? c : i));
+      if (c.estado === 'Ganado' && !despachos.some(d => d.cotizacionId === c.id)) {
+        const client = clientes.find(cli => cli.id === c.clienteId);
+        setDespachos(prev => [...prev, {
+          id: crypto.randomUUID(), cotizacionId: c.id, consecutivoCotizacion: c.consecutivo,
+          fechaSolicitud: new Date().toISOString().split('T')[0], clienteId: c.clienteId,
+          clienteNombre: c.clienteNombre, direccion: client?.direccion || 'N/A',
+          items: (c.items || []).map(item => { const p = productos.find(x => x.id === item.productoId); return { productoId: item.productoId, nombreProducto: p?.nombre || 'Producto', numPart: p?.numPart || 'N/A', cantidad: item.cantidad }; }),
+          total: c.total, ejecutivoEmail: c.ejecutivoEmail || '', ejecutivoTelefono: c.ejecutivoTelefono,
+          usuarioId: c.usuarioId, estado: 'Pendiente'
+        }]);
+      } else if (oldQuote && oldQuote.estado === 'Ganado' && c.estado !== 'Ganado') {
+        setDespachos(prev => prev.filter(d => d.cotizacionId !== c.id));
+      }
+      return;
+    }
     // 1. Explicit mapping for Supabase Update
     const quotePayload = {
       fecha: c.fecha,
@@ -1140,7 +1260,8 @@ function App() {
       observaciones: c.observaciones,
       condiciones: c.condiciones,
       trm: c.trm,
-      validez_oferta: c.validez_oferta
+      validez_oferta: c.validez_oferta,
+      metadata: c.metadata || {}
     };
 
     const { error: updateError } = await supabase.from('cotizaciones').update(quotePayload).eq('id', c.id);
@@ -1237,6 +1358,7 @@ function App() {
   };
 
   const deleteCotizacion = async (id: string) => {
+    if (IS_DEMO) { setCotizaciones(prev => prev.filter(c => c.id !== id)); setDespachos(prev => prev.filter(d => d.cotizacionId !== id)); return; }
     // 1. Delete associated despachos first due to foreign key constraint
     const { error: despachoError } = await supabase.from('despachos').delete().eq('cotizacion_id', id);
     if (despachoError) {
@@ -1259,6 +1381,7 @@ function App() {
   };
 
   const addOrdenCompra = async (oc: OrdenCompra): Promise<OrdenCompra | null> => {
+    if (IS_DEMO) { const newOC = { ...oc, id: crypto.randomUUID() }; setOrdenesCompra(prev => [newOC, ...prev]); return newOC; }
     // 1. Re-calculate the absolute maximum consecutive from the database to avoid collisions
     const { data: latestOCs, error: fetchError } = await supabase
       .from('ordenes_compra')
@@ -1352,6 +1475,7 @@ function App() {
     return null;
   };
   const updateOrdenCompra = async (oc: OrdenCompra): Promise<boolean> => {
+    if (IS_DEMO) { setOrdenesCompra(prev => prev.map(i => i.id === oc.id ? oc : i)); return true; }
     console.log('Intentando actualizar OC (mapa explícito):', oc);
 
     // Explicit mapping to match database schema and avoid type/column issues
@@ -1393,11 +1517,13 @@ function App() {
     // Optional: alert('Estado actualizado correctamente.');
   };
   const deleteOrdenCompra = async (id: string) => {
+    if (IS_DEMO) { setOrdenesCompra(prev => prev.filter(oc => oc.id !== id)); return; }
     const { error } = await supabase.from('ordenes_compra').delete().eq('id', id);
     if (!error) setOrdenesCompra(ordenesCompra.filter(oc => oc.id !== id));
   };
 
   const addConductor = async (c: Conductor) => {
+    if (IS_DEMO) { setConductores(prev => [...prev, { ...c, id: crypto.randomUUID() }]); return; }
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, placaVehiculo, modeloVehiculo, tipoVehiculo, tarjetaPropiedad, ...cleanC } = c;
     const { data, error } = await supabase.from('conductores').insert([{
@@ -1421,6 +1547,7 @@ function App() {
     }
   };
   const updateConductor = async (c: Conductor) => {
+    if (IS_DEMO) { setConductores(prev => prev.map(i => i.id === c.id ? c : i)); return; }
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, placaVehiculo, modeloVehiculo, tipoVehiculo, tarjetaPropiedad, ...cleanC } = c;
     const { error } = await supabase.from('conductores').update({
@@ -1433,11 +1560,13 @@ function App() {
     if (!error) setConductores(conductores.map(item => item.id === c.id ? c : item));
   };
   const deleteConductor = async (id: string) => {
+    if (IS_DEMO) { setConductores(prev => prev.filter(c => c.id !== id)); return; }
     const { error } = await supabase.from('conductores').delete().eq('id', id);
     if (!error) setConductores(conductores.filter(c => c.id !== id));
   };
 
   const addUser = async (u: AppUser) => {
+    if (IS_DEMO) { setUsers(prev => [...prev, { ...u, id: crypto.randomUUID() }]); return; }
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, ...newUser } = u;
     const { data, error } = await supabase.from('app_users').insert([newUser]).select();
@@ -1448,6 +1577,7 @@ function App() {
     }
   };
   const updateUser = async (u: AppUser) => {
+    if (IS_DEMO) { setUsers(prev => prev.map(i => i.id === u.id ? u : i)); if (currentUser?.id === u.id) setCurrentUser(u); return; }
     const { error } = await supabase.from('app_users').update(u).eq('id', u.id);
     if (!error) {
       setUsers(users.map(item => item.id === u.id ? u : item));
@@ -1455,6 +1585,7 @@ function App() {
     }
   };
   const deleteUser = async (id: string) => {
+    if (IS_DEMO) { if (currentUser && id === currentUser.id) { alert('No puedes eliminar tu propio usuario.'); return; } setUsers(prev => prev.filter(u => u.id !== id)); return; }
     if (currentUser && id === currentUser.id) {
       alert('No puedes eliminar tu propio usuario.');
       return;
@@ -1464,6 +1595,7 @@ function App() {
   };
 
   const addDevolucion = async (d: Devolucion): Promise<boolean> => {
+    if (IS_DEMO) { setDevoluciones(prev => [...prev, { ...d, id: crypto.randomUUID() }]); return true; }
     const payload = {
       consecutivo: d.consecutivo,
       fecha: d.fecha,
@@ -1498,6 +1630,7 @@ function App() {
   };
 
   const updateDevolucion = async (d: Devolucion) => {
+    if (IS_DEMO) { setDevoluciones(prev => prev.map(i => i.id === d.id ? d : i)); return; }
     const payload = {
       proveedor_id: d.proveedorId,
       nombre_proveedor: d.nombreProveedor,
@@ -1518,6 +1651,7 @@ function App() {
   };
 
   const deleteDevolucion = async (id: string) => {
+    if (IS_DEMO) { if (window.confirm('¿Está seguro de eliminar esta devolución?')) { setDevoluciones(prev => prev.filter(d => d.id !== id)); } return; }
     if (window.confirm('¿Está seguro de eliminar esta devolución?')) {
       const { error } = await supabase.from('devoluciones').delete().eq('id', id);
       if (error) {
@@ -1530,6 +1664,7 @@ function App() {
   };
 
   const addBudget = async (b: SalesBudget) => {
+    if (IS_DEMO) { setBudgets(prev => [...prev, { ...b, id: crypto.randomUUID() }]); return; }
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, usuarioId, nombreVendedor, ...cleanB } = b;
     const { error } = await supabase.from('budgets').insert([{
@@ -1540,6 +1675,7 @@ function App() {
     if (!error) setBudgets([...budgets, b]);
   };
   const updateBudget = async (b: SalesBudget) => {
+    if (IS_DEMO) { setBudgets(prev => prev.map(i => i.id === b.id ? b : i)); return; }
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, usuarioId, nombreVendedor, ...cleanB } = b;
     const { error } = await supabase.from('budgets').update({
@@ -1550,11 +1686,13 @@ function App() {
     if (!error) setBudgets(budgets.map(item => item.id === b.id ? b : item));
   };
   const deleteBudget = async (id: string) => {
+    if (IS_DEMO) { setBudgets(prev => prev.filter(b => b.id !== id)); return; }
     const { error } = await supabase.from('budgets').delete().eq('id', id);
     if (!error) setBudgets(budgets.filter(b => b.id !== id));
   };
 
   const addVentaManual = async (v: VentaManual) => {
+    if (IS_DEMO) { setVentasManuales(prev => [...prev, { ...v, id: crypto.randomUUID() }]); return; }
     const payload = {
       fecha: v.fecha,
       cliente_id: v.clienteId,
@@ -1586,6 +1724,7 @@ function App() {
   };
 
   const addVentasManuales = async (ventasArr: VentaManual[]) => {
+    if (IS_DEMO) { setVentasManuales(prev => [...prev, ...ventasArr.map(v => ({ ...v, id: v.id || crypto.randomUUID() }))]); return; }
     const payloads = ventasArr.map(v => ({
       fecha: v.fecha,
       cliente_id: v.clienteId,
@@ -1617,6 +1756,7 @@ function App() {
   };
 
   const updateVentaManual = async (v: VentaManual) => {
+    if (IS_DEMO) { setVentasManuales(prev => prev.map(i => i.id === v.id ? v : i)); return; }
     const payload = {
       fecha: v.fecha,
       cliente_id: v.clienteId,
@@ -1641,6 +1781,7 @@ function App() {
   };
 
   const deleteVentaManual = async (id: string) => {
+    if (IS_DEMO) { setVentasManuales(prev => prev.filter(v => v.id !== id)); return; }
     const { error } = await supabase.from('ventas_manuales').delete().eq('id', id);
     if (error) {
       alert('Error al eliminar venta manual: ' + error.message);
@@ -1650,6 +1791,7 @@ function App() {
   };
 
   const updateLeadWeb = async (lead: ClienteWeb) => {
+    if (IS_DEMO) { setClientesWeb(prev => prev.map(l => l.id === lead.id ? lead : l)); return; }
     const { error } = await supabase.from('clientes_web').update({ estado: lead.estado }).eq('id', lead.id);
     if (error) {
       alert('Error actualizando estado del Lead: ' + error.message);
@@ -1659,6 +1801,7 @@ function App() {
   };
 
   const onUpdateRegistroStatus = async (id: string, newStatus: RegistroPendiente['estado']) => {
+    if (IS_DEMO) { setRegistros(prev => prev.map(r => r.id === id ? { ...r, estado: newStatus } : r)); return; }
     const { error } = await supabase.from('registros_pendientes').update({ estado: newStatus }).eq('id', id);
     if (error) {
       alert('Error actualizando estado del Registro: ' + error.message);
@@ -1668,6 +1811,7 @@ function App() {
   };
 
   const onDeleteRegistro = async (id: string) => {
+    if (IS_DEMO) { setRegistros(prev => prev.filter(r => r.id !== id)); alert('Registro eliminado.'); return; }
     const { error } = await supabase.from('registros_pendientes').delete().eq('id', id);
     if (error) {
       alert('Error eliminando el Registro: ' + error.message);
@@ -1675,6 +1819,81 @@ function App() {
       setRegistros(prev => prev.filter(r => r.id !== id));
       alert('Registro eliminado correctamente.');
     }
+  };
+
+  const addPropuesta = async (p: Omit<Propuesta, 'id' | 'consecutivo'>) => {
+    const { data: lastP } = await supabase
+      .from('propuestas')
+      .select('consecutivo')
+      .order('consecutivo', { ascending: false })
+      .limit(1);
+    const nextNum = lastP && lastP.length > 0
+      ? parseInt(lastP[0].consecutivo.replace('P-', ''), 10) + 1
+      : 1;
+    const consecutivo = `P-${String(nextNum).padStart(3, '0')}`;
+
+    const { data, error } = await supabase.from('propuestas').insert([{
+      consecutivo,
+      fecha: p.fecha,
+      cliente_id: p.clienteId,
+      cliente_nombre: p.clienteNombre,
+      cliente_nit: p.clienteNit,
+      cliente_ciudad: p.clienteCiudad,
+      cliente_contacto: p.clienteContacto,
+      tipo_servicio_id: p.tipoServicioId,
+      tipo_servicio_nombre: p.tipoServicioNombre,
+      moneda: p.moneda,
+      valor: p.valor,
+      incluye_iva: p.incluyeIva,
+      vigencia: p.vigencia,
+      observaciones: p.observaciones,
+      estado: p.estado,
+      comercial_nombre: p.comercialNombre,
+      comercial_telefono: p.comercialTelefono,
+      usuario_id: p.usuarioId,
+    }]).select();
+
+    if (error) {
+      alert('Error al guardar propuesta: ' + error.message);
+      return;
+    }
+    if (data) {
+      const dbP = data[0];
+      setPropuestas(prev => [{
+        id: dbP.id, consecutivo: dbP.consecutivo, fecha: dbP.fecha,
+        clienteId: dbP.cliente_id, clienteNombre: dbP.cliente_nombre,
+        clienteNit: dbP.cliente_nit, clienteCiudad: dbP.cliente_ciudad,
+        clienteContacto: dbP.cliente_contacto,
+        tipoServicioId: dbP.tipo_servicio_id, tipoServicioNombre: dbP.tipo_servicio_nombre,
+        moneda: dbP.moneda, valor: dbP.valor, incluyeIva: !!dbP.incluye_iva,
+        vigencia: dbP.vigencia, observaciones: dbP.observaciones,
+        estado: dbP.estado, comercialNombre: dbP.comercial_nombre,
+        comercialTelefono: dbP.comercial_telefono, usuarioId: dbP.usuario_id,
+      } as Propuesta, ...prev]);
+      alert(`Propuesta ${dbP.consecutivo} guardada correctamente.`);
+    }
+  };
+
+  const updatePropuesta = async (p: Propuesta) => {
+    const { error } = await supabase.from('propuestas').update({
+      fecha: p.fecha,
+      cliente_id: p.clienteId, cliente_nombre: p.clienteNombre,
+      cliente_nit: p.clienteNit, cliente_ciudad: p.clienteCiudad,
+      cliente_contacto: p.clienteContacto,
+      tipo_servicio_id: p.tipoServicioId, tipo_servicio_nombre: p.tipoServicioNombre,
+      moneda: p.moneda, valor: p.valor, incluye_iva: p.incluyeIva,
+      vigencia: p.vigencia, observaciones: p.observaciones,
+      estado: p.estado, comercial_nombre: p.comercialNombre,
+      comercial_telefono: p.comercialTelefono,
+    }).eq('id', p.id);
+
+    if (error) { alert('Error al actualizar propuesta: ' + error.message); return; }
+    setPropuestas(prev => prev.map(item => item.id === p.id ? p : item));
+  };
+
+  const deletePropuesta = async (id: string) => {
+    const { error } = await supabase.from('propuestas').delete().eq('id', id);
+    if (!error) setPropuestas(prev => prev.filter(p => p.id !== id));
   };
 
   const menuItems = [
@@ -1697,11 +1916,12 @@ function App() {
     { id: 'ventas-manuales', label: 'Ventas Manuales', icon: '💰' },
     { id: 'remisiones', label: 'Remisiones', icon: '📄' },
     { id: 'comisiones', label: 'Comisiones', icon: '💸' },
+    { id: 'propuestas', label: 'Propuestas', icon: '📋' },
     { id: 'agente-informes', label: 'Agente de Informes', icon: '🤖' },
   ].filter(item => {
     if (item.id === 'productos') return true; // Everyone can see/edit products
-    if ((item.id === 'facturacion' || item.id === 'ventas-manuales' || item.id === 'leads-web' || item.id === 'registros-web' || item.id === 'vendedores' || item.id === 'informes' || item.id === 'remisiones' || item.id === 'comisiones') && currentUser?.rol === 'Admin') return true;
-    if (item.id === 'leads-web' && currentUser?.rol === 'Comercial') return true;
+    if ((item.id === 'facturacion' || item.id === 'ventas-manuales' || item.id === 'leads-web' || item.id === 'registros-web' || item.id === 'vendedores' || item.id === 'informes' || item.id === 'remisiones' || item.id === 'comisiones' || item.id === 'propuestas') && currentUser?.rol === 'Admin') return true;
+    if ((item.id === 'leads-web' || item.id === 'propuestas') && currentUser?.rol === 'Comercial') return true;
     return currentUser?.permisos.includes(item.id);
   });
 
@@ -1713,6 +1933,7 @@ function App() {
   };
 
   const handleAddAlquiler = async (a: Alquiler) => {
+    if (IS_DEMO) { setAlquileres(prev => [...prev, { ...a, id: crypto.randomUUID() }]); return true; }
     const payload = {
       descripcion: a.descripcion,
       serial: a.serial,
@@ -1746,6 +1967,7 @@ function App() {
   }
 
   const handleUpdateAlquiler = async (a: Alquiler) => {
+    if (IS_DEMO) { setAlquileres(prev => prev.map(i => i.id === a.id ? a : i)); return true; }
     const payload = {
       descripcion: a.descripcion,
       serial: a.serial,
@@ -1767,12 +1989,14 @@ function App() {
   }
 
   const handleDeleteAlquiler = async (id: string) => {
+    if (IS_DEMO) { setAlquileres(prev => prev.filter(i => i.id !== id)); return; }
     const { error } = await supabase.from('alquileres').delete().eq('id', id);
     if (error) alert('Error eliminando equipo: ' + error.message);
     else fetchInitialData(); // Re-fetch all data to update state
   }
 
   const handleLogout = () => {
+    if (IS_DEMO) return;
     setIsLoggedIn(false);
     setCurrentUser(null);
     localStorage.removeItem('hs_is_logged_in');
@@ -1805,6 +2029,15 @@ function App() {
           onSendWhatsApp={sendWhatsAppNotification}
           currentUser={currentUser}
           currentTrm={currentTrm}
+        />;
+      case 'propuestas':
+        return <PropuestasModule
+          propuestas={propuestas}
+          clientes={clientes}
+          currentUser={currentUser}
+          onAdd={addPropuesta}
+          onUpdate={updatePropuesta}
+          onDelete={deletePropuesta}
         />;
       case 'ordenes-compra':
         const filteredOCsToModule = currentUser.rol === 'Admin'
@@ -2285,6 +2518,11 @@ function App() {
 
   return isLoggedIn ? (
     <div className="app-container">
+      {IS_DEMO && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 9999, background: 'linear-gradient(90deg,#f59e0b,#d97706)', color: '#000', textAlign: 'center', fontSize: '12px', fontWeight: 800, padding: '5px', letterSpacing: '0.05em' }}>
+          MODO DEMO — Datos de ejemplo con fines comerciales. Help Soluciones Informáticas HSI SAS · licitacioneshsi@helpsoluciones.com.co · 304 335 8650
+        </div>
+      )}
       <HelpModal />
       <aside className="sidebar">
         <div className="logo-container">
@@ -2313,7 +2551,7 @@ function App() {
                 background: realtimeStatus === 'En Línea' ? '#4ade80' : '#fb7185',
                 borderRadius: '50%'
               }}></span>
-              DB: {realtimeStatus} 🔄
+              {IS_DEMO ? 'MODO DEMO ✨' : `DB: ${realtimeStatus} 🔄`}
             </div>
           </div>
         </div>
