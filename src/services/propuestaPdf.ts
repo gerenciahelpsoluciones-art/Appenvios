@@ -47,9 +47,11 @@ export const generatePropuestaPDF = (propuesta: Propuesta, action: 'save' | 'vie
   doc.rect(0, 0, W, 3, 'F');
 
   try {
+    // White background box with 2mm padding around the logo
     doc.setFillColor(...WHITE);
-    doc.rect(14, 16, 26, 26, 'F');
-    doc.addImage(logoBase64, 'JPEG', 14, 16, 26, 26);
+    doc.rect(13, 13, 34, 26, 'F');
+    // Logo image with padding inside the box
+    doc.addImage(logoBase64, 'JPEG', 15, 14, 30, 24);
   } catch (_) {
     doc.setFontSize(14);
     doc.setTextColor(...INDIGO);
@@ -60,12 +62,12 @@ export const generatePropuestaPDF = (propuesta: Propuesta, action: 'save' | 'vie
   doc.setFontSize(8);
   doc.setTextColor(200, 210, 230);
   doc.setFont('helvetica', 'normal');
-  doc.text('Tecnologia - Soporte - Mantenimiento', 46, 24);
-  doc.text('helpsoluciones.com.co', 46, 29);
+  doc.text('Tecnologia - Soporte - Mantenimiento', 52, 23);
+  doc.text('helpsoluciones.com.co', 52, 29);
 
   doc.setDrawColor(...INDIGO);
   doc.setLineWidth(0.3);
-  doc.line(14, 38, W - 14, 38);
+  doc.line(13, 42, W - 14, 42);
 
   // Badge background (semi-transparent approximation using light indigo)
   doc.setFillColor(40, 45, 100);
