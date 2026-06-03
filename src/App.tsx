@@ -1822,14 +1822,19 @@ function App() {
   };
 
   const addPropuesta = async (p: Omit<Propuesta, 'id' | 'consecutivo'>) => {
+    if (IS_DEMO) {
+      const newP: Propuesta = { id: crypto.randomUUID(), consecutivo: `P-${String(propuestas.length + 1).padStart(3, '0')}`, ...p };
+      setPropuestas(prev => [newP, ...prev]);
+      alert('Propuesta guardada (modo demo).');
+      return;
+    }
     const { data: lastP } = await supabase
       .from('propuestas')
       .select('consecutivo')
       .order('consecutivo', { ascending: false })
       .limit(1);
-    const nextNum = lastP && lastP.length > 0
-      ? parseInt(lastP[0].consecutivo.replace('P-', ''), 10) + 1
-      : 1;
+    const parsed = lastP && lastP.length > 0 ? parseInt(lastP[0].consecutivo.replace('P-', ''), 10) : 0;
+    const nextNum = isNaN(parsed) ? 1 : parsed + 1;
     const consecutivo = `P-${String(nextNum).padStart(3, '0')}`;
 
     const { data, error } = await supabase.from('propuestas').insert([{
@@ -1875,6 +1880,7 @@ function App() {
   };
 
   const updatePropuesta = async (p: Propuesta) => {
+    if (IS_DEMO) { setPropuestas(prev => prev.map(i => i.id === p.id ? p : i)); return; }
     const { error } = await supabase.from('propuestas').update({
       fecha: p.fecha,
       cliente_id: p.clienteId, cliente_nombre: p.clienteNombre,
@@ -1892,6 +1898,7 @@ function App() {
   };
 
   const deletePropuesta = async (id: string) => {
+    if (IS_DEMO) { setPropuestas(prev => prev.filter(p => p.id !== id)); return; }
     const { error } = await supabase.from('propuestas').delete().eq('id', id);
     if (!error) setPropuestas(prev => prev.filter(p => p.id !== id));
   };
