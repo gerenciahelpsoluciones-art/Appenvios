@@ -98,13 +98,15 @@ const HelpDesk: React.FC = () => {
 
           {/* CTA */}
           <div className="flex flex-wrap items-center gap-4 pt-2">
-            <Link
-              href="/contactenos"
+            <a
+              href="https://help-soluciones-crm-gerenciahelpsoluciones-arts-projects.vercel.app"
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex items-center gap-2 bg-primary hover:bg-primary-hover text-white font-bold px-8 py-4 rounded-xl transition-all hover:scale-105 active:scale-95 shadow-[0_8px_24px_rgba(37,99,234,0.3)] text-sm"
             >
               Activar Mesa de Ayuda
               <ArrowRight size={16} />
-            </Link>
+            </a>
             <a
               href="https://wa.me/573043358650"
               target="_blank"
