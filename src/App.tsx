@@ -1928,7 +1928,7 @@ function App() {
   ].filter(item => {
     if (item.id === 'productos') return true; // Everyone can see/edit products
     if ((item.id === 'facturacion' || item.id === 'ventas-manuales' || item.id === 'leads-web' || item.id === 'registros-web' || item.id === 'vendedores' || item.id === 'informes' || item.id === 'remisiones' || item.id === 'comisiones' || item.id === 'propuestas') && currentUser?.rol === 'Admin') return true;
-    if ((item.id === 'leads-web' || item.id === 'propuestas') && currentUser?.rol === 'Comercial') return true;
+    if ((item.id === 'leads-web' || item.id === 'propuestas') && (currentUser?.rol === 'Comercial' || currentUser?.rol?.toLowerCase() === 'comercial')) return true;
     return currentUser?.permisos.includes(item.id);
   });
 
