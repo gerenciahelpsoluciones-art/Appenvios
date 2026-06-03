@@ -21,7 +21,7 @@ const addPageHeader = (doc: jsPDF, propuesta: Propuesta, pageNum: number) => {
   doc.setFillColor(...DARK_BLUE);
   doc.rect(0, 0, 210, 12, 'F');
   try {
-    doc.addImage(logoBase64, 'JPEG', 5, 1.5, 22, 9);
+    doc.addImage(logoBase64, 'JPEG', 5, 1, 10, 10);
   } catch (_) { /* logo fallback */ }
   doc.setFontSize(7);
   doc.setTextColor(...WHITE);
@@ -48,8 +48,8 @@ export const generatePropuestaPDF = (propuesta: Propuesta, action: 'save' | 'vie
 
   try {
     doc.setFillColor(...WHITE);
-    doc.rect(14, 18, 35, 14, 'F');
-    doc.addImage(logoBase64, 'JPEG', 14, 18, 35, 14);
+    doc.rect(14, 16, 26, 26, 'F');
+    doc.addImage(logoBase64, 'JPEG', 14, 16, 26, 26);
   } catch (_) {
     doc.setFontSize(14);
     doc.setTextColor(...INDIGO);
@@ -60,8 +60,8 @@ export const generatePropuestaPDF = (propuesta: Propuesta, action: 'save' | 'vie
   doc.setFontSize(8);
   doc.setTextColor(200, 210, 230);
   doc.setFont('helvetica', 'normal');
-  doc.text('Tecnología · Soporte · Mantenimiento', 55, 24);
-  doc.text('helpsoluciones.com.co', 55, 29);
+  doc.text('Tecnologia - Soporte - Mantenimiento', 46, 24);
+  doc.text('helpsoluciones.com.co', 46, 29);
 
   doc.setDrawColor(...INDIGO);
   doc.setLineWidth(0.3);
@@ -73,7 +73,7 @@ export const generatePropuestaPDF = (propuesta: Propuesta, action: 'save' | 'vie
   doc.setFontSize(7.5);
   doc.setTextColor(165, 180, 252);
   doc.setFont('helvetica', 'bold');
-  doc.text(`${template.icono}  MANTENIMIENTO PREVENTIVO`, 48, 53.2, { align: 'center' });
+  doc.text('MANTENIMIENTO PREVENTIVO', 48, 53.2, { align: 'center' });
 
   doc.setFontSize(28);
   doc.setTextColor(...WHITE);
@@ -169,25 +169,22 @@ export const generatePropuestaPDF = (propuesta: Propuesta, action: 'save' | 'vie
     doc.roundedRect(x, cy, cardW, cardH, 2, 2, 'FD');
 
     doc.setFillColor(...INDIGO);
-    doc.circle(x + cardW / 2, cy + 7, 4, 'F');
-    doc.setFontSize(7);
+    doc.circle(x + cardW / 2, cy + 8, 5, 'F');
+    doc.setFontSize(8);
     doc.setTextColor(...WHITE);
     doc.setFont('helvetica', 'bold');
-    doc.text(String(idx + 1), x + cardW / 2, cy + 9, { align: 'center' });
+    doc.text(String(idx + 1), x + cardW / 2, cy + 10.5, { align: 'center' });
 
-    doc.setFontSize(11);
+    doc.setFontSize(7.5);
     doc.setTextColor(...TEXT_DARK);
-    doc.text(paso.icono, x + cardW / 2, cy + 17, { align: 'center' });
-
-    doc.setFontSize(7);
     doc.setFont('helvetica', 'bold');
-    doc.text(paso.titulo, x + cardW / 2, cy + 22, { align: 'center' });
+    doc.text(paso.titulo, x + cardW / 2, cy + 19, { align: 'center' });
 
     doc.setFontSize(6.2);
     doc.setTextColor(...TEXT_MUTED);
     doc.setFont('helvetica', 'normal');
     const descLines = doc.splitTextToSize(paso.descripcion, cardW - 4);
-    doc.text(descLines, x + cardW / 2, cy + 26.5, { align: 'center' });
+    doc.text(descLines, x + cardW / 2, cy + 24, { align: 'center' });
   });
 
   y += 2 * (cardH + 3) + 4;
