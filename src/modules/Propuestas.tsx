@@ -57,6 +57,7 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
   const openNew = () => {
     setEditTarget(null);
     setForm(makeEmpty(currentUser));
+    setItemSearches({});
     setView('form');
   };
 
@@ -64,6 +65,7 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
     setEditTarget(p);
     const { id: _id, consecutivo: _c, ...rest } = p;
     setForm(rest);
+    setItemSearches({});
     setView('form');
   };
 
@@ -109,18 +111,20 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
       const items = f.items.filter(it => it.id !== itemId);
       return { ...f, items: items.length ? items : [newItem()], valor: calcTotal(items, f.incluyeIva) };
     });
+    setItemSearches(s => { const next = { ...s }; delete next[itemId]; return next; });
   };
 
   const selectProductoForItem = (itemId: string, productoId: string) => {
-    const p = productos.find(p => p.id === productoId);
+    const p = productos.find(pr => pr.id === productoId);
     if (!p) return;
-    updateItem(itemId, {
-      productoId: p.id,
-      descripcion: p.nombre,
-      numPart: p.numPart || '',
-      valorUnitario: p.precioCompra || 0,
+    setForm(f => {
+      const items = f.items.map(it =>
+        it.id === itemId
+          ? { ...it, productoId: p.id, descripcion: p.nombre, numPart: p.numPart || '', valorUnitario: p.precioCompra || 0 }
+          : it
+      );
+      return { ...f, items, moneda: p.moneda || f.moneda, valor: calcTotal(items, f.incluyeIva) };
     });
-    setForm(f => ({ ...f, moneda: p.moneda || f.moneda }));
     setItemSearches(s => ({ ...s, [itemId]: '' }));
   };
 
@@ -486,15 +490,15 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
                             placeholder="Buscar en catálogo..."
                             className="w-full bg-slate-700/50 border border-slate-600 rounded px-2 py-1 text-xs text-slate-300 placeholder-slate-500"
                           />
-                          {(itemSearches[item.id] || '').length > 1 && (
-                            <div className="absolute z-10 w-full mt-0.5 bg-slate-800 border border-slate-700 rounded shadow-xl max-h-40 overflow-y-auto">
-                              {productos
-                                .filter(p =>
-                                  p.nombre.toLowerCase().includes((itemSearches[item.id] || '').toLowerCase()) ||
-                                  (p.numPart || '').toLowerCase().includes((itemSearches[item.id] || '').toLowerCase())
-                                )
-                                .slice(0, 6)
-                                .map(p => (
+                          {(itemSearches[item.id] || '').length > 1 && (() => {
+                            const q = (itemSearches[item.id] || '').toLowerCase();
+                            const matches = productos.filter(p =>
+                              p.nombre.toLowerCase().includes(q) ||
+                              (p.numPart || '').toLowerCase().includes(q)
+                            );
+                            return (
+                              <div className="absolute z-10 w-full mt-0.5 bg-slate-800 border border-slate-700 rounded shadow-xl max-h-40 overflow-y-auto">
+                                {matches.slice(0, 6).map(p => (
                                   <button
                                     key={p.id}
                                     type="button"
@@ -512,14 +516,12 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
                                     </span>
                                   </button>
                                 ))}
-                              {productos.filter(p =>
-                                p.nombre.toLowerCase().includes((itemSearches[item.id] || '').toLowerCase()) ||
-                                (p.numPart || '').toLowerCase().includes((itemSearches[item.id] || '').toLowerCase())
-                              ).length === 0 && (
-                                <p className="px-2 py-1.5 text-xs text-slate-500">Sin resultados</p>
-                              )}
-                            </div>
-                          )}
+                                {matches.length === 0 && (
+                                  <p className="px-2 py-1.5 text-xs text-slate-500">Sin resultados</p>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
                         <input
                           type="text"
@@ -539,7 +541,7 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
                           type="number"
                           min="1"
                           value={item.cantidad}
-                          onChange={e => updateItem(item.id, { cantidad: Number(e.target.value) })}
+                          onChange={e => updateItem(item.id, { cantidad: parseInt(e.target.value, 10) || 1 })}
                           className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200 text-center"
                         />
                       </td>
@@ -547,7 +549,7 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
                         <input
                           type="number"
                           value={item.valorUnitario || ''}
-                          onChange={e => updateItem(item.id, { valorUnitario: Number(e.target.value) })}
+                          onChange={e => updateItem(item.id, { valorUnitario: parseFloat(e.target.value) || 0 })}
                           placeholder="0"
                           className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200 text-right"
                         />
