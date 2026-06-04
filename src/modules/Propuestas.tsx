@@ -723,6 +723,168 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
         </div>
       </div>
 
+      {/* Secciones de Detalle del Servicio */}
+      <div className="mt-6 space-y-4">
+        <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-700 pb-2">
+          Detalles del Servicio
+        </h3>
+
+        {/* Objetivo */}
+        <div className="border border-slate-700/50 rounded-xl p-4">
+          <label className="block text-xs uppercase tracking-wider text-slate-500 font-semibold mb-2">
+            🎯 Objetivo de la Propuesta
+          </label>
+          <textarea
+            value={form.objetivo}
+            onChange={e => setForm(f => ({ ...f, objetivo: e.target.value }))}
+            rows={3}
+            className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 resize-none"
+          />
+        </div>
+
+        {/* Personal a Cargo */}
+        <div className="border border-slate-700/50 rounded-xl p-4">
+          <label className="block text-xs uppercase tracking-wider text-slate-500 font-semibold mb-3">
+            👥 Personal a Cargo
+          </label>
+          <div className="space-y-2">
+            {form.personal.map((persona, idx) => (
+              <div key={persona.id} className="grid grid-cols-2 gap-2 items-center">
+                <input
+                  type="text"
+                  value={persona.nombre}
+                  onChange={e => setForm(f => ({
+                    ...f,
+                    personal: f.personal.map((item, i) => i === idx ? { ...item, nombre: e.target.value } : item),
+                  }))}
+                  placeholder="Nombre"
+                  className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200"
+                />
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={persona.cargo}
+                    onChange={e => setForm(f => ({
+                      ...f,
+                      personal: f.personal.map((item, i) => i === idx ? { ...item, cargo: e.target.value } : item),
+                    }))}
+                    placeholder="Cargo / Rol"
+                    className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, personal: f.personal.filter((_, i) => i !== idx) }))}
+                    className="text-slate-500 hover:text-red-400 font-bold text-base leading-none"
+                  >×</button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => setForm(f => ({
+              ...f,
+              personal: [...f.personal, { id: crypto.randomUUID(), nombre: '', cargo: '' }],
+            }))}
+            className="mt-2 w-full text-xs text-indigo-400 border border-dashed border-slate-600 rounded-lg py-2 hover:border-indigo-500 hover:bg-indigo-900/10 transition-colors"
+          >
+            + Agregar persona
+          </button>
+        </div>
+
+        {/* Visitas a Sedes y Horarios */}
+        <div className="border border-slate-700/50 rounded-xl p-4">
+          <label className="block text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1">
+            📅 Visitas a Sedes y Horarios
+          </label>
+          <p className="text-xs text-slate-600 mb-3">El mantenimiento se realizará en la ventana propuesta por el cliente.</p>
+          <div className="space-y-2">
+            {form.visitas.map((visita, idx) => (
+              <div key={visita.id} className="grid grid-cols-2 gap-2 items-center">
+                <input
+                  type="text"
+                  value={visita.sede}
+                  onChange={e => setForm(f => ({
+                    ...f,
+                    visitas: f.visitas.map((item, i) => i === idx ? { ...item, sede: e.target.value } : item),
+                  }))}
+                  placeholder="Sede / Ciudad"
+                  className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200"
+                />
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={visita.horario}
+                    onChange={e => setForm(f => ({
+                      ...f,
+                      visitas: f.visitas.map((item, i) => i === idx ? { ...item, horario: e.target.value } : item),
+                    }))}
+                    placeholder="Horario (ej: Lunes 8am–12pm)"
+                    className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, visitas: f.visitas.filter((_, i) => i !== idx) }))}
+                    className="text-slate-500 hover:text-red-400 font-bold text-base leading-none"
+                  >×</button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => setForm(f => ({
+              ...f,
+              visitas: [...f.visitas, { id: crypto.randomUUID(), sede: '', horario: '' }],
+            }))}
+            className="mt-2 w-full text-xs text-indigo-400 border border-dashed border-slate-600 rounded-lg py-2 hover:border-indigo-500 hover:bg-indigo-900/10 transition-colors"
+          >
+            + Agregar sede
+          </button>
+        </div>
+
+        {/* Obligaciones del Cliente */}
+        <div className="border border-slate-700/50 rounded-xl p-4">
+          <label className="block text-xs uppercase tracking-wider text-slate-500 font-semibold mb-3">
+            📋 Obligaciones del Cliente
+          </label>
+          <div className="space-y-2">
+            {form.obligacionesCliente.map((oblig, idx) => (
+              <div key={idx} className="flex items-center gap-2">
+                <span className="text-indigo-400 text-sm flex-shrink-0">●</span>
+                <input
+                  type="text"
+                  value={oblig}
+                  onChange={e => setForm(f => ({
+                    ...f,
+                    obligacionesCliente: f.obligacionesCliente.map((v, i) => i === idx ? e.target.value : v),
+                  }))}
+                  className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200"
+                />
+                <button
+                  type="button"
+                  onClick={() => setForm(f => ({
+                    ...f,
+                    obligacionesCliente: f.obligacionesCliente.filter((_, i) => i !== idx),
+                  }))}
+                  className="text-slate-500 hover:text-red-400 font-bold text-base leading-none"
+                >×</button>
+              </div>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => setForm(f => ({
+              ...f,
+              obligacionesCliente: [...f.obligacionesCliente, ''],
+            }))}
+            className="mt-2 w-full text-xs text-indigo-400 border border-dashed border-slate-600 rounded-lg py-2 hover:border-indigo-500 hover:bg-indigo-900/10 transition-colors"
+          >
+            + Agregar obligación
+          </button>
+        </div>
+      </div>
+
       {/* Footer buttons */}
       <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-700">
         <button
