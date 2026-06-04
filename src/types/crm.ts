@@ -170,6 +170,14 @@ export interface Cotizacion {
   ordenCompraUrl?: string;
   trm?: number;
   validez_oferta?: string;
+  metadata?: {
+    reminders?: {
+      id: string;
+      date: string;
+      note: string;
+      completed: boolean;
+    }[];
+  };
 }
 
 export interface Conductor {

@@ -79,6 +79,11 @@ const InformesModule: React.FC<IProps> = ({
     const [wonQuoteNumber, setWonQuoteNumber] = useState('');
     const [isUploading, setIsUploading] = useState(false);
 
+    // Tracking/Reminders modal state
+    const [trackingQuote, setTrackingQuote] = useState<Cotizacion | null>(null);
+    const [newReminderDate, setNewReminderDate] = useState('');
+    const [newReminderNote, setNewReminderNote] = useState('');
+
     const handleSearch = () => {
         setAppliedFilters({ inicio: fechaInicio, fin: fechaFin, clienteId: selectedClienteId, asesorId: selectedAsesorId });
     };
@@ -102,6 +107,19 @@ const InformesModule: React.FC<IProps> = ({
         const bDate = b.fecha || '';
         return bDate.localeCompare(aDate);
     });
+
+    const pendingReminders = cotizaciones.flatMap(q => {
+        const reminders = q.metadata?.reminders || [];
+        return reminders
+            .filter(r => !r.completed)
+            .map(r => ({
+                ...r,
+                quoteId: q.id,
+                consecutivo: q.consecutivo,
+                clienteNombre: q.clienteNombre,
+                quote: q
+            }));
+    }).sort((a, b) => a.date.localeCompare(b.date));
 
     // ── BASE DE CÁLCULO: Despachos FACTURADOS en el rango de fechas ──────────
     // La fecha que se usa es fechaFacturado (la fecha real en que se marcó como
@@ -597,6 +615,94 @@ const InformesModule: React.FC<IProps> = ({
         closeEditModal();
     };
 
+    const handleAddReminder = () => {
+        if (!trackingQuote || !newReminderDate || !newReminderNote.trim()) return;
+
+        const currentMetadata = trackingQuote.metadata || {};
+        const currentReminders = currentMetadata.reminders || [];
+
+        const newReminder = {
+            id: crypto.randomUUID(),
+            date: newReminderDate,
+            note: newReminderNote.trim(),
+            completed: false
+        };
+
+        const updatedMetadata = {
+            ...currentMetadata,
+            reminders: [...currentReminders, newReminder]
+        };
+
+        const updatedQuote = {
+            ...trackingQuote,
+            metadata: updatedMetadata
+        };
+
+        onUpdateQuote(updatedQuote);
+        setTrackingQuote(updatedQuote);
+        setNewReminderNote('');
+        setNewReminderDate('');
+    };
+
+    const handleToggleReminder = (reminderId: string) => {
+        if (!trackingQuote) return;
+
+        const currentMetadata = trackingQuote.metadata || {};
+        const currentReminders = currentMetadata.reminders || [];
+
+        const updatedReminders = currentReminders.map(r => 
+            r.id === reminderId ? { ...r, completed: !r.completed } : r
+        );
+
+        const updatedMetadata = {
+            ...currentMetadata,
+            reminders: updatedReminders
+        };
+
+        const updatedQuote = {
+            ...trackingQuote,
+            metadata: updatedMetadata
+        };
+
+        onUpdateQuote(updatedQuote);
+        setTrackingQuote(updatedQuote);
+    };
+
+    const handleDeleteReminder = (reminderId: string) => {
+        if (!trackingQuote) return;
+
+        const currentMetadata = trackingQuote.metadata || {};
+        const currentReminders = currentMetadata.reminders || [];
+
+        const updatedReminders = currentReminders.filter(r => r.id !== reminderId);
+
+        const updatedMetadata = {
+            ...currentMetadata,
+            reminders: updatedReminders
+        };
+
+        const updatedQuote = {
+            ...trackingQuote,
+            metadata: updatedMetadata
+        };
+
+        onUpdateQuote(updatedQuote);
+        setTrackingQuote(updatedQuote);
+    };
+
+    const handleUpdateTrackingStatus = (newStatus: 'Seguimiento' | 'Ganado' | 'Perdido') => {
+        if (!trackingQuote) return;
+        
+        updateStatus(trackingQuote, newStatus);
+        
+        if (newStatus !== 'Ganado') {
+            setTrackingQuote(prev => prev ? { ...prev, estado: newStatus } : null);
+        } else {
+            setTrackingQuote(null);
+        }
+    };
+
+
 
 
     return (
@@ -675,6 +781,116 @@ const InformesModule: React.FC<IProps> = ({
                     )}
                 </div>
             </div>
+
+            {pendingReminders.length > 0 && (
+                <div className="card" style={{ marginTop: '1.5rem', borderLeft: '4px solid #ef4444' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                        <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#1e293b' }}>
+                            ⏰ Recordatorios de Seguimiento Pendientes ({pendingReminders.length})
+                        </h3>
+                        <span style={{ fontSize: '0.8rem', color: '#475569', background: '#f1f5f9', padding: '0.25rem 0.6rem', borderRadius: '4px', fontWeight: 'bold' }}>
+                            Ordenados por fecha
+                        </span>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', maxHeight: '350px', overflowY: 'auto', padding: '0.25rem' }}>
+                        {pendingReminders.map(rem => {
+                            const isOverdue = rem.date < new Date().toISOString().split('T')[0];
+                            return (
+                                <div 
+                                    key={rem.id} 
+                                    style={{ 
+                                        padding: '0.85rem', 
+                                        background: '#fff', 
+                                        borderRadius: '8px', 
+                                        border: `1.5px solid ${isOverdue ? '#fee2e2' : '#e2e8f0'}`,
+                                        display: 'flex', 
+                                        flexDirection: 'column', 
+                                        justifyContent: 'space-between',
+                                        gap: '0.6rem',
+                                        boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                                        transition: 'all 0.2s',
+                                        cursor: 'pointer'
+                                    }}
+                                    onClick={() => {
+                                        setTrackingQuote(rem.quote);
+                                        setNewReminderDate('');
+                                        setNewReminderNote('');
+                                    }}
+                                    onMouseEnter={e => {
+                                        e.currentTarget.style.borderColor = '#cbd5e1';
+                                        e.currentTarget.style.transform = 'translateY(-1px)';
+                                        e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0,0,0,0.05)';
+                                    }}
+                                    onMouseLeave={e => {
+                                        e.currentTarget.style.borderColor = isOverdue ? '#fee2e2' : '#e2e8f0';
+                                        e.currentTarget.style.transform = 'translateY(0)';
+                                        e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.02)';
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                            <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>
+                                                {rem.clienteNombre}
+                                            </span>
+                                            <span style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.9rem', marginTop: '0.1rem' }}>
+                                                {rem.consecutivo}
+                                            </span>
+                                        </div>
+                                        <span style={{ 
+                                            fontSize: '0.72rem', 
+                                            background: isOverdue ? '#fee2e2' : '#e0f2fe', 
+                                            color: isOverdue ? '#b91c1c' : '#0369a1', 
+                                            padding: '0.2rem 0.5rem', 
+                                            borderRadius: '4px', 
+                                            fontWeight: 800,
+                                            whiteSpace: 'nowrap',
+                                            border: `1px solid ${isOverdue ? '#fca5a5' : '#7dd3fc'}`
+                                        }}>
+                                            {isOverdue ? '⚠️ Vencido' : '📅'} {rem.date}
+                                        </span>
+                                    </div>
+                                    <p style={{ margin: 0, color: '#334155', fontSize: '0.85rem', lineHeight: '1.3' }}>
+                                        {rem.note}
+                                    </p>
+                                    <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid #f1f5f9', paddingTop: '0.5rem', marginTop: '0.2rem' }} onClick={e => e.stopPropagation()}>
+                                        <button 
+                                            style={{ 
+                                                fontSize: '0.72rem', 
+                                                background: '#d1fae5', 
+                                                color: '#065f46', 
+                                                border: '1px solid #a7f3d0', 
+                                                padding: '0.2rem 0.5rem', 
+                                                borderRadius: '4px', 
+                                                cursor: 'pointer',
+                                                fontWeight: 'bold',
+                                                transition: 'background 0.15s'
+                                            }}
+                                            onMouseEnter={e => e.currentTarget.style.background = '#a7f3d0'}
+                                            onMouseLeave={e => e.currentTarget.style.background = '#d1fae5'}
+                                            onClick={() => {
+                                                const currentMetadata = rem.quote.metadata || {};
+                                                const currentReminders = currentMetadata.reminders || [];
+                                                const updatedReminders = currentReminders.map(r => 
+                                                    r.id === rem.id ? { ...r, completed: true } : r
+                                                );
+                                                onUpdateQuote({
+                                                    ...rem.quote,
+                                                    metadata: {
+                                                        ...currentMetadata,
+                                                        reminders: updatedReminders
+                                                    }
+                                                });
+                                            }}
+                                        >
+                                            ✅ Completar
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
 
             <div className="card filters-card" style={{ marginTop: '1.5rem' }}>
                 <h3>Filtrar Cotizaciones por Fecha</h3>
@@ -964,6 +1180,17 @@ const InformesModule: React.FC<IProps> = ({
                                                     ✏️
                                                 </button>
                                                 <button
+                                                    className="btn-status btn-tracking"
+                                                    onClick={() => {
+                                                        setTrackingQuote(q);
+                                                        setNewReminderDate('');
+                                                        setNewReminderNote('');
+                                                    }}
+                                                    title="Seguimiento y Recordatorios"
+                                                >
+                                                    🔔
+                                                </button>
+                                                <button
                                                     className="btn-status"
                                                     style={{ background: '#f1f5f9', color: '#444', border: '1px solid #cbd5e1' }}
                                                     onClick={() => handlePrintPDF(q)}
@@ -1219,6 +1446,187 @@ const InformesModule: React.FC<IProps> = ({
                 </div>
             )}
 
+            {trackingQuote && (
+                <div className="modal-overlay" onClick={() => setTrackingQuote(null)}>
+                    <div className="modal-content" style={{ maxWidth: '650px' }} onClick={e => e.stopPropagation()}>
+                        <div className="modal-header" style={{ background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)' }}>
+                            <h3>🔔 Seguimiento y Recordatorios: {trackingQuote.consecutivo}</h3>
+                            <button className="modal-close" onClick={() => setTrackingQuote(null)}>×</button>
+                        </div>
+
+                        <div className="modal-body">
+                            {/* Summary info */}
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', padding: '1rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '1.25rem' }}>
+                                <div><span style={{ color: '#64748b', fontSize: '0.85rem', display: 'block' }}>Cliente</span><strong>{trackingQuote.clienteNombre}</strong></div>
+                                <div><span style={{ color: '#64748b', fontSize: '0.85rem', display: 'block' }}>Total Cotización</span><strong style={{ color: '#0f172a' }}>${Math.round(trackingQuote.total).toLocaleString('es-CO')}</strong></div>
+                                <div><span style={{ color: '#64748b', fontSize: '0.85rem', display: 'block' }}>Ejecutivo</span><strong>{trackingQuote.ejecutivo}</strong></div>
+                            </div>
+
+                            {/* Status Selector */}
+                            <div className="edit-section">
+                                <label className="edit-label">Cambiar Estado</label>
+                                <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+                                    {['Seguimiento', 'Ganado', 'Perdido'].map((status) => {
+                                        const isActive = trackingQuote.estado === status;
+                                        let bg = '#fff';
+                                        let border = '#cbd5e1';
+                                        let color = '#334155';
+                                        if (isActive) {
+                                            if (status === 'Seguimiento') { bg = '#fef3c7'; border = '#f59e0b'; color = '#b45309'; }
+                                            else if (status === 'Ganado') { bg = '#d1fae5'; border = '#10b981'; color = '#065f46'; }
+                                            else if (status === 'Perdido') { bg = '#fee2e2'; border = '#ef4444'; color = '#b91c1c'; }
+                                        }
+                                        return (
+                                            <button
+                                                key={status}
+                                                style={{
+                                                    flex: 1,
+                                                    padding: '0.6rem',
+                                                    border: `1.5px solid ${border}`,
+                                                    borderRadius: '8px',
+                                                    background: bg,
+                                                    color: color,
+                                                    fontWeight: 'bold',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    gap: '0.4rem',
+                                                    transition: 'all 0.2s',
+                                                    transform: isActive ? 'scale(1.02)' : 'none',
+                                                    boxShadow: isActive ? '0 2px 4px rgba(0,0,0,0.05)' : 'none'
+                                                }}
+                                                onClick={() => handleUpdateTrackingStatus(status as any)}
+                                            >
+                                                {status === 'Seguimiento' && '⏳'}
+                                                {status === 'Ganado' && '✅'}
+                                                {status === 'Perdido' && '❌'}
+                                                {status}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Add Reminder Form */}
+                            <div style={{ marginTop: '1.5rem', background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                <h4 style={{ margin: '0 0 0.75rem 0', color: '#1e293b', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                    📅 Programar Nuevo Recordatorio
+                                </h4>
+                                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                                    <div style={{ flex: '1', minWidth: '150px' }}>
+                                        <label className="edit-label" style={{ fontSize: '0.8rem', marginBottom: '0.25rem' }}>Fecha</label>
+                                        <input
+                                            type="date"
+                                            className="edit-input"
+                                            style={{ padding: '0.45rem' }}
+                                            value={newReminderDate}
+                                            onChange={e => setNewReminderDate(e.target.value)}
+                                        />
+                                    </div>
+                                    <div style={{ flex: '3', minWidth: '250px' }}>
+                                        <label className="edit-label" style={{ fontSize: '0.8rem', marginBottom: '0.25rem' }}>Nota de Seguimiento</label>
+                                        <input
+                                            type="text"
+                                            className="edit-input"
+                                            style={{ padding: '0.45rem' }}
+                                            placeholder="Llamar para concretar descuento, visitar cliente..."
+                                            value={newReminderNote}
+                                            onChange={e => setNewReminderNote(e.target.value)}
+                                        />
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+                                        <button
+                                            className="btn-save"
+                                            style={{
+                                                height: '38px',
+                                                padding: '0 1.25rem',
+                                                background: '#1e293b',
+                                                border: 'none',
+                                                color: '#fff',
+                                                borderRadius: '6px',
+                                                cursor: 'pointer',
+                                                fontWeight: 'bold'
+                                            }}
+                                            onClick={handleAddReminder}
+                                            disabled={!newReminderDate || !newReminderNote.trim()}
+                                        >
+                                            + Programar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Reminders List */}
+                            <div style={{ marginTop: '1.5rem' }}>
+                                <h4 style={{ margin: '0 0 0.75rem 0', color: '#1e293b', fontSize: '0.9rem' }}>
+                                    🔔 Recordatorios Registrados
+                                </h4>
+                                <div style={{ maxHeight: '220px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+                                    {trackingQuote.metadata?.reminders && trackingQuote.metadata.reminders.length > 0 ? (
+                                        trackingQuote.metadata.reminders.map((r) => (
+                                            <div
+                                                key={r.id}
+                                                style={{
+                                                    display: 'flex',
+                                                    justifyContent: 'space-between',
+                                                    alignItems: 'center',
+                                                    padding: '0.65rem 0.75rem',
+                                                    borderBottom: '1px solid #e2e8f0',
+                                                    background: r.completed ? '#f8fafc' : '#fff',
+                                                    opacity: r.completed ? 0.7 : 1
+                                                }}
+                                            >
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={r.completed}
+                                                        onChange={() => handleToggleReminder(r.id)}
+                                                        style={{ width: '17px', height: '17px', cursor: 'pointer' }}
+                                                    />
+                                                    <div>
+                                                        <span style={{
+                                                            fontSize: '0.75rem',
+                                                            background: r.completed ? '#cbd5e1' : '#fee2e2',
+                                                            color: r.completed ? '#475569' : '#991b1b',
+                                                            padding: '0.15rem 0.4rem',
+                                                            borderRadius: '4px',
+                                                            marginRight: '0.6rem',
+                                                            fontWeight: 700
+                                                        }}>
+                                                            {r.date}
+                                                        </span>
+                                                        <span style={{ textDecoration: r.completed ? 'line-through' : 'none', color: '#334155', fontSize: '0.9rem' }}>
+                                                            {r.note}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    className="btn-status"
+                                                    style={{ color: '#ef4444', padding: '0.2rem' }}
+                                                    onClick={() => handleDeleteReminder(r.id)}
+                                                    title="Eliminar Recordatorio"
+                                                >
+                                                    🗑️
+                                                </button>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8', background: '#f8fafc' }}>
+                                            Sin recordatorios de seguimiento.
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="modal-footer">
+                            <button className="btn-cancel" onClick={() => setTrackingQuote(null)}>Cerrar</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <style>{`
                 .stats-grid {
                     display: grid;
@@ -1355,6 +1763,8 @@ const InformesModule: React.FC<IProps> = ({
                 .btn-perdido:hover { background: #fee2e2; }
                 .btn-edit-quote { font-size: 1rem; }
                 .btn-edit-quote:hover { background: #dbeafe !important; }
+                .btn-tracking { font-size: 1rem; }
+                .btn-tracking:hover { background: #ecfdf5 !important; }
 
                 /* ---- Edit Modal ---- */
                 .modal-overlay {
