@@ -668,6 +668,10 @@ function App() {
           comercialNombre: p.comercial_nombre || '',
           comercialTelefono: p.comercial_telefono || '',
           usuarioId: p.usuario_id,
+          objetivo: p.objetivo || '',
+          personal: p.personal || [],
+          visitas: p.visitas || [],
+          obligacionesCliente: p.obligaciones_cliente || [],
         } as Propuesta)));
       }
 
@@ -1884,6 +1888,10 @@ function App() {
       comercial_nombre: p.comercialNombre,
       comercial_telefono: p.comercialTelefono,
       usuario_id: p.usuarioId,
+      objetivo: p.objetivo || '',
+      personal: p.personal || [],
+      visitas: p.visitas || [],
+      obligaciones_cliente: p.obligacionesCliente || [],
     }]).select();
 
     if (error) {
@@ -1904,6 +1912,10 @@ function App() {
         vigencia: dbP.vigencia, observaciones: dbP.observaciones,
         estado: dbP.estado, comercialNombre: dbP.comercial_nombre,
         comercialTelefono: dbP.comercial_telefono, usuarioId: dbP.usuario_id,
+        objetivo: dbP.objetivo || '',
+        personal: dbP.personal || [],
+        visitas: dbP.visitas || [],
+        obligacionesCliente: dbP.obligaciones_cliente || [],
       } as Propuesta, ...prev]);
       alert(`Propuesta ${dbP.consecutivo} guardada correctamente.`);
     }
@@ -1923,6 +1935,10 @@ function App() {
       vigencia: p.vigencia, observaciones: p.observaciones,
       estado: p.estado, comercial_nombre: p.comercialNombre,
       comercial_telefono: p.comercialTelefono,
+      objetivo: p.objetivo || '',
+      personal: p.personal || [],
+      visitas: p.visitas || [],
+      obligaciones_cliente: p.obligacionesCliente || [],
     }).eq('id', p.id);
 
     if (error) { alert('Error al actualizar propuesta: ' + error.message); return; }
