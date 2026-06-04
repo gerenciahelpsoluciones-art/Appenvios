@@ -439,6 +439,172 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
             </div>
           </div>
 
+          {/* Items Table */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs uppercase tracking-wider text-slate-500 font-semibold">
+                Ítems de la Propuesta *
+              </label>
+              <select
+                value={form.moneda}
+                onChange={e => setForm(f => ({ ...f, moneda: e.target.value as 'COP' | 'USD' }))}
+                className="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-slate-300"
+              >
+                <option value="COP">COP</option>
+                <option value="USD">USD</option>
+              </select>
+            </div>
+
+            <div className="bg-slate-800/60 rounded-xl border border-slate-700 overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-700 bg-slate-900/40">
+                    <th className="text-slate-500 font-medium px-3 py-2 text-left text-xs uppercase tracking-wider">
+                      Descripción / Producto
+                    </th>
+                    <th className="text-slate-500 font-medium px-3 py-2 text-center text-xs uppercase tracking-wider w-16">
+                      Cant.
+                    </th>
+                    <th className="text-slate-500 font-medium px-3 py-2 text-right text-xs uppercase tracking-wider w-36">
+                      Valor Unit.
+                    </th>
+                    <th className="text-slate-500 font-medium px-3 py-2 text-right text-xs uppercase tracking-wider w-28">
+                      Total
+                    </th>
+                    <th className="w-8" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {form.items.map(item => (
+                    <tr key={item.id} className="border-b border-slate-700/50 hover:bg-slate-700/10">
+                      <td className="px-3 py-2">
+                        <div className="relative mb-1.5">
+                          <input
+                            type="text"
+                            value={itemSearches[item.id] || ''}
+                            onChange={e => setItemSearches(s => ({ ...s, [item.id]: e.target.value }))}
+                            placeholder="Buscar en catálogo..."
+                            className="w-full bg-slate-700/50 border border-slate-600 rounded px-2 py-1 text-xs text-slate-300 placeholder-slate-500"
+                          />
+                          {(itemSearches[item.id] || '').length > 1 && (
+                            <div className="absolute z-10 w-full mt-0.5 bg-slate-800 border border-slate-700 rounded shadow-xl max-h-40 overflow-y-auto">
+                              {productos
+                                .filter(p =>
+                                  p.nombre.toLowerCase().includes((itemSearches[item.id] || '').toLowerCase()) ||
+                                  (p.numPart || '').toLowerCase().includes((itemSearches[item.id] || '').toLowerCase())
+                                )
+                                .slice(0, 6)
+                                .map(p => (
+                                  <button
+                                    key={p.id}
+                                    type="button"
+                                    onClick={() => selectProductoForItem(item.id, p.id)}
+                                    className="w-full text-left px-2 py-1.5 hover:bg-slate-700 text-xs border-b border-slate-700/50 last:border-0"
+                                  >
+                                    <span className="text-slate-200 font-medium">{p.nombre}</span>
+                                    {p.numPart && (
+                                      <span className="ml-1.5 font-mono text-indigo-400">{p.numPart}</span>
+                                    )}
+                                    <span className="ml-1.5 text-slate-500">
+                                      {p.moneda === 'USD'
+                                        ? `USD ${p.precioCompra}`
+                                        : `$${(p.precioCompra || 0).toLocaleString('es-CO')}`}
+                                    </span>
+                                  </button>
+                                ))}
+                              {productos.filter(p =>
+                                p.nombre.toLowerCase().includes((itemSearches[item.id] || '').toLowerCase()) ||
+                                (p.numPart || '').toLowerCase().includes((itemSearches[item.id] || '').toLowerCase())
+                              ).length === 0 && (
+                                <p className="px-2 py-1.5 text-xs text-slate-500">Sin resultados</p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        <input
+                          type="text"
+                          value={item.descripcion}
+                          onChange={e => updateItem(item.id, { descripcion: e.target.value })}
+                          placeholder="Descripción del ítem..."
+                          className="w-full bg-slate-900/50 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200"
+                        />
+                        {item.numPart && (
+                          <span className="text-xs font-mono text-indigo-400 mt-0.5 inline-block">
+                            Ref: {item.numPart}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2">
+                        <input
+                          type="number"
+                          min="1"
+                          value={item.cantidad}
+                          onChange={e => updateItem(item.id, { cantidad: Number(e.target.value) })}
+                          className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200 text-center"
+                        />
+                      </td>
+                      <td className="px-3 py-2">
+                        <input
+                          type="number"
+                          value={item.valorUnitario || ''}
+                          onChange={e => updateItem(item.id, { valorUnitario: Number(e.target.value) })}
+                          placeholder="0"
+                          className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200 text-right"
+                        />
+                      </td>
+                      <td className="px-3 py-2 text-right text-emerald-400 font-semibold text-xs">
+                        {fmtCOP(item.cantidad * item.valorUnitario)}
+                      </td>
+                      <td className="px-2 py-2 text-center">
+                        <button
+                          type="button"
+                          onClick={() => removeItem(item.id)}
+                          className="text-slate-500 hover:text-red-400 text-base font-bold leading-none"
+                        >
+                          ×
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <button
+              type="button"
+              onClick={addItemRow}
+              className="mt-2 w-full text-xs text-indigo-400 border border-dashed border-slate-600 rounded-lg py-2 hover:border-indigo-500 hover:bg-indigo-900/10 transition-colors"
+            >
+              + Agregar ítem
+            </button>
+
+            <label className="flex items-center gap-2 mt-3 text-sm text-slate-400 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={form.incluyeIva}
+                onChange={e => setForm(f => ({
+                  ...f,
+                  incluyeIva: e.target.checked,
+                  valor: calcTotal(f.items, e.target.checked),
+                }))}
+              />
+              Incluir IVA (19%)
+            </label>
+
+            {(() => {
+              const sub = form.items.reduce((s, it) => s + it.cantidad * it.valorUnitario, 0);
+              const ivaAmt = form.incluyeIva ? Math.round(sub * 0.19) : 0;
+              return sub > 0 ? (
+                <p className="text-xs text-slate-500 mt-1 text-right">
+                  Subtotal: {fmtCOP(sub)}
+                  {form.incluyeIva && <span> · IVA: {fmtCOP(ivaAmt)}</span>}
+                  {' · '}Total:{' '}
+                  <span className="text-emerald-400 font-semibold">{fmtCOP(sub + ivaAmt)}</span>
+                </p>
+              ) : null;
+            })()}
+          </div>
+
           {/* Vigencia */}
           <div>
             <label className="block text-xs uppercase tracking-wider text-slate-500 mb-1.5">Vigencia</label>
