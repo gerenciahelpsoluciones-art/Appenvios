@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { Cliente, Propuesta, AppUser, Producto } from '../App';
+import type { Cliente, Propuesta, PropuestaItem, AppUser, Producto } from '../App';
 import { SERVICIO_TEMPLATES } from '../data/servicioTemplates';
 import { generatePropuestaPDF } from '../services/propuestaPdf';
 
@@ -22,11 +22,20 @@ const ESTADO_COLORS: Record<string, string> = {
   Aceptada: 'bg-green-900/30 text-green-300',
 };
 
+const newItem = (): PropuestaItem => ({
+  id: crypto.randomUUID(),
+  descripcion: '',
+  productoId: '',
+  numPart: '',
+  cantidad: 1,
+  valorUnitario: 0,
+});
+
 const makeEmpty = (currentUser: AppUser): Omit<Propuesta, 'id' | 'consecutivo'> => ({
   fecha: new Date().toISOString().split('T')[0],
   clienteId: '', clienteNombre: '', clienteNit: '', clienteCiudad: '', clienteContacto: '',
   tipoServicioId: '', tipoServicioNombre: '',
-  moneda: 'COP', valor: 0, cantidad: 1, productoId: '', productoNombre: '', numPart: '', incluyeIva: false,
+  moneda: 'COP', valor: 0, items: [newItem()], incluyeIva: false,
   vigencia: '30 días', observaciones: '',
   estado: 'Borrador',
   comercialNombre: currentUser.nombre,
@@ -39,7 +48,7 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
   const [editTarget, setEditTarget] = useState<Propuesta | null>(null);
   const [form, setForm] = useState<Omit<Propuesta, 'id' | 'consecutivo'>>(makeEmpty(currentUser));
   const [saving, setSaving] = useState(false);
-  const [productoSearch, setProductoSearch] = useState('');
+  const [itemSearches, setItemSearches] = useState<Record<string, string>>({});
   const [search, setSearch] = useState('');
   const [servicioFilter, setServicioFilter] = useState('Todos');
   const [estadoFilter, setEstadoFilter] = useState<EstadoFilter>('Todos');
@@ -75,24 +84,52 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
     setForm(f => ({ ...f, tipoServicioId: id, tipoServicioNombre: t?.nombre || '' }));
   };
 
-  const handleProductoSelect = (productoId: string) => {
+  const calcTotal = (items: PropuestaItem[], incluyeIva: boolean) => {
+    const sub = items.reduce((s, it) => s + it.cantidad * it.valorUnitario, 0);
+    const iva = incluyeIva ? Math.round(sub * 0.19) : 0;
+    return sub + iva;
+  };
+
+  const updateItem = (itemId: string, changes: Partial<PropuestaItem>) => {
+    setForm(f => {
+      const items = f.items.map(it => it.id === itemId ? { ...it, ...changes } : it);
+      return { ...f, items, valor: calcTotal(items, f.incluyeIva) };
+    });
+  };
+
+  const addItemRow = () => {
+    setForm(f => {
+      const items = [...f.items, newItem()];
+      return { ...f, items };
+    });
+  };
+
+  const removeItem = (itemId: string) => {
+    setForm(f => {
+      const items = f.items.filter(it => it.id !== itemId);
+      return { ...f, items: items.length ? items : [newItem()], valor: calcTotal(items, f.incluyeIva) };
+    });
+  };
+
+  const selectProductoForItem = (itemId: string, productoId: string) => {
     const p = productos.find(p => p.id === productoId);
     if (!p) return;
-    setForm(f => ({
-      ...f,
+    updateItem(itemId, {
       productoId: p.id,
-      productoNombre: p.nombre,
+      descripcion: p.nombre,
       numPart: p.numPart || '',
-      valor: p.precioCompra || f.valor,
-      moneda: p.moneda || f.moneda,
-    }));
-    setProductoSearch('');
+      valorUnitario: p.precioCompra || 0,
+    });
+    setForm(f => ({ ...f, moneda: p.moneda || f.moneda }));
+    setItemSearches(s => ({ ...s, [itemId]: '' }));
   };
 
   const validate = (): boolean => {
     if (!form.clienteId) { alert('Selecciona un cliente.'); return false; }
     if (!form.tipoServicioId) { alert('Selecciona un tipo de servicio.'); return false; }
-    if (!form.valor || form.valor <= 0) { alert('Ingresa el valor de la propuesta.'); return false; }
+    if (!form.items.length || form.items.every(it => it.valorUnitario <= 0)) {
+      alert('Agrega al menos un ítem con valor mayor a 0.'); return false;
+    }
     return true;
   };
 
@@ -144,10 +181,6 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
   });
 
   const selectedTemplate = SERVICIO_TEMPLATES.find(t => t.id === form.tipoServicioId);
-  const cantidad = form.cantidad || 1;
-  const subtotalForm = form.valor * cantidad;
-  const iva = form.incluyeIva ? Math.round(subtotalForm * 0.19) : 0;
-  const total = subtotalForm + iva;
   const fmtCOP = (n: number) => `$${Math.round(n).toLocaleString('es-CO')}`;
 
   // ── PREVIEW MODAL (shared between list and form views) ──────────────────────
@@ -404,110 +437,6 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
                 <div className="text-xs text-slate-500 mt-1">Nuevo tipo</div>
               </button>
             </div>
-          </div>
-
-          {/* Producto del catálogo */}
-          <div>
-            <label className="block text-xs uppercase tracking-wider text-slate-500 mb-1.5">Producto del Catálogo</label>
-            <div className="relative">
-              <input
-                type="text"
-                value={productoSearch}
-                onChange={e => setProductoSearch(e.target.value)}
-                placeholder="Buscar por nombre o referencia..."
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200"
-              />
-              {productoSearch.length > 1 && (
-                <div className="absolute z-10 w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl max-h-48 overflow-y-auto">
-                  {productos
-                    .filter(p =>
-                      p.nombre.toLowerCase().includes(productoSearch.toLowerCase()) ||
-                      p.numPart?.toLowerCase().includes(productoSearch.toLowerCase())
-                    )
-                    .slice(0, 8)
-                    .map(p => (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onClick={() => handleProductoSelect(p.id)}
-                        className="w-full text-left px-3 py-2 hover:bg-slate-700 text-sm border-b border-slate-700/50 last:border-0"
-                      >
-                        <span className="text-slate-200 font-medium">{p.nombre}</span>
-                        {p.numPart && <span className="ml-2 text-xs text-indigo-400 font-mono">{p.numPart}</span>}
-                        <span className="ml-2 text-xs text-slate-500">{p.moneda === 'USD' ? `USD ${p.precioCompra}` : `$${p.precioCompra.toLocaleString('es-CO')}`}</span>
-                      </button>
-                    ))}
-                  {productos.filter(p =>
-                    p.nombre.toLowerCase().includes(productoSearch.toLowerCase()) ||
-                    p.numPart?.toLowerCase().includes(productoSearch.toLowerCase())
-                  ).length === 0 && (
-                    <p className="px-3 py-2 text-xs text-slate-500">Sin resultados</p>
-                  )}
-                </div>
-              )}
-            </div>
-            {form.productoId && (
-              <div className="mt-1.5 flex items-center gap-2 bg-indigo-900/20 border border-indigo-800/40 rounded-lg px-3 py-1.5">
-                <span className="text-xs text-slate-300 flex-1">
-                  <span className="font-semibold">{form.productoNombre}</span>
-                  {form.numPart && <span className="ml-2 font-mono text-indigo-400">{form.numPart}</span>}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setForm(f => ({ ...f, productoId: '', productoNombre: '', numPart: '' }))}
-                  className="text-slate-500 hover:text-red-400 text-xs"
-                >✕</button>
-              </div>
-            )}
-          </div>
-
-          {/* Valor */}
-          <div>
-            <label className="block text-xs uppercase tracking-wider text-slate-500 mb-1.5">Valor de la Propuesta *</label>
-            <div className="flex gap-2">
-              <select
-                value={form.moneda}
-                onChange={e => setForm(f => ({ ...f, moneda: e.target.value as 'COP' | 'USD' }))}
-                className="bg-slate-800 border border-slate-700 rounded-lg px-2 py-2 text-sm text-slate-200 w-20"
-              >
-                <option value="COP">COP</option>
-                <option value="USD">USD</option>
-              </select>
-              <input
-                type="number"
-                value={form.valor || ''}
-                onChange={e => setForm(f => ({ ...f, valor: Number(e.target.value) }))}
-                placeholder="0"
-                className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200"
-              />
-              <input
-                type="number"
-                min="1"
-                value={form.cantidad || 1}
-                onChange={e => setForm(f => ({ ...f, cantidad: Number(e.target.value) }))}
-                title="Cantidad"
-                className="w-20 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 text-center"
-              />
-            </div>
-            <div className="flex gap-4 mt-1">
-              <span className="text-xs text-slate-600">Valor unit.</span>
-              <span className="text-xs text-slate-600">Cantidad</span>
-            </div>
-            <label className="flex items-center gap-2 mt-2 text-sm text-slate-400 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={form.incluyeIva}
-                onChange={e => setForm(f => ({ ...f, incluyeIva: e.target.checked }))}
-              />
-              Incluir IVA (19%)
-            </label>
-            {form.valor > 0 && (
-              <p className="text-xs text-slate-500 mt-1">
-                {cantidad > 1 && <span>{fmtCOP(form.valor)} × {cantidad} = <span className="text-slate-300">{fmtCOP(subtotalForm)}</span> · </span>}
-                Total: <span className="text-emerald-400 font-semibold">{fmtCOP(total)}</span>
-                {form.incluyeIva && ` (IVA: ${fmtCOP(iva)})`}
-              </p>
-            )}
           </div>
 
           {/* Vigencia */}
