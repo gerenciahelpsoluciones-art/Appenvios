@@ -106,13 +106,7 @@ export const generatePropuestaPDF = (propuesta: Propuesta, action: 'save' | 'vie
   doc.setTextColor(180, 195, 215);
   doc.text(template.nombre, 14, 94);
 
-  // Client info box
-  doc.setFillColor(30, 45, 60);
-  doc.roundedRect(14, 110, W - 28, 52, 4, 4, 'F');
-  doc.setDrawColor(80, 100, 130);
-  doc.setLineWidth(0.3);
-  doc.roundedRect(14, 110, W - 28, 52, 4, 4, 'S');
-
+  // Client info box — 2-column grid with text wrapping
   const clientFields = [
     ['Cliente', propuesta.clienteNombre],
     ['NIT', propuesta.clienteNit || '—'],
@@ -120,16 +114,35 @@ export const generatePropuestaPDF = (propuesta: Propuesta, action: 'save' | 'vie
     ['Ciudad', propuesta.clienteCiudad || '—'],
   ];
 
+  const maxColW = (W - 28) / 2 - 12; // max text width per column
+  const boxStartY = 108;
+  const rowH = 17;
+  const boxH = 2 * rowH + 12;
+
+  doc.setFillColor(30, 45, 60);
+  doc.roundedRect(14, boxStartY, W - 28, boxH, 4, 4, 'F');
+  doc.setDrawColor(80, 100, 130);
+  doc.setLineWidth(0.3);
+  doc.roundedRect(14, boxStartY, W - 28, boxH, 4, 4, 'S');
+
+  // Divider line between columns
+  doc.setDrawColor(60, 80, 110);
+  doc.line(W / 2 + 2, boxStartY + 5, W / 2 + 2, boxStartY + boxH - 5);
+
   clientFields.forEach(([label, val], i) => {
-    const col = i % 2 === 0 ? 20 : 115;
-    const row = 122 + Math.floor(i / 2) * 16;
-    doc.setFontSize(6.5);
+    const col = i % 2 === 0 ? 20 : W / 2 + 8;
+    const baseY = boxStartY + 9 + Math.floor(i / 2) * rowH;
+
+    doc.setFontSize(6);
     doc.setTextColor(130, 150, 180);
-    doc.text(label.toUpperCase(), col, row);
-    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text(label.toUpperCase(), col, baseY);
+
+    doc.setFontSize(8.5);
     doc.setTextColor(...WHITE);
     doc.setFont('helvetica', 'bold');
-    doc.text(val, col, row + 6);
+    const lines = doc.splitTextToSize(val, maxColW);
+    doc.text(lines[0], col, baseY + 5.5); // max 1 line with truncation
     doc.setFont('helvetica', 'normal');
   });
 
