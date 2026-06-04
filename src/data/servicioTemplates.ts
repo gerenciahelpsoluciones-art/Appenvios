@@ -86,4 +86,28 @@ export const SERVICIO_TEMPLATES: ServicioTemplate[] = [
       'Verificación de conectividad de red (impresoras en red)',
     ],
   },
+  {
+    id: 'switches',
+    nombre: 'Mantenimiento Preventivo de Switches',
+    icono: '🔌',
+    color: '#10b981',
+    descripcion: 'Servicio de mantenimiento preventivo para switches de red administrables y no administrables.',
+    introProtocolo:
+      'Servicio técnico especializado en mantenimiento de switches de red que garantiza la ' +
+      'disponibilidad, rendimiento y seguridad de la infraestructura de comunicaciones. ' +
+      'Cada intervención incluye respaldo de configuración e informe técnico detallado.',
+    pasosInfografia: [
+      { icono: '🔍', titulo: 'Inspección Física', descripcion: 'Revisión de puertos, LEDs indicadores y cableado estructurado' },
+      { icono: '🌬️', titulo: 'Limpieza', descripcion: 'Limpieza de puertos, ventiladores y gabinete con aire comprimido' },
+      { icono: '💾', titulo: 'Respaldo Config.', descripcion: 'Backup completo de la configuración actual del switch' },
+      { icono: '🔒', titulo: 'Actualización Firmware', descripcion: 'Actualización a la última versión estable del fabricante' },
+      { icono: '📊', titulo: 'Revisión de Tráfico', descripcion: 'Análisis de errores, colisiones y utilización de puertos' },
+      { icono: '📋', titulo: 'Informe Técnico', descripcion: 'Reporte con hallazgos, configuración activa y recomendaciones' },
+    ],
+    pasosLista: [
+      'Verificación de VLANs, spanning tree y configuración de puertos trunk/access',
+      'Revisión de tablas MAC y estado de conectividad de los dispositivos enlazados',
+      'Prueba de rendimiento y latencia en los segmentos de red críticos',
+    ],
+  },
 ];
