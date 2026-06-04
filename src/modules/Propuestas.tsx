@@ -190,7 +190,12 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
   // ── PREVIEW MODAL (shared between list and form views) ──────────────────────
   const PreviewModal = () => {
     if (!previewPropuesta) return null;
-    const pvTotal = previewPropuesta.valor + (previewPropuesta.incluyeIva ? Math.round(previewPropuesta.valor * 0.19) : 0);
+
+    const pvSub = previewPropuesta.items.reduce((s, it) => s + it.cantidad * it.valorUnitario, 0);
+    const pvIva = previewPropuesta.incluyeIva ? Math.round(pvSub * 0.19) : 0;
+    const pvTotal = pvSub + pvIva;
+    const visibleItems = previewPropuesta.items.filter(it => it.valorUnitario > 0);
+
     return (
       <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
         <div className="bg-slate-900 rounded-xl border border-slate-700 max-w-lg w-full p-6">
@@ -201,14 +206,29 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
             {previewPropuesta.clienteNombre} · {previewPropuesta.tipoServicioNombre}
           </p>
           <div className="bg-slate-800 rounded-lg p-4 text-sm text-slate-300 space-y-2 mb-4">
+            {visibleItems.length > 0 && (
+              <div className="space-y-1 pb-2 border-b border-slate-700">
+                {visibleItems.slice(0, 3).map(it => (
+                  <div key={it.id} className="flex justify-between text-xs">
+                    <span className="text-slate-400 truncate flex-1 mr-2">{it.descripcion || '—'}</span>
+                    <span className="text-slate-300 whitespace-nowrap">
+                      {it.cantidad > 1 ? `${it.cantidad} × ` : ''}{fmtCOP(it.cantidad * it.valorUnitario)}
+                    </span>
+                  </div>
+                ))}
+                {visibleItems.length > 3 && (
+                  <p className="text-xs text-slate-500">+ {visibleItems.length - 3} ítem(s) más</p>
+                )}
+              </div>
+            )}
             <div className="flex justify-between">
-              <span className="text-slate-500">Valor:</span>
-              <span className="font-semibold">{fmtCOP(previewPropuesta.valor)}</span>
+              <span className="text-slate-500">Subtotal:</span>
+              <span>{fmtCOP(pvSub)}</span>
             </div>
             {previewPropuesta.incluyeIva && (
               <div className="flex justify-between">
                 <span className="text-slate-500">IVA (19%):</span>
-                <span>{fmtCOP(Math.round(previewPropuesta.valor * 0.19))}</span>
+                <span>{fmtCOP(pvIva)}</span>
               </div>
             )}
             <div className="flex justify-between border-t border-slate-700 pt-2">
@@ -221,7 +241,7 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">Estado:</span>
-              <span className={`text-xs px-2 py-0.5 rounded-full ${ESTADO_COLORS[previewPropuesta.estado]}`}>
+              <span className={`text-xs px-2.5 py-0.5 rounded-full ${ESTADO_COLORS[previewPropuesta.estado]}`}>
                 {previewPropuesta.estado}
               </span>
             </div>
