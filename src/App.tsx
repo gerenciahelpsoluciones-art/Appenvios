@@ -324,6 +324,27 @@ export interface VentaManual {
   costo?: number;
 }
 
+export interface PropuestaItem {
+  id: string;
+  descripcion: string;
+  productoId?: string;
+  numPart?: string;
+  cantidad: number;
+  valorUnitario: number;
+}
+
+export interface PersonalItem {
+  id: string;
+  nombre: string;
+  cargo: string;
+}
+
+export interface VisitaItem {
+  id: string;
+  sede: string;
+  horario: string;
+}
+
 export interface Propuesta {
   id: string;
   consecutivo: string;
@@ -336,14 +357,15 @@ export interface Propuesta {
   tipoServicioId: string;
   tipoServicioNombre: string;
   moneda: 'COP' | 'USD';
-  valor: number;
-  cantidad?: number;
-  productoId?: string;
-  productoNombre?: string;
-  numPart?: string;
+  valor: number;          // total calculado (sum of items)
+  items: PropuestaItem[];
   incluyeIva: boolean;
   vigencia: string;
   observaciones: string;
+  objetivo: string;
+  personal: PersonalItem[];
+  visitas: VisitaItem[];
+  obligacionesCliente: string[];
   estado: 'Borrador' | 'Enviada' | 'Aceptada';
   comercialNombre: string;
   comercialTelefono: string;
@@ -638,10 +660,7 @@ function App() {
           tipoServicioNombre: p.tipo_servicio_nombre,
           moneda: p.moneda || 'COP',
           valor: p.valor || 0,
-          cantidad: p.cantidad || 1,
-          productoId: p.producto_id || '',
-          productoNombre: p.producto_nombre || '',
-          numPart: p.num_part || '',
+          items: p.items || [],
           incluyeIva: !!p.incluye_iva,
           vigencia: p.vigencia || '30 días',
           observaciones: p.observaciones || '',
@@ -1857,10 +1876,7 @@ function App() {
       tipo_servicio_nombre: p.tipoServicioNombre,
       moneda: p.moneda,
       valor: p.valor,
-      cantidad: p.cantidad || 1,
-      producto_id: p.productoId || null,
-      producto_nombre: p.productoNombre || null,
-      num_part: p.numPart || null,
+      items: p.items || [],
       incluye_iva: p.incluyeIva,
       vigencia: p.vigencia,
       observaciones: p.observaciones,
@@ -1883,9 +1899,7 @@ function App() {
         clienteContacto: dbP.cliente_contacto,
         tipoServicioId: dbP.tipo_servicio_id, tipoServicioNombre: dbP.tipo_servicio_nombre,
         moneda: dbP.moneda, valor: dbP.valor,
-        cantidad: dbP.cantidad || 1,
-        productoId: dbP.producto_id || '', productoNombre: dbP.producto_nombre || '',
-        numPart: dbP.num_part || '',
+        items: dbP.items || [],
         incluyeIva: !!dbP.incluye_iva,
         vigencia: dbP.vigencia, observaciones: dbP.observaciones,
         estado: dbP.estado, comercialNombre: dbP.comercial_nombre,
@@ -1904,10 +1918,7 @@ function App() {
       cliente_contacto: p.clienteContacto,
       tipo_servicio_id: p.tipoServicioId, tipo_servicio_nombre: p.tipoServicioNombre,
       moneda: p.moneda, valor: p.valor,
-      cantidad: p.cantidad || 1,
-      producto_id: p.productoId || null,
-      producto_nombre: p.productoNombre || null,
-      num_part: p.numPart || null,
+      items: p.items || [],
       incluye_iva: p.incluyeIva,
       vigencia: p.vigencia, observaciones: p.observaciones,
       estado: p.estado, comercial_nombre: p.comercialNombre,
