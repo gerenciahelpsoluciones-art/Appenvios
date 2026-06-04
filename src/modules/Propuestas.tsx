@@ -404,16 +404,30 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
             <select
               value={form.clienteId}
               onChange={e => handleClienteChange(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200"
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-base text-slate-200"
             >
               <option value="">Seleccionar cliente...</option>
               {clientes.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
             </select>
-            {form.clienteId && (
-              <p className="text-xs text-slate-500 mt-1">
-                {[form.clienteNit && `NIT: ${form.clienteNit}`, form.clienteContacto].filter(Boolean).join(' · ')}
-              </p>
-            )}
+            {form.clienteId && (() => {
+              const c = clientes.find(cl => cl.id === form.clienteId);
+              return (
+                <div className="mt-2 bg-slate-800/50 border border-slate-700/60 rounded-lg px-3 py-2 space-y-0.5">
+                  {form.clienteNit && (
+                    <p className="text-xs text-slate-500">NIT: <span className="text-slate-300">{form.clienteNit}</span></p>
+                  )}
+                  {form.clienteContacto && (
+                    <p className="text-xs text-slate-500">Contacto: <span className="text-slate-300">{form.clienteContacto}</span></p>
+                  )}
+                  {c?.telefono && (
+                    <p className="text-xs text-slate-500">Tel: <span className="text-slate-300">{c.telefono}</span></p>
+                  )}
+                  {c?.correo && (
+                    <p className="text-xs text-slate-500">Email: <span className="text-slate-300">{c.correo}</span></p>
+                  )}
+                </div>
+              );
+            })()}
           </div>
 
           {/* Ciudad */}
