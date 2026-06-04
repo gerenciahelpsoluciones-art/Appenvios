@@ -354,9 +354,20 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
             </select>
             {form.clienteId && (
               <p className="text-xs text-slate-500 mt-1">
-                {[form.clienteNit && `NIT: ${form.clienteNit}`, form.clienteCiudad, form.clienteContacto].filter(Boolean).join(' · ')}
+                {[form.clienteNit && `NIT: ${form.clienteNit}`, form.clienteContacto].filter(Boolean).join(' · ')}
               </p>
             )}
+          </div>
+
+          {/* Ciudad */}
+          <div>
+            <label className="block text-xs uppercase tracking-wider text-slate-500 mb-1.5">Ciudad</label>
+            <input
+              value={form.clienteCiudad || ''}
+              onChange={e => setForm(f => ({ ...f, clienteCiudad: e.target.value }))}
+              placeholder="Ciudad del servicio"
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200"
+            />
           </div>
 
           {/* Tipo de Servicio */}
