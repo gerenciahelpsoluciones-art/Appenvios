@@ -252,17 +252,26 @@ export const generatePropuestaPDF = (propuesta: Propuesta, action: 'save' | 'vie
   doc.text('Tabla de Inversión', 14, y);
   y += 6;
 
-  const iva = propuesta.incluyeIva ? Math.round(propuesta.valor * 0.19) : 0;
-  const total = propuesta.valor + iva;
+  const cantidad = propuesta.cantidad || 1;
+  const subtotal = propuesta.valor * cantidad;
+  const iva = propuesta.incluyeIva ? Math.round(subtotal * 0.19) : 0;
+  const total = subtotal + iva;
+
+  const descripcionLinea = propuesta.productoNombre
+    ? `${propuesta.productoNombre}${propuesta.numPart ? `\nRef: ${propuesta.numPart}` : ''}\n${template.nombre}`
+    : `${template.nombre}\nIncluye visita técnica, informe y protocolo completo`;
 
   const tableBody: (string | { content: string; colSpan?: number; styles?: object })[][] = [
     [
-      { content: `${template.nombre}\nIncluye visita técnica, informe y protocolo completo`, styles: { fontSize: 8.5 } },
-      '1',
+      { content: descripcionLinea, styles: { fontSize: 8.5 } },
+      String(cantidad),
       formatCurrency(propuesta.valor, propuesta.moneda),
-      formatCurrency(propuesta.valor, propuesta.moneda),
+      formatCurrency(subtotal, propuesta.moneda),
     ],
   ];
+  if (cantidad > 1) {
+    tableBody.push([{ content: `Subtotal (${cantidad} unidades)`, colSpan: 3, styles: { textColor: [100, 116, 139] as [number,number,number] } }, formatCurrency(subtotal, propuesta.moneda)]);
+  }
   if (propuesta.incluyeIva) {
     tableBody.push(['IVA (19%)', '', '', formatCurrency(iva, propuesta.moneda)]);
   }

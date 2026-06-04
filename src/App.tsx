@@ -337,6 +337,10 @@ export interface Propuesta {
   tipoServicioNombre: string;
   moneda: 'COP' | 'USD';
   valor: number;
+  cantidad?: number;
+  productoId?: string;
+  productoNombre?: string;
+  numPart?: string;
   incluyeIva: boolean;
   vigencia: string;
   observaciones: string;
@@ -634,6 +638,10 @@ function App() {
           tipoServicioNombre: p.tipo_servicio_nombre,
           moneda: p.moneda || 'COP',
           valor: p.valor || 0,
+          cantidad: p.cantidad || 1,
+          productoId: p.producto_id || '',
+          productoNombre: p.producto_nombre || '',
+          numPart: p.num_part || '',
           incluyeIva: !!p.incluye_iva,
           vigencia: p.vigencia || '30 días',
           observaciones: p.observaciones || '',
@@ -1849,6 +1857,10 @@ function App() {
       tipo_servicio_nombre: p.tipoServicioNombre,
       moneda: p.moneda,
       valor: p.valor,
+      cantidad: p.cantidad || 1,
+      producto_id: p.productoId || null,
+      producto_nombre: p.productoNombre || null,
+      num_part: p.numPart || null,
       incluye_iva: p.incluyeIva,
       vigencia: p.vigencia,
       observaciones: p.observaciones,
@@ -1870,7 +1882,11 @@ function App() {
         clienteNit: dbP.cliente_nit, clienteCiudad: dbP.cliente_ciudad,
         clienteContacto: dbP.cliente_contacto,
         tipoServicioId: dbP.tipo_servicio_id, tipoServicioNombre: dbP.tipo_servicio_nombre,
-        moneda: dbP.moneda, valor: dbP.valor, incluyeIva: !!dbP.incluye_iva,
+        moneda: dbP.moneda, valor: dbP.valor,
+        cantidad: dbP.cantidad || 1,
+        productoId: dbP.producto_id || '', productoNombre: dbP.producto_nombre || '',
+        numPart: dbP.num_part || '',
+        incluyeIva: !!dbP.incluye_iva,
         vigencia: dbP.vigencia, observaciones: dbP.observaciones,
         estado: dbP.estado, comercialNombre: dbP.comercial_nombre,
         comercialTelefono: dbP.comercial_telefono, usuarioId: dbP.usuario_id,
@@ -1887,7 +1903,12 @@ function App() {
       cliente_nit: p.clienteNit, cliente_ciudad: p.clienteCiudad,
       cliente_contacto: p.clienteContacto,
       tipo_servicio_id: p.tipoServicioId, tipo_servicio_nombre: p.tipoServicioNombre,
-      moneda: p.moneda, valor: p.valor, incluye_iva: p.incluyeIva,
+      moneda: p.moneda, valor: p.valor,
+      cantidad: p.cantidad || 1,
+      producto_id: p.productoId || null,
+      producto_nombre: p.productoNombre || null,
+      num_part: p.numPart || null,
+      incluye_iva: p.incluyeIva,
       vigencia: p.vigencia, observaciones: p.observaciones,
       estado: p.estado, comercial_nombre: p.comercialNombre,
       comercial_telefono: p.comercialTelefono,
@@ -2045,6 +2066,7 @@ function App() {
         return <PropuestasModule
           propuestas={filteredPropuestas}
           clientes={clientes}
+          productos={productos}
           currentUser={currentUser}
           onAdd={addPropuesta}
           onUpdate={updatePropuesta}
