@@ -265,25 +265,33 @@ export const generatePropuestaPDF = (propuesta: Propuesta, action: 'save' | 'vie
   doc.text('Tabla de Inversión', 14, y);
   y += 6;
 
-  const cantidad = propuesta.cantidad || 1;
-  const subtotal = propuesta.valor * cantidad;
+  const itemsConValor = propuesta.items.filter(it => it.valorUnitario > 0);
+  const subtotal = itemsConValor.reduce((s, it) => s + it.cantidad * it.valorUnitario, 0);
   const iva = propuesta.incluyeIva ? Math.round(subtotal * 0.19) : 0;
   const total = subtotal + iva;
 
-  const descripcionLinea = propuesta.productoNombre
-    ? `${propuesta.productoNombre}${propuesta.numPart ? `\nRef: ${propuesta.numPart}` : ''}\n${template.nombre}`
-    : `${template.nombre}\nIncluye visita técnica, informe y protocolo completo`;
+  const tableBody: (string | { content: string; colSpan?: number; styles?: object })[][] =
+    itemsConValor.map(it => [
+      { content: it.descripcion + (it.numPart ? `\nRef: ${it.numPart}` : ''), styles: { fontSize: 8.5 } },
+      String(it.cantidad),
+      formatCurrency(it.valorUnitario, propuesta.moneda),
+      formatCurrency(it.cantidad * it.valorUnitario, propuesta.moneda),
+    ]);
 
-  const tableBody: (string | { content: string; colSpan?: number; styles?: object })[][] = [
-    [
-      { content: descripcionLinea, styles: { fontSize: 8.5 } },
-      String(cantidad),
+  if (itemsConValor.length === 0) {
+    tableBody.push([
+      { content: `${template.nombre}\nIncluye visita técnica, informe y protocolo completo`, styles: { fontSize: 8.5 } },
+      '1',
       formatCurrency(propuesta.valor, propuesta.moneda),
+      formatCurrency(propuesta.valor, propuesta.moneda),
+    ]);
+  }
+
+  if (itemsConValor.length > 1) {
+    tableBody.push([
+      { content: 'Subtotal', colSpan: 3, styles: { textColor: [100, 116, 139] as [number, number, number] } },
       formatCurrency(subtotal, propuesta.moneda),
-    ],
-  ];
-  if (cantidad > 1) {
-    tableBody.push([{ content: `Subtotal (${cantidad} unidades)`, colSpan: 3, styles: { textColor: [100, 116, 139] as [number,number,number] } }, formatCurrency(subtotal, propuesta.moneda)]);
+    ]);
   }
   if (propuesta.incluyeIva) {
     tableBody.push(['IVA (19%)', '', '', formatCurrency(iva, propuesta.moneda)]);
