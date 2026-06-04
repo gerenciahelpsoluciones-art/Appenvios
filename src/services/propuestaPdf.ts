@@ -156,10 +156,111 @@ export const generatePropuestaPDF = (propuesta: Propuesta, action: 'save' | 'vie
   doc.text(`Vigencia: ${propuesta.vigencia}`, 105, footerY, { align: 'center' });
   doc.text('helpsoluciones.com.co', W - 14, footerY, { align: 'right' });
 
-  // ─── PAGE 2: PROTOCOL ───────────────────────────────────────────────────────
+  // ─── PAGE 2: SERVICE DETAILS ────────────────────────────────────────────────
 
   doc.addPage();
   addPageHeader(doc, propuesta, 2);
+
+  let yD = 22;
+
+  doc.setFontSize(7.5);
+  doc.setTextColor(...INDIGO);
+  doc.setFont('helvetica', 'bold');
+  doc.text('DETALLES DE LA PROPUESTA', 14, yD);
+  yD += 6;
+
+  doc.setFontSize(13);
+  doc.setTextColor(...TEXT_DARK);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Alcance y Condiciones del Servicio', 14, yD);
+  yD += 8;
+
+  // Objetivo
+  if (propuesta.objetivo) {
+    const objLines = doc.splitTextToSize(propuesta.objetivo, W - 36);
+    const objBoxH = 12 + objLines.length * 5;
+    doc.setFillColor(...LIGHT_GRAY);
+    doc.rect(14, yD, W - 28, objBoxH, 'F');
+    doc.setFillColor(...INDIGO);
+    doc.rect(14, yD, 1.5, objBoxH, 'F');
+    doc.setFontSize(6.5);
+    doc.setTextColor(130, 150, 180);
+    doc.setFont('helvetica', 'bold');
+    doc.text('OBJETIVO DE LA PROPUESTA', 18, yD + 5);
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...TEXT_MUTED);
+    doc.text(objLines, 18, yD + 11);
+    yD += objBoxH + 7;
+  }
+
+  // Personal a Cargo
+  const personalData = (propuesta.personal || []).filter(p => p.nombre);
+  if (personalData.length > 0) {
+    doc.setFontSize(8.5);
+    doc.setTextColor(...TEXT_DARK);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Personal a Cargo', 14, yD);
+    yD += 3;
+    autoTable(doc, {
+      startY: yD,
+      margin: { left: 14, right: 14 },
+      head: [['Nombre', 'Cargo / Rol']],
+      body: personalData.map(p => [p.nombre, p.cargo]),
+      headStyles: { fillColor: DARK_BLUE, textColor: WHITE, fontSize: 8 },
+      bodyStyles: { fontSize: 8.5 },
+    });
+    yD = (doc as any).lastAutoTable.finalY + 7;
+  }
+
+  // Visitas a Sedes y Horarios
+  const visitasData = (propuesta.visitas || []).filter(v => v.sede);
+  if (visitasData.length > 0) {
+    doc.setFontSize(8.5);
+    doc.setTextColor(...TEXT_DARK);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Visitas a Sedes y Horarios', 14, yD);
+    yD += 3;
+    autoTable(doc, {
+      startY: yD,
+      margin: { left: 14, right: 14 },
+      head: [['Sede / Ciudad', 'Ventana de Mantenimiento']],
+      body: visitasData.map(v => [v.sede, v.horario]),
+      headStyles: { fillColor: DARK_BLUE, textColor: WHITE, fontSize: 8 },
+      bodyStyles: { fontSize: 8.5 },
+    });
+    yD = (doc as any).lastAutoTable.finalY + 3;
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(...TEXT_MUTED);
+    doc.text('* El mantenimiento se realizará en la ventana de mantenimiento propuesta por el cliente.', 14, yD);
+    yD += 7;
+  }
+
+  // Obligaciones del Cliente
+  const obligaciones = (propuesta.obligacionesCliente || []).filter(o => o.trim());
+  if (obligaciones.length > 0) {
+    doc.setFontSize(8.5);
+    doc.setTextColor(...TEXT_DARK);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Obligaciones del Cliente', 14, yD);
+    yD += 5;
+    obligaciones.forEach(oblig => {
+      doc.setFillColor(...INDIGO);
+      doc.circle(17.5, yD - 1, 1.5, 'F');
+      doc.setFontSize(8.5);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(...TEXT_DARK);
+      const lines = doc.splitTextToSize(oblig, W - 34);
+      doc.text(lines, 22, yD);
+      yD += lines.length * 5 + 2;
+    });
+  }
+
+  // ─── PAGE 3: PROTOCOL ───────────────────────────────────────────────────────
+
+  doc.addPage();
+  addPageHeader(doc, propuesta, 3);
 
   let y = 22;
 
@@ -246,10 +347,10 @@ export const generatePropuestaPDF = (propuesta: Propuesta, action: 'save' | 'vie
     y += 10;
   });
 
-  // ─── PAGE 3: PRICE + TERMS + SIGNATURES ─────────────────────────────────────
+  // ─── PAGE 4: PRICE + TERMS + SIGNATURES ─────────────────────────────────────
 
   doc.addPage();
-  addPageHeader(doc, propuesta, 3);
+  addPageHeader(doc, propuesta, 4);
 
   y = 22;
 
