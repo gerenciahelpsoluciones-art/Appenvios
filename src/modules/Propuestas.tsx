@@ -443,7 +443,8 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
 
           {/* Tipo de Servicio */}
           <div>
-            <label className="block text-xs uppercase tracking-wider text-slate-500 mb-1.5">Tipo de Servicio *</label>
+            <label className="block text-xs uppercase tracking-wider text-slate-500 mb-1.5">Categoría / Servicio Principal *</label>
+            <p className="text-xs text-slate-600 mb-2">Selecciona la categoría general. Puedes detallar múltiples equipos y ciudades en los ítems.</p>
             <div className="grid grid-cols-2 gap-2">
               {SERVICIO_TEMPLATES.map(t => (
                 <button
