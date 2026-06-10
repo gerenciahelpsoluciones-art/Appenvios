@@ -34,7 +34,7 @@ export const generateRemissionPDF = (data: RemissionPDFData) => {
     }
 
     doc.setFontSize(18);
-    doc.setTextColor(0, 31, 63); // Racing Blue (#001f3f)
+    doc.setTextColor(0, 74, 153); // Corporate Blue (#004a99)
     doc.text('REMISION DE ENTREGA', pageWidth - 15, 20, { align: 'right' });
 
     doc.setFontSize(12);
@@ -45,9 +45,9 @@ export const generateRemissionPDF = (data: RemissionPDFData) => {
     // 2. Company Info (Static)
     doc.setFontSize(9);
     doc.setTextColor(0);
-    doc.text('HELP SOLUCIONES INFORMATICAS S.A.S', 15, 35);
-    doc.text('NIT: 901.365.123-1', 15, 39);
-    doc.text('Calle 123 # 45 - 67, Medellín, Colombia', 15, 43);
+    doc.text('HELP SOLUCIONES INFORMATICAS HSI SAS', 15, 35);
+    doc.text('NIT: 900686378-7', 15, 39);
+    doc.text('Celular: 3043358650 - 3003453610 | gerencia@helpsoluciones.com.co', 15, 43);
 
     // 3. Client Info
     doc.setDrawColor(200);
@@ -74,7 +74,7 @@ export const generateRemissionPDF = (data: RemissionPDFData) => {
             `$${item.precio_unitario.toLocaleString()}`,
             `$${item.subtotal.toLocaleString()}`
         ]),
-        headStyles: { fillColor: [0, 51, 102], textColor: 255 }, // Dark Blue
+        headStyles: { fillColor: [0, 74, 153], textColor: 255 }, // Corporate Blue
         alternateRowStyles: { fillColor: [245, 247, 250] },
         styles: { fontSize: 9 },
         margin: { left: 15, right: 15 }
