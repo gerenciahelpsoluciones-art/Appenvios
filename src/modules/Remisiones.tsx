@@ -74,7 +74,7 @@ const RemisionesModule: React.FC<IProps> = ({ clientes = [], productos = [], cur
 
     const handleAddItem = () => {
         const tempId = Math.random().toString(36).substring(2, 9) + Date.now().toString(36);
-        setRemissionItems([...remissionItems, { id: tempId, cantidad: 1, precio_unitario: 0, subtotal: 0 }]);
+        setRemissionItems([...remissionItems, { id: tempId, producto_id: '', descripcion: '', cantidad: 1, precio_unitario: 0, subtotal: 0 }]);
     };
 
     const handleUpdateItem = (id: string, field: keyof RemissionDetail, value: any) => {
@@ -107,6 +107,13 @@ const RemisionesModule: React.FC<IProps> = ({ clientes = [], productos = [], cur
             return;
         }
 
+        // Validar que todos los items tengan un producto y una descripción válidos
+        const tieneItemsInvalidos = remissionItems.some(item => !item.producto_id || !item.descripcion);
+        if (tieneItemsInvalidos) {
+            alert('Por favor seleccione un producto para todos los items agregados.');
+            return;
+        }
+
         setIsSaving(true);
         try {
             const numero = `REM-${Date.now().toString().slice(-6)}`;
@@ -133,7 +140,7 @@ const RemisionesModule: React.FC<IProps> = ({ clientes = [], productos = [], cur
             const detailsPayload = remissionItems.map(item => ({
                 remision_id: header[0].id,
                 producto_id: item.producto_id,
-                descripcion: item.descripcion,
+                descripcion: item.descripcion || 'Producto',
                 cantidad: item.cantidad,
                 precio_unitario: item.precio_unitario,
                 subtotal: item.subtotal
