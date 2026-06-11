@@ -129,7 +129,7 @@ export const SERVICIO_TEMPLATES: ServicioTemplate[] = [
       { icono: '📋', titulo: 'Informes Mensuales', descripcion: 'Entrega mensual de reportes detallados de actividades y soporte brindado.' },
     ],
     pasosLista: [
-      'Mantenimiento preventivo anual para 1000 equipos, ejecutado en 2 periodos semestrales.',
+      'Mantenimiento preventivo anual para los equipos de la entidad, ejecutado en 2 periodos semestrales.',
       'Soporte remoto y en sitio en Bogotá de Lunes a Viernes de 8:00 AM a 5:00 PM.',
       'Canal continuo de comunicación entre el supervisor de Cinemark y Help Soluciones.',
       'Préstamo de hasta 5 equipos de respaldo en calidad de préstamo por un periodo máximo de 5 días.',
