@@ -131,7 +131,7 @@ export const SERVICIO_TEMPLATES: ServicioTemplate[] = [
     pasosLista: [
       'Mantenimiento preventivo anual para los equipos de la entidad, ejecutado en 2 periodos semestrales.',
       'Soporte remoto y en sitio en Bogotá de Lunes a Viernes de 8:00 AM a 5:00 PM.',
-      'Canal continuo de comunicación entre el supervisor de Cinemark y Help Soluciones.',
+      'Canal continuo de comunicación entre el supervisor del cliente y Help Soluciones.',
       'Préstamo de hasta 5 equipos de respaldo en calidad de préstamo por un periodo máximo de 5 días.',
       'Bolsa de repuestos en sitio facturados de forma mensual o inmediata según autorización.',
       'Cumplimiento estricto del Sistema de Gestión de Seguridad y Salud en el Trabajo (SGSST).',

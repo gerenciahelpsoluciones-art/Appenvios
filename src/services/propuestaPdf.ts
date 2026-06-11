@@ -343,7 +343,8 @@ export const generatePropuestaPDF = (propuesta: Propuesta, action: 'save' | 'vie
     doc.setFontSize(8.5);
     doc.setTextColor(...TEXT_DARK);
     doc.setFont('helvetica', 'normal');
-    doc.text(paso, 26, y + 5.2);
+    const txt = paso.replace(/de Cinemark/gi, `de ${propuesta.clienteNombre}`).replace(/del cliente/gi, `de ${propuesta.clienteNombre}`).replace(/el cliente/gi, propuesta.clienteNombre);
+    doc.text(txt, 26, y + 5.2);
     y += 10;
   });
 
