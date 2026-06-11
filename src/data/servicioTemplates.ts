@@ -110,4 +110,31 @@ export const SERVICIO_TEMPLATES: ServicioTemplate[] = [
       'Prueba de rendimiento y latencia en los segmentos de red críticos',
     ],
   },
+  {
+    id: 'mesa-de-ayuda',
+    nombre: 'Mesa de Ayuda y Soporte Técnico Integrado',
+    icono: '🛠️',
+    color: '#3b82f6',
+    descripcion: 'Servicio integral de Mesa de Ayuda (Help Desk) con soporte remoto 5x8, visitas mensuales presenciales y mantenimiento de hardware y software a nivel nacional.',
+    introProtocolo:
+      'Garantizamos la continuidad operativa de su plataforma tecnológica mediante soporte técnico presencial y remoto. ' +
+      'Nuestra solución integra personal técnico calificado, mantenimientos periódicos y un software de mesa de ayuda digital ' +
+      'para asegurar el cumplimiento de acuerdos de niveles de servicio (SLA).',
+    pasosInfografia: [
+      { icono: '🔍', titulo: 'Monitoreo e Inventario', descripcion: 'Auditoría inicial y control continuo del parque tecnológico bajo cobertura.' },
+      { icono: '💻', titulo: 'Soporte Remoto 5x8', descripcion: 'Atención técnica vía chat, teléfono o remota para solución ágil de incidentes.' },
+      { icono: '🚗', titulo: 'Visitas Mensuales', descripcion: 'Desplazamiento a sedes fuera de Bogotá para soporte presencial (jornada de 8h).' },
+      { icono: '🧹', titulo: 'Mantenimiento Físico', descripcion: 'Dos ciclos de mantenimiento preventivo de hardware y limpieza de equipos al año.' },
+      { icono: '🔒', titulo: 'Portal de Casos', descripcion: 'Registro de solicitudes y trazabilidad en línea (helpsoluciones.com.co/soportetecnico).' },
+      { icono: '📋', titulo: 'Informes Mensuales', descripcion: 'Entrega mensual de reportes detallados de actividades y soporte brindado.' },
+    ],
+    pasosLista: [
+      'Mantenimiento preventivo anual para 1000 equipos, ejecutado en 2 periodos semestrales.',
+      'Soporte remoto y en sitio en Bogotá de Lunes a Viernes de 8:00 AM a 5:00 PM.',
+      'Canal continuo de comunicación entre el supervisor de Cinemark y Help Soluciones.',
+      'Préstamo de hasta 5 equipos de respaldo en calidad de préstamo por un periodo máximo de 5 días.',
+      'Bolsa de repuestos en sitio facturados de forma mensual o inmediata según autorización.',
+      'Cumplimiento estricto del Sistema de Gestión de Seguridad y Salud en el Trabajo (SGSST).',
+    ],
+  },
 ];
