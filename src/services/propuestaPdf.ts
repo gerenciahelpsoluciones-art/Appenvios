@@ -190,7 +190,7 @@ export const generatePropuestaPDF = (propuesta: Propuesta, action: 'save' | 'vie
     doc.setFontSize(8.5);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...TEXT_MUTED);
-    doc.text(objLines, 18, yD + 11);
+    doc.text(objLines, 18, yD + 11, { align: 'justify', maxWidth: W - 36 });
     yD += objBoxH + 7;
   }
 
