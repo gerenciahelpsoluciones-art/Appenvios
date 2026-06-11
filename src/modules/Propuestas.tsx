@@ -86,6 +86,7 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
       clienteNit: c?.nit || '',
       clienteCiudad: c?.ciudad || '',
       clienteContacto: c?.contacto || '',
+    }));
   };
 
   const handleServicioChange = (id: string) => {
