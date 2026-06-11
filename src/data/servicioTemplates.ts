@@ -124,7 +124,7 @@ export const SERVICIO_TEMPLATES: ServicioTemplate[] = [
       { icono: '🔍', titulo: 'Monitoreo e Inventario', descripcion: 'Auditoría inicial y control continuo del parque tecnológico bajo cobertura.' },
       { icono: '💻', titulo: 'Soporte Remoto 5x8', descripcion: 'Atención técnica vía chat, teléfono o remota para solución ágil de incidentes.' },
       { icono: '🚗', titulo: 'Visitas Mensuales', descripcion: 'Desplazamiento a sedes fuera de Bogotá para soporte presencial (jornada de 8h).' },
-      { icono: '🧹', titulo: 'Mantenimiento Físico', descripcion: 'Dos ciclos de mantenimiento preventivo de hardware y limpieza de equipos al año.' },
+      { icono: '🧹', titulo: 'Mantenimiento Físico', descripcion: '2 ciclos de mantenimiento preventivo de hardware al año.' },
       { icono: '🔒', titulo: 'Portal de Casos', descripcion: 'Registro de solicitudes y trazabilidad en línea (helpsoluciones.com.co/soportetecnico).' },
       { icono: '📋', titulo: 'Informes Mensuales', descripcion: 'Entrega mensual de reportes detallados de actividades y soporte brindado.' },
     ],
