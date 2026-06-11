@@ -86,14 +86,22 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
       clienteNit: c?.nit || '',
       clienteCiudad: c?.ciudad || '',
       clienteContacto: c?.contacto || '',
-    }));
   };
 
   const handleServicioChange = (id: string) => {
     const t = SERVICIO_TEMPLATES.find(t => t.id === id);
-    setForm(f => ({ ...f, tipoServicioId: id, tipoServicioNombre: t?.nombre || '' }));
+    if (id === 'mesa-de-ayuda') {
+      setForm(f => ({
+        ...f,
+        tipoServicioId: id,
+        tipoServicioNombre: t?.nombre || '',
+        objetivo: 'El objetivo de la presente propuesta es establecer una alianza estratégica para garantizar la continuidad operativa de la plataforma tecnológica de la compañía mediante el suministro de un servicio integral de Mesa de Ayuda (Help Desk). Nuestra solución combina personal técnico especializado, un riguroso plan de mantenimientos preventivos y correctivos anuales, soporte técnico con un esquema híbrido de 3 días presenciales en su sede y 2 días de forma remota, junto con soporte en tiempo real para incidentes críticos. Todo gestionado bajo estrictos Acuerdos de Niveles de Servicio (SLA) a través de nuestra plataforma digital, con el fin de minimizar la inactividad y potenciar la productividad operativa de sus colaboradores.',
+        observaciones: 'Resumen del Aplicativo de Mesa de Ayuda:\n• Canal de Reporte Oficial: Portal Web (helpsoluciones.com.co/soportetecnico/index.php) activo 24/7 para registro de tickets.\n• Niveles de Servicio (SLA Nivel 1):\n  - Crítica (Falla total): Respuesta ≤ 15 min / Solución ≤ 2h\n  - Alta (Bloqueos/Sin internet): Respuesta ≤ 30 min / Solución ≤ 4h\n  - Media (Lentitud/Periféricos): Respuesta ≤ 1h / Solución ≤ 12h\n  - Baja (Dudas/Consultas): Respuesta ≤ 2h / Solución ≤ 48h\n• Garantía Operativa: Préstamo de hasta 5 equipos de cómputo de backup en caso de superar tiempos de solución en criticidad alta/crítica.'
+      }));
+    } else {
+      setForm(f => ({ ...f, tipoServicioId: id, tipoServicioNombre: t?.nombre || '' }));
+    }
   };
-
   const calcTotal = (items: PropuestaItem[], incluyeIva: boolean) => {
     const sub = items.reduce((s, it) => s + it.cantidad * it.valorUnitario, 0);
     const iva = incluyeIva ? Math.round(sub * 0.19) : 0;
