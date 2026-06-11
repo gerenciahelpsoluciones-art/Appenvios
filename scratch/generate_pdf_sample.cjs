@@ -452,7 +452,7 @@ if (propuesta.tipoServicioId === 'mesa-de-ayuda') {
   const slaNotes = [
     '• Horario de Cobertura: El cumplimiento de los ANS se calcula dentro del horario de atención hábil (Lunes a Viernes de 8:00 AM a 5:00 PM).',
     '• Inicio del Tiempo: Los tiempos corren desde el registro formal del ticket en el portal de Mesa de Ayuda.',
-    '• Exclusividad: No cubre soporte de infraestructura física de red corporativa, servidores, bases de datos o servicios de Nivel 2 y 3.'
+    '• Excepcionalidad: No cubre soporte de infraestructura física de red corporativa, servidores, bases de datos o servicios de Nivel 2 y 3.'
   ];
 
   doc.setFontSize(7.5);
