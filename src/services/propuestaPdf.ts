@@ -350,8 +350,82 @@ export const generatePropuestaPDF = (propuesta: Propuesta, action: 'save' | 'vie
 
   // ─── PAGE 4: PRICE + TERMS + SIGNATURES ─────────────────────────────────────
 
+  let pageNum = 4;
+  if (propuesta.tipoServicioId === 'mesa-de-ayuda') {
+    doc.addPage();
+    addPageHeader(doc, propuesta, pageNum);
+    pageNum++;
+
+    let ySla = 22;
+    doc.setFontSize(7.5);
+    doc.setTextColor(...INDIGO);
+    doc.setFont('helvetica', 'bold');
+    doc.text('ACUERDOS DE SERVICIO', 14, ySla);
+    ySla += 6;
+
+    doc.setFontSize(14);
+    doc.setTextColor(...TEXT_DARK);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Acuerdos de Niveles de Servicio (SLA) - Nivel 1', 14, ySla);
+    ySla += 8;
+
+    doc.setFillColor(...LIGHT_GRAY);
+    doc.rect(14, ySla, W - 28, 14, 'F');
+    doc.setFillColor(...INDIGO);
+    doc.rect(14, ySla, 1.5, 14, 'F');
+    doc.setFontSize(8);
+    doc.setTextColor(...TEXT_MUTED);
+    doc.setFont('helvetica', 'normal');
+    const slaIntro = 'Los compromisos descritos a continuación aplican exclusivamente para la atención primaria de incidentes y requerimientos de soporte técnico (Nivel 1) sobre los equipos de cómputo de los usuarios finales.';
+    const slaIntroLines = doc.splitTextToSize(slaIntro, W - 34);
+    doc.text(slaIntroLines, 18, ySla + 5.5);
+    ySla += 20;
+
+    autoTable(doc, {
+      startY: ySla,
+      margin: { left: 14, right: 14 },
+      head: [['Criticidad', 'Descripción / Tipo de Incidente (Nivel 1)', 'T. Respuesta', 'T. Solución', 'Canal']],
+      body: [
+        ['Crítica', 'Equipo no enciende o pantalla azul (bloqueo total de labores)', '≤ 15 min', '≤ 2 horas', 'Remoto / Sitio'],
+        ['Alta', 'Cuentas bloqueadas, sin internet o falla en app principal del usuario', '≤ 30 min', '≤ 4 horas', 'Remoto / Sitio'],
+        ['Media', 'Lentitud del equipo, impresoras, software secundario o periféricos', '≤ 1 hora', '≤ 12 horas', 'Remoto'],
+        ['Baja', 'Dudas de software, consultas generales o cambios estéticos', '≤ 2 horas', '≤ 48 horas', 'Portal / Remoto']
+      ],
+      headStyles: { fillColor: DARK_BLUE, textColor: WHITE, fontSize: 8 },
+      bodyStyles: { fontSize: 8 },
+      columnStyles: {
+        0: { fontStyle: 'bold' },
+        2: { halign: 'center' },
+        3: { halign: 'center' }
+      }
+    });
+
+    ySla = (doc as any).lastAutoTable.finalY + 8;
+
+    doc.setFontSize(8.5);
+    doc.setTextColor(...TEXT_DARK);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Notas de los Acuerdos (ANS):', 14, ySla);
+    ySla += 5;
+
+    const slaNotes = [
+      '• Horario de Cobertura: El cumplimiento de los ANS se calcula dentro del horario de atención hábil (Lunes a Viernes de 8:00 AM a 5:00 PM).',
+      '• Inicio del Tiempo: Los tiempos corren desde el registro formal del ticket en el portal de Mesa de Ayuda.',
+      '• Exclusividad: No cubre soporte de infraestructura física de red corporativa, servidores, bases de datos o servicios de Nivel 2 y 3.'
+    ];
+
+    doc.setFontSize(7.5);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...TEXT_MUTED);
+    slaNotes.forEach(note => {
+      const noteLines = doc.splitTextToSize(note, W - 28);
+      doc.text(noteLines, 14, ySla);
+      ySla += noteLines.length * 4 + 1;
+    });
+  }
+
   doc.addPage();
-  addPageHeader(doc, propuesta, 4);
+  addPageHeader(doc, propuesta, pageNum);
 
   y = 22;
 
