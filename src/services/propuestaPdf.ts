@@ -190,7 +190,7 @@ export const generatePropuestaPDF = (propuesta: Propuesta, action: 'save' | 'vie
     doc.setFontSize(8.5);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...TEXT_MUTED);
-    doc.text(propuesta.objetivo, 18, yD + 11, { align: 'justify', maxWidth: W - 36 });
+    doc.text(propuesta.objetivo, 18, yD + 11, { maxWidth: W - 36 });
     yD += objBoxH + 7;
   }
 
@@ -386,10 +386,10 @@ export const generatePropuestaPDF = (propuesta: Propuesta, action: 'save' | 'vie
       margin: { left: 14, right: 14 },
       head: [['Criticidad', 'Descripción / Tipo de Incidente (Nivel 1)', 'T. Respuesta', 'T. Solución', 'Canal']],
       body: [
-        ['Crítica', 'Equipo no enciende o pantalla azul (bloqueo total de labores)', '≤ 15 min', '≤ 2 horas', 'Remoto / Sitio'],
-        ['Alta', 'Cuentas bloqueadas, sin internet o falla en app principal del usuario', '≤ 30 min', '≤ 4 horas', 'Remoto / Sitio'],
-        ['Media', 'Lentitud del equipo, impresoras, software secundario o periféricos', '≤ 1 hora', '≤ 12 horas', 'Remoto'],
-        ['Baja', 'Dudas de software, consultas generales o cambios estéticos', '≤ 2 horas', '≤ 48 horas', 'Portal / Remoto']
+        ['Crítica', 'Equipo no enciende o pantalla azul (bloqueo total de labores)', '<= 15 min', '<= 2 horas', 'Remoto / Sitio'],
+        ['Alta', 'Cuentas bloqueadas, sin internet o falla en app principal del usuario', '<= 30 min', '<= 4 horas', 'Remoto / Sitio'],
+        ['Media', 'Lentitud del equipo, impresoras, software secundario o periféricos', '<= 1 hora', '<= 12 horas', 'Remoto'],
+        ['Baja', 'Dudas de software, consultas generales o cambios estéticos', '<= 2 horas', '<= 48 horas', 'Portal / Remoto']
       ],
       headStyles: { fillColor: DARK_BLUE, textColor: WHITE, fontSize: 8 },
       bodyStyles: { fontSize: 8 },
@@ -515,7 +515,7 @@ export const generatePropuestaPDF = (propuesta: Propuesta, action: 'save' | 'vie
 
   const terms = [
     `• Vigencia de la propuesta: ${propuesta.vigencia} a partir de la fecha de emisión.`,
-    '• Forma de pago: 50% anticipado, 50% contra entrega del informe técnico.',
+    '• Forma de pago: Se factura 5 días de cada mes después de cumplir con el servicio.',
     '• El servicio se presta en las instalaciones del cliente en horario hábil.',
     '• No incluye reemplazo de partes o repuestos.',
   ];
