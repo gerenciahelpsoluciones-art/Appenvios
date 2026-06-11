@@ -123,7 +123,6 @@ export const SERVICIO_TEMPLATES: ServicioTemplate[] = [
     pasosInfografia: [
       { icono: '🔍', titulo: 'Monitoreo e Inventario', descripcion: 'Auditoría inicial y control continuo del parque tecnológico bajo cobertura.' },
       { icono: '💻', titulo: 'Soporte Remoto 5x8', descripcion: 'Atención técnica vía chat, teléfono o remota para solución ágil de incidentes.' },
-      { icono: '🚗', titulo: 'Visitas Mensuales', descripcion: 'Desplazamiento a sedes fuera de Bogotá para soporte presencial (jornada de 8h).' },
       { icono: '🧹', titulo: 'Mantenimiento Físico', descripcion: '2 ciclos de mantenimiento preventivo de hardware al año.' },
       { icono: '🔒', titulo: 'Portal de Casos', descripcion: 'Registro de solicitudes y trazabilidad en línea (helpsoluciones.com.co/soportetecnico).' },
       { icono: '📋', titulo: 'Informes Mensuales', descripcion: 'Entrega mensual de reportes detallados de actividades y soporte brindado.' },
@@ -132,7 +131,7 @@ export const SERVICIO_TEMPLATES: ServicioTemplate[] = [
       'Mantenimiento preventivo anual para los equipos de la entidad, ejecutado en 2 periodos semestrales.',
       'Soporte remoto y en sitio en Bogotá de Lunes a Viernes de 8:00 AM a 5:00 PM.',
       'Canal continuo de comunicación entre el supervisor del cliente y Help Soluciones.',
-      'Préstamo de hasta 5 equipos de respaldo en calidad de préstamo por un periodo máximo de 5 días.',
+      'Préstamo de hasta 2 equipos de respaldo en calidad de préstamo por un periodo máximo de 5 días.',
       'Bolsa de repuestos en sitio facturados de forma mensual o inmediata según autorización.',
       'Cumplimiento estricto del Sistema de Gestión de Seguridad y Salud en el Trabajo (SGSST).',
     ],
