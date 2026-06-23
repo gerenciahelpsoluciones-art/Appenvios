@@ -1,0 +1,11 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "framework": "vite",
+  "rewrites": [
+    {
+      "source": "/api/sickw",
+      "destination": "https://sickw.com/api.php"
+    }
+  ]
+}
