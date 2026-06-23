@@ -128,7 +128,7 @@ function App() {
     const fetchSupabaseData = async (isPoll = false) => {
       try {
         const { data: dbProducts, error: prodErr } = await supabase.from('istore_products').select('*');
-        if (!prodErr && dbProducts) {
+        if (!prodErr && dbProducts && dbProducts.length > 0) {
           const mappedProds = dbProducts.map((p: any) => ({
             id: p.id,
             name: p.name,
@@ -144,7 +144,7 @@ function App() {
         }
         
         const { data: dbProfiles, error: profErr } = await supabase.from('istore_profiles').select('*');
-        if (!profErr && dbProfiles) {
+        if (!profErr && dbProfiles && dbProfiles.length > 0) {
           const mappedProfs = dbProfiles.map((p: any) => ({
             id: p.id,
             name: p.name,
