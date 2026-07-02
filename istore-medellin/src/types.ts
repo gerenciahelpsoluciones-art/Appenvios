@@ -38,6 +38,9 @@ export interface Repair {
   createdAt: string;
   partsCost?: number;
   paymentStatus?: 'pendiente' | 'pagado';
+  commissionStatus?: 'pendiente' | 'pagado';
+  commissionPaidAt?: string;
+  commissionRate?: number;
 }
 
 export interface SaleRecord {
@@ -55,6 +58,6 @@ export interface SaleRecord {
 }
 
 export type UserRole = 'guest' | 'admin' | 'tecnico' | 'vendedor' | 'preferencial';
-export type AdminTab = 'inicio' | 'inventario' | 'ingreso' | 'perfiles' | 'informes' | 'ventas';
+export type AdminTab = 'inicio' | 'inventario' | 'ingreso' | 'perfiles' | 'informes' | 'ventas' | 'comisiones';
 export type PrefTab = 'equipos' | 'ingresar';
 
