@@ -24,11 +24,15 @@ export interface LicitacionFiltros {
   keywords: string;
   entidad: string;
   departamento: string;
+  municipio: string;
   modalidad: string;
   estado: string;
   presupuestoMin: string;
   presupuestoMax: string;
-  soloActivas: boolean;
+  soloVigentes: boolean;
+  soloPublicados: boolean;
+  fechaDesde: string;
+  fechaHasta: string;
 }
 
 export interface MatchResult {

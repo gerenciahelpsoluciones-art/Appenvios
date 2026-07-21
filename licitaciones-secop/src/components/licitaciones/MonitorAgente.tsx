@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { Licitacion, LicitacionFiltros, TelegramLicitConfig } from '../../types/licitaciones.types';
 import { DEPARTAMENTOS_CO, MODALIDADES } from '../../types/licitaciones.types';
-import { buscarLicitacionesSecop2, buscarLicitacionesSecop1 } from '../../services/secopService';
+import { buscarLicitacionesSecop2 } from '../../services/secopService';
 import { calcularMatchScore } from '../../services/licitacionesAI';
 import { notificarNuevaLicitacion, getConfig } from '../../services/telegramLicit';
 import { getLicitacionesGuardadas, saveLicitacion, getEmpresaPerfil, getRupData } from './store';
@@ -10,11 +10,15 @@ const FILTROS_DEFAULT: LicitacionFiltros = {
   keywords: 'tecnologia software sistemas',
   entidad: '',
   departamento: '',
+  municipio: '',
   modalidad: '',
   estado: '',
   presupuestoMin: '',
   presupuestoMax: '',
-  soloActivas: true,
+  soloVigentes: false,
+  soloPublicados: true,
+  fechaDesde: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+  fechaHasta: '',
 };
 
 function ScoreBadge({ score }: { score?: number }) {
@@ -38,6 +42,130 @@ function ScoreBadge({ score }: { score?: number }) {
   );
 }
 
+function buildSecopUrl(licit: Licitacion): string {
+  if (licit.url_proceso) return licit.url_proceso;
+  if (licit.fuente === 'SECOP_II' && licit.numero_proceso)
+    return `https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?Id=${encodeURIComponent(licit.numero_proceso)}`;
+  if (licit.fuente === 'SECOP_I' && licit.numero_proceso)
+    return `https://www.contratos.gov.co/consultas/detalleProceso.do?numConstancia=${encodeURIComponent(licit.numero_proceso)}`;
+  return licit.fuente === 'SECOP_II'
+    ? 'https://community.secop.gov.co'
+    : 'https://www.contratos.gov.co';
+}
+
+function LicitDetailModal({ licit, onClose }: { licit: Licitacion; onClose: () => void }) {
+  const fmt = (n?: number) => n
+    ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n)
+    : 'Sin especificar';
+  const fmtDate = (d?: string) => d ? new Date(d).toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A';
+  const secopUrl = buildSecopUrl(licit);
+
+  const row = (label: string, value: string) => value ? (
+    <div style={{ display: 'flex', gap: '1rem', padding: '0.5rem 0', borderBottom: '1px solid var(--glass-border)' }}>
+      <span style={{ minWidth: 160, fontSize: '0.78rem', fontWeight: 600, color: 'hsl(var(--text-muted))' }}>{label}</span>
+      <span style={{ fontSize: '0.85rem', color: 'hsl(var(--text-main))', flex: 1 }}>{value}</span>
+    </div>
+  ) : null;
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 9999,
+      background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: '1rem',
+    }} onClick={onClose}>
+      <div style={{
+        background: 'hsl(var(--bg-card, 220 20% 10%))',
+        border: '1px solid var(--glass-border)',
+        borderRadius: '16px',
+        width: '100%', maxWidth: 720,
+        maxHeight: '90vh', overflowY: 'auto',
+        padding: '1.5rem',
+        boxShadow: '0 25px 60px rgba(0,0,0,0.5)',
+      }} onClick={e => e.stopPropagation()}>
+
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
+              <span style={{
+                padding: '0.2rem 0.6rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700,
+                background: licit.fuente === 'SECOP_II' ? 'rgba(59,130,246,0.2)' : 'rgba(16,185,129,0.2)',
+                color: licit.fuente === 'SECOP_II' ? '#3b82f6' : '#10b981',
+                border: `1px solid ${licit.fuente === 'SECOP_II' ? 'rgba(59,130,246,0.4)' : 'rgba(16,185,129,0.4)'}`,
+              }}>{licit.fuente}</span>
+              {licit.match_score !== undefined && <ScoreBadge score={licit.match_score} />}
+            </div>
+            <h2 style={{ margin: '0 0 0.25rem', fontSize: '1rem', fontWeight: 800, color: 'hsl(var(--text-main))' }}>
+              {licit.entidad_nombre || 'Entidad sin nombre'}
+            </h2>
+            <p style={{ margin: 0, fontSize: '0.78rem', color: 'hsl(var(--text-muted))' }}>
+              {licit.numero_proceso || 'Sin número de proceso'}
+            </p>
+          </div>
+          <button onClick={onClose} style={{
+            background: 'rgba(255,255,255,0.08)', border: '1px solid var(--glass-border)',
+            borderRadius: '8px', color: 'hsl(var(--text-muted))', cursor: 'pointer',
+            padding: '0.4rem 0.75rem', fontSize: '0.8rem', boxShadow: 'none', marginLeft: '1rem',
+          }}>✕ Cerrar</button>
+        </div>
+
+        {/* Descripción completa */}
+        <div style={{ marginBottom: '1.25rem', padding: '1rem', background: 'rgba(255,255,255,0.04)', borderRadius: '10px', border: '1px solid var(--glass-border)' }}>
+          <p style={{ margin: '0 0 0.4rem', fontSize: '0.72rem', fontWeight: 700, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Descripción del proceso</p>
+          <p style={{ margin: 0, fontSize: '0.875rem', color: 'hsl(var(--text-main))', lineHeight: 1.7 }}>{licit.descripcion || 'Sin descripción'}</p>
+        </div>
+
+        {/* Datos del proceso */}
+        <div style={{ marginBottom: '1.25rem' }}>
+          {row('Estado', licit.estado)}
+          {row('Modalidad', licit.modalidad)}
+          {row('Tipo de contrato', licit.tipo_contrato || '')}
+          {row('Presupuesto oficial', fmt(licit.presupuesto))}
+          {row('Fecha de publicación', fmtDate(licit.fecha_publicacion))}
+          {row('Fecha límite', fmtDate(licit.fecha_limite))}
+          {row('Departamento', licit.departamento || '')}
+          {row('Municipio', licit.municipio || '')}
+          {row('NIT entidad', licit.entidad_nit || '')}
+        </div>
+
+        {/* Links */}
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <a href={secopUrl} target="_blank" rel="noreferrer" style={{
+            padding: '0.6rem 1.25rem',
+            background: licit.fuente === 'SECOP_II' ? 'rgba(59,130,246,0.2)' : 'rgba(16,185,129,0.2)',
+            border: `1px solid ${licit.fuente === 'SECOP_II' ? 'rgba(59,130,246,0.4)' : 'rgba(16,185,129,0.4)'}`,
+            borderRadius: '8px', fontWeight: 700, fontSize: '0.825rem', textDecoration: 'none',
+            color: licit.fuente === 'SECOP_II' ? '#3b82f6' : '#10b981',
+          }}>
+            🔗 Ver proceso en {licit.fuente === 'SECOP_II' ? 'SECOP II' : 'SECOP I'}
+          </a>
+          <a href={licit.fuente === 'SECOP_II'
+              ? `https://www.datos.gov.co/resource/p6dx-8zbt.json?$where=referencia_del_proceso='${encodeURIComponent(licit.numero_proceso)}'`
+              : `https://www.datos.gov.co/resource/jbjy-vk9h.json?$where=referencia_del_contrato='${encodeURIComponent(licit.numero_proceso)}'`}
+            target="_blank" rel="noreferrer" style={{
+              padding: '0.6rem 1.25rem', background: 'rgba(255,255,255,0.05)',
+              border: '1px solid var(--glass-border)', borderRadius: '8px',
+              fontWeight: 600, fontSize: '0.825rem', textDecoration: 'none', color: 'hsl(var(--text-muted))',
+            }}>
+            📊 Ver en datos.gov.co
+          </a>
+          {licit.fuente === 'SECOP_II' && (
+            <a href={`https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?Id=${encodeURIComponent(licit.numero_proceso)}`}
+              target="_blank" rel="noreferrer" style={{
+                padding: '0.6rem 1.25rem', background: 'rgba(139,92,246,0.15)',
+                border: '1px solid rgba(139,92,246,0.3)', borderRadius: '8px',
+                fontWeight: 600, fontSize: '0.825rem', textDecoration: 'none', color: '#a78bfa',
+              }}>
+              📄 Documentos del proceso
+            </a>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function LicitCard({
   licit, onMatch, onGuardar, onNotificar, isAnalyzing, isSaved,
 }: {
@@ -49,6 +177,7 @@ function LicitCard({
   isSaved: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [showDetail, setShowDetail] = useState(false);
 
   const presupuesto = licit.presupuesto
     ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(licit.presupuesto)
@@ -164,21 +293,18 @@ function LicitCard({
           📬 Telegram
         </button>
 
-        {licit.url_proceso && (
-          <a
-            href={licit.url_proceso}
-            target="_blank"
-            rel="noreferrer"
-            style={{
-              padding: '0.4rem 0.8rem', background: 'transparent', border: '1px solid var(--glass-border)',
-              borderRadius: '6px', color: 'hsl(var(--text-muted))', textDecoration: 'none',
-              fontSize: '0.75rem', fontWeight: 600,
-            }}
-          >
-            🔗 Ver SECOP
-          </a>
-        )}
+        <button
+          onClick={() => setShowDetail(true)}
+          style={{
+            padding: '0.4rem 0.8rem', background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.3)',
+            borderRadius: '6px', color: '#fbbf24', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600, boxShadow: 'none',
+          }}
+        >
+          📋 Ver Detalle
+        </button>
       </div>
+
+      {showDetail && <LicitDetailModal licit={licit} onClose={() => setShowDetail(false)} />}
     </div>
   );
 }
@@ -195,6 +321,7 @@ export function MonitorAgente() {
   const [autoInterval, setAutoInterval] = useState(30);
   const [lastSearch, setLastSearch] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const prevResultIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     const saved = getLicitacionesGuardadas();
@@ -215,21 +342,55 @@ export function MonitorAgente() {
     setLoading(true);
     setError('');
     setResultados([]);
-    try {
-      const [r2, r1] = await Promise.all([
-        buscarLicitacionesSecop2(filtros),
-        buscarLicitacionesSecop1(filtros),
-      ]);
-      const merged = [...r2, ...r1].sort((a, b) =>
-        (b.fecha_publicacion || '').localeCompare(a.fecha_publicacion || '')
-      );
-      setResultados(merged);
-      setLastSearch(new Date().toLocaleString('es-CO'));
-    } catch {
-      setError('Error consultando SECOP. Verifica la conexión e intenta de nuevo.');
-    } finally {
-      setLoading(false);
+    const errors: string[] = [];
+
+    // Solo SECOP II — contiene procesos abiertos para presentar propuestas
+    // SECOP I (jbjy-vk9h) es dataset de contratos ya ejecutados, no sirve para buscar licitaciones abiertas
+    const [res2] = await Promise.allSettled([
+      buscarLicitacionesSecop2(filtros, 100),
+    ]);
+
+    const r2 = res2.status === 'fulfilled' ? res2.value : (errors.push('SECOP II: ' + (res2.reason as Error).message), []);
+
+    let merged = [...r2].sort((a, b) =>
+      (b.fecha_publicacion || '').localeCompare(a.fecha_publicacion || '')
+    );
+
+    if (filtros.soloVigentes) {
+      const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+      const tope = new Date(hoy); tope.setDate(tope.getDate() + 5); tope.setHours(23, 59, 59, 999);
+      merged = merged.filter(l => {
+        if (!l.fecha_limite) return true;
+        const d = new Date(l.fecha_limite);
+        return !isNaN(d.getTime()) && d >= hoy && d <= tope;
+      });
     }
+
+    // soloPublicados ya se filtra server-side con estado_de_apertura_del_proceso = 'Abierto'
+
+    setResultados(merged);
+    setLastSearch(new Date().toLocaleString('es-CO'));
+    if (errors.length > 0) setError(errors.join(' | '));
+
+    // Auto-notificar nuevos resultados por Telegram
+    const cfg = getConfig();
+    if (cfg.activo && cfg.notificar_nuevas && cfg.bot_token && cfg.chat_id && merged.length > 0) {
+      const nuevos = merged.filter(l => !prevResultIdsRef.current.has(l.id));
+      if (nuevos.length > 0) {
+        let notificados = 0;
+        for (const licit of nuevos.slice(0, 5)) {
+          const ok = await notificarNuevaLicitacion(licit, cfg);
+          if (ok) notificados++;
+        }
+        if (notificados > 0) {
+          setTelegramMsg(`✅ ${notificados} nueva${notificados !== 1 ? 's' : ''} licitación${notificados !== 1 ? 'es' : ''} notificada${notificados !== 1 ? 's' : ''} por Telegram`);
+          setTimeout(() => setTelegramMsg(''), 5000);
+        }
+      }
+    }
+    prevResultIdsRef.current = new Set(merged.map(l => l.id));
+
+    setLoading(false);
   };
 
   const handleMatch = async (licit: Licitacion) => {
@@ -306,6 +467,11 @@ export function MonitorAgente() {
             </select>
           </div>
           <div>
+            <label style={labelStyle}>Ciudad / Municipio</label>
+            <input style={inputStyle} placeholder="ej. Bogotá, Medellín, Cali..."
+              value={filtros.municipio} onChange={e => setFiltro('municipio', e.target.value)} />
+          </div>
+          <div>
             <label style={labelStyle}>Modalidad</label>
             <select style={inputStyle} value={filtros.modalidad} onChange={e => setFiltro('modalidad', e.target.value)}>
               <option value="">Todas</option>
@@ -324,11 +490,31 @@ export function MonitorAgente() {
           </div>
         </div>
 
+        {/* Fechas */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.75rem', marginTop: '0.75rem' }}>
+          <div>
+            <label style={labelStyle}>Publicado desde</label>
+            <input type="date" style={inputStyle}
+              value={filtros.fechaDesde} onChange={e => setFiltro('fechaDesde', e.target.value)} />
+          </div>
+          <div>
+            <label style={labelStyle}>Publicado hasta</label>
+            <input type="date" style={inputStyle}
+              value={filtros.fechaHasta} onChange={e => setFiltro('fechaHasta', e.target.value)} />
+          </div>
+        </div>
+
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginTop: '1rem', flexWrap: 'wrap' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.85rem', color: 'hsl(var(--text-main))' }}>
-            <input type="checkbox" checked={filtros.soloActivas} onChange={e => setFiltro('soloActivas', e.target.checked)}
-              style={{ width: 16, height: 16, accentColor: 'hsl(var(--primary))' }} />
-            Solo procesos activos
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.85rem', color: filtros.soloVigentes ? '#10b981' : 'hsl(var(--text-main))' }}>
+            <input type="checkbox" checked={filtros.soloVigentes} onChange={e => setFiltro('soloVigentes', e.target.checked)}
+              style={{ width: 16, height: 16, accentColor: '#10b981' }} />
+            🟢 Solo vigentes — cierre en los próximos 5 días
+          </label>
+
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.85rem', color: filtros.soloPublicados ? '#3b82f6' : 'hsl(var(--text-main))' }}>
+            <input type="checkbox" checked={filtros.soloPublicados} onChange={e => setFiltro('soloPublicados', e.target.checked)}
+              style={{ width: 16, height: 16, accentColor: '#3b82f6' }} />
+            📢 Solo procesos Abiertos (para presentar propuesta)
           </label>
 
           <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.85rem', color: autoSearch ? '#10b981' : 'hsl(var(--text-main))' }}>
