@@ -1,7 +1,7 @@
 import React from 'react';
 
 export const metadata = {
-  title: 'Términos y Condiciones | Help Soluciones',
+  title: 'Términos y Condiciones',
   description: 'Términos y Condiciones de uso de los servicios de Help Soluciones Informáticas.',
 };
 
@@ -99,7 +99,7 @@ export default function TerminosCondiciones() {
             <ul>
               <li>Correo electrónico: <strong>gerencia@helpsoluciones.com.co</strong></li>
               <li>WhatsApp: <strong>+57 304 3358650</strong></li>
-              <li>Dirección: Carrera 93 F 127 B 12, Bogotá, Colombia</li>
+              <li>Dirección: Calle 6C #82A-91, Oficina 2, Torre 6, Bogotá, Colombia</li>
             </ul>
 
             <p className="text-sm text-slate-500 mt-12">

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Button from '@/components/ui/Button';
 
 export const metadata: Metadata = {
-  title: 'Ingeniería Social y Pentesting | Help Soluciones',
+  title: 'Ingeniería Social y Pentesting',
   description: 'Simulacros de phishing, pruebas de penetración y auditorías de seguridad para empresas en Colombia. Detectamos sus vulnerabilidades antes que los atacantes.',
   alternates: { canonical: 'https://www.helpsoluciones.com.co/ingenieria-social' },
   openGraph: {

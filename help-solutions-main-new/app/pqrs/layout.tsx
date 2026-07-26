@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'PQRS | Help Soluciones',
+  title: 'PQRS',
   description: 'Radique sus peticiones, quejas, reclamos y sugerencias a Help Soluciones. Comprometidos con la mejora continua y la satisfacción de cada cliente.',
   alternates: { canonical: 'https://www.helpsoluciones.com.co/pqrs' },
   openGraph: {

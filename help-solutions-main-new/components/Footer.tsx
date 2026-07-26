@@ -75,13 +75,13 @@ const Footer: React.FC = () => {
                 </div>
             </div>
           <div className="flex gap-4">
-            <a className="text-zinc-600 hover:text-primary transition-colors" target="_blank" href="https://www.facebook.com/HelpSolucionesS.A.S" aria-label="Twitter">
+            <a className="text-zinc-600 hover:text-primary transition-colors" target="_blank" href="https://www.facebook.com/HelpSolucionesS.A.S" aria-label="Facebook">
               <Facebook size={20} />
             </a>
             <a className="text-zinc-600 hover:text-primary transition-colors" target="_blank" href="https://www.linkedin.com/company/helpsoluciones/about/" aria-label="LinkedIn">
               <Linkedin size={20} />
             </a>
-            <a className="text-zinc-600 hover:text-primary transition-colors" target="_blank" href="https://www.instagram.com/helpsolucionesinformaticas?igsh=eHB6cW9lOGFyM2pw" aria-label="Twitter">
+            <a className="text-zinc-600 hover:text-primary transition-colors" target="_blank" href="https://www.instagram.com/helpsolucionesinformaticas?igsh=eHB6cW9lOGFyM2pw" aria-label="Instagram">
               <Instagram size={20} />
             </a>
 

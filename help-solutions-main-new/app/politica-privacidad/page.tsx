@@ -1,7 +1,7 @@
 import React from 'react';
 
 export const metadata = {
-  title: 'Política de Privacidad | Help Soluciones Informáticas',
+  title: 'Política de Privacidad',
   description: 'Política de Privacidad y Tratamiento de Datos Personales de Help Soluciones Informáticas.',
 };
 

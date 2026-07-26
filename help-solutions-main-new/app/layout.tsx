@@ -110,16 +110,15 @@ export default function RootLayout({
               "priceRange": "$$",
               "address": {
                 "@type": "PostalAddress",
-                "streetAddress": "Carrera 93 F 127 B 12",
+                "streetAddress": "Calle 6C #82A-91, Oficina 2, Torre 6",
                 "addressLocality": "Bogotá",
                 "addressRegion": "Cundinamarca",
-                "postalCode": "111611",
                 "addressCountry": "CO"
               },
               "geo": {
                 "@type": "GeoCoordinates",
-                "latitude": 4.711,
-                "longitude": -74.0721
+                "latitude": 4.6421973,
+                "longitude": -74.153805
               },
               "areaServed": [
                 { "@type": "City", "name": "Bogotá" },
@@ -141,11 +140,11 @@ export default function RootLayout({
                   "closes": "13:00"
                 }
               ],
-              "hasMap": "https://maps.google.com/?q=Help+Soluciones+Bogota+Colombia",
+              "hasMap": "https://maps.google.com/?cid=1649187618338180931",
               "sameAs": [
-                "https://www.facebook.com/helpsoluciones",
-                "https://www.instagram.com/helpsoluciones",
-                "https://www.linkedin.com/company/help-soluciones"
+                "https://www.facebook.com/HelpSolucionesS.A.S",
+                "https://www.instagram.com/helpsolucionesinformaticas",
+                "https://www.linkedin.com/company/helpsoluciones"
               ]
             })
           }}

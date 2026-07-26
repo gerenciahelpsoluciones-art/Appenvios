@@ -4,7 +4,7 @@ import { Target, Eye, CheckCircle, Lightbulb, RefreshCw, TrendingUp, ShieldCheck
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'Sobre Nosotros | Help Soluciones',
+  title: 'Sobre Nosotros',
   description: '12 años protegiendo la infraestructura TI de más de 500 empresas en Colombia. Conozca el equipo de Help Soluciones y nuestra historia de confianza.',
   alternates: { canonical: 'https://www.helpsoluciones.com.co/sobre-nosotros' },
   openGraph: {

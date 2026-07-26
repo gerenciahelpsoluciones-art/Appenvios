@@ -1,16 +1,29 @@
+import type { Metadata } from 'next';
 import React from 'react';
 import Link from 'next/link';
-import { 
-  CheckCircle2, 
-  Clock, 
-  MapPin, 
-  RotateCcw, 
-  FileText, 
-  ShieldCheck, 
+import {
+  CheckCircle2,
+  Clock,
+  MapPin,
+  RotateCcw,
+  FileText,
+  ShieldCheck,
   ArrowLeft,
   Mail,
   Building
 } from 'lucide-react';
+
+export const metadata: Metadata = {
+  title: 'Política de Garantías',
+  description: 'Política de garantías de Help Soluciones Informáticas para equipos, repuestos y servicios técnicos en Colombia.',
+  alternates: { canonical: 'https://www.helpsoluciones.com.co/politica-garantias' },
+  openGraph: {
+    title: 'Política de Garantías | Help Soluciones',
+    description: 'Política de garantías de Help Soluciones Informáticas para equipos, repuestos y servicios técnicos en Colombia.',
+    url: 'https://www.helpsoluciones.com.co/politica-garantias',
+  },
+};
+
 export default function PoliticaGarantias() {
   return (
     <div className="flex flex-col bg-zinc-50">
@@ -104,7 +117,7 @@ export default function PoliticaGarantias() {
             </div>
 
             {/* Section 3: Requisitos */}
-            <div className="glass-card p-10 lg:col-span-2 bg-zinc-900 text-white flex flex-col md:flex-row gap-12 items-center">
+            <div className="glass-card p-10 lg:col-span-2 !bg-zinc-900 text-white flex flex-col md:flex-row gap-12 items-center">
               <div className="flex flex-col gap-6 flex-1">
                 <div className="flex items-center gap-4">
                   <div className="p-3 rounded-xl bg-white/10">
