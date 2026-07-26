@@ -33,6 +33,7 @@ import {
   Plus,
   Minus,
   Mail,
+  DollarSign,
 } from 'lucide-react';
 import type { Product, Profile, Repair, SaleRecord } from './types';
 import { INITIAL_PRODUCTS, INITIAL_PROFILES, INITIAL_REPAIRS, RETOMA_DATA } from './mockData';
@@ -57,7 +58,10 @@ const mapRepairToJS = (row: any): Repair => ({
   priceAdjustmentReason: row.price_adjustment_reason || undefined,
   createdAt: row.created_at,
   partsCost: row.parts_cost ? Number(row.parts_cost) : undefined,
-  paymentStatus: row.payment_status || undefined
+  paymentStatus: row.payment_status || undefined,
+  commissionStatus: row.commission_status || 'pendiente',
+  commissionPaidAt: row.commission_paid_at || undefined,
+  commissionRate: row.commission_rate ? Number(row.commission_rate) : undefined
 });
 
 const mapRepairToDB = (r: Repair) => ({
@@ -79,7 +83,10 @@ const mapRepairToDB = (r: Repair) => ({
   price_adjustment_reason: r.priceAdjustmentReason || null,
   created_at: r.createdAt,
   parts_cost: r.partsCost || 0,
-  payment_status: r.paymentStatus || 'pendiente'
+  payment_status: r.paymentStatus || 'pendiente',
+  commission_status: r.commissionStatus || 'pendiente',
+  commission_paid_at: r.commissionPaidAt || null,
+  commission_rate: r.commissionRate || null
 });
 
 function App() {
@@ -92,8 +99,8 @@ function App() {
   const [loginError, setLoginError] = useState(false);
 
   // Active sub-tabs
-  const [adminTab, setAdminTab] = useState<'inicio' | 'inventario' | 'ingreso' | 'perfiles' | 'informes' | 'ventas'>('inicio');
-  const [prefTab, setPrefTab] = useState<'equipos' | 'ingresar'>('equipos');
+  const [adminTab, setAdminTab] = useState<'inicio' | 'inventario' | 'ingreso' | 'perfiles' | 'informes' | 'ventas' | 'cuentas' | 'comisiones'>('inicio');
+  const [prefTab, setPrefTab] = useState<'equipos' | 'ingresar' | 'cuentas'>('equipos');
 
   // Database states with localStorage persistence
   const [products, setProducts] = useState<Product[]>(() => {
@@ -155,6 +162,27 @@ function App() {
           }));
           setProfiles(mappedProfs);
           localStorage.setItem('istore_profiles', JSON.stringify(mappedProfs));
+        } else if (!profErr && dbProfiles && dbProfiles.length === 0) {
+          // Supabase vacío — migrar perfiles de localStorage a Supabase
+          const localRaw = localStorage.getItem('istore_profiles');
+          if (localRaw) {
+            try {
+              const localProfs = JSON.parse(localRaw);
+              if (Array.isArray(localProfs) && localProfs.length > 0) {
+                await supabase.from('istore_profiles').upsert(
+                  localProfs.map((p: any) => ({
+                    id: p.id,
+                    name: p.name,
+                    role: p.role,
+                    status: p.status,
+                    username: p.username || null,
+                    password: p.password || null
+                  })),
+                  { onConflict: 'id' }
+                );
+              }
+            } catch (_) {}
+          }
         }
 
         const { data: dbRepairs, error: repErr } = await supabase.from('istore_repairs').select('*');
@@ -192,6 +220,23 @@ function App() {
             sellerName: s.seller_name || ''
           }));
           setSales(mappedSales);
+        }
+
+        const { data: dbRcv, error: rcvErr } = await supabase.from('istore_receivables').select('*');
+        if (!rcvErr && dbRcv) {
+          setReceivables(dbRcv.map((r: any) => ({
+            id: r.id, clientName: r.client_name || '', clientPhone: r.client_phone || '',
+            clientCedula: r.client_cedula || '', clientProfileId: r.client_profile_id || '',
+            description: r.description || '', periodStart: r.period_start || undefined,
+            periodEnd: r.period_end || undefined,
+            total: Number(r.total || 0), amountPaid: Number(r.amount_paid || 0),
+            dueDate: r.due_date || undefined, status: r.status || 'pendiente',
+            items: Array.isArray(r.items) ? r.items : [],
+            payments: Array.isArray(r.payments) ? r.payments : [],
+            repairIds: Array.isArray(r.repair_ids) ? r.repair_ids : [],
+            proofUrl: r.proof_url || undefined, validatedAt: r.validated_at || undefined,
+            createdAt: r.created_at || '', sellerName: r.seller_name || '',
+          })));
         }
       } catch (err) {
         console.error("Failed to fetch data from Supabase, running in offline/local mode:", err);
@@ -269,7 +314,14 @@ function App() {
   const [deliveryPartsCost, setDeliveryPartsCost] = useState(0);
   const [deliveryPaymentStatus, setDeliveryPaymentStatus] = useState<'pendiente' | 'pagado'>('pendiente');
   const [techCommissionRate, setTechCommissionRate] = useState(40); // 40% default commission
+  const [commStart, setCommStart] = useState(() => { const d = new Date(); d.setMonth(d.getMonth() - 1); return d.toISOString().split('T')[0]; });
+  const [commEnd, setCommEnd] = useState(() => new Date().toISOString().split('T')[0]);
+  const [commTechId, setCommTechId] = useState('');
+  const [commRate, setCommRate] = useState(40);
+  const [commSelected, setCommSelected] = useState<Set<string>>(new Set());
   const [reportDate, setReportDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [prefReportStart, setPrefReportStart] = useState(() => { const d = new Date(); d.setMonth(d.getMonth() - 1); return d.toISOString().split('T')[0]; });
+  const [prefReportEnd, setPrefReportEnd] = useState(() => new Date().toISOString().split('T')[0]);
 
 
   // Intake Form (Ingreso de Equipo)
@@ -918,8 +970,197 @@ function App() {
 
 
 
+  // ── Cuentas por Cobrar ──────────────────────────────────────────────────────
+  interface ReceivablePayment { date: string; amount: number; method: string; note: string; }
+  interface Receivable {
+    id: string; clientName: string; clientPhone: string; clientCedula: string;
+    clientProfileId: string;
+    description: string; periodStart?: string; periodEnd?: string;
+    total: number; amountPaid: number; dueDate?: string;
+    status: 'pendiente' | 'en_revision' | 'pagado';
+    items: { repairId?: string; name: string; qty: number; price: number }[];
+    payments: ReceivablePayment[];
+    repairIds: string[];
+    proofUrl?: string; validatedAt?: string;
+    createdAt: string; sellerName: string;
+  }
+  const [receivables, setReceivables] = useState<Receivable[]>([]);
+  const [rcvGenModal, setRcvGenModal] = useState(false);
+  const [rcvGenClientId, setRcvGenClientId] = useState('');
+  const [rcvGenStart, setRcvGenStart] = useState('');
+  const [rcvGenEnd, setRcvGenEnd] = useState('');
+  const [rcvGenSelected, setRcvGenSelected] = useState<Set<string>>(new Set());
+  const [rcvPayModal, setRcvPayModal] = useState<Receivable | null>(null);
+  const [rcvPayAmount, setRcvPayAmount] = useState('');
+  const [rcvPayMethod, setRcvPayMethod] = useState('efectivo');
+  const [rcvPayNote, setRcvPayNote] = useState('');
+  const [rcvProofModal, setRcvProofModal] = useState<string | null>(null);
+  const [rcvUploadFile, setRcvUploadFile] = useState<File | null>(null);
+
+  const rcvBalance = (r: Receivable) => r.total - r.amountPaid;
+  const rcvColor = (r: Receivable) => r.status === 'pagado' ? '#4ade80' : r.status === 'en_revision' ? '#fbbf24' : '#f87171';
+  const rcvLabel = (r: Receivable) => r.status === 'pagado' ? 'PAGADO' : r.status === 'en_revision' ? 'EN REVISIÓN' : 'PENDIENTE';
+
+  const handleGenerateReceivable = async () => {
+    const clientProfile = profiles.find(p => p.id === rcvGenClientId);
+    if (!clientProfile || !rcvGenStart || !rcvGenEnd) return;
+    const billed = new Set(
+      receivables
+        .filter(r => r.status === 'en_revision' || r.status === 'pagado')
+        .flatMap(r => r.repairIds)
+    );
+    const allRepairs = repairs.filter(r =>
+      r.clientName.toLowerCase() === clientProfile.name.toLowerCase() &&
+      r.createdAt >= rcvGenStart && r.createdAt <= rcvGenEnd &&
+      r.status === 'entregado' && r.quotePrice && r.quotePrice > 0 &&
+      !billed.has(r.id)
+    );
+    const selectedRepairs = rcvGenSelected.size > 0
+      ? allRepairs.filter(r => rcvGenSelected.has(r.id))
+      : allRepairs;
+    if (selectedRepairs.length === 0) { alert('Selecciona al menos una reparación'); return; }
+    const items = selectedRepairs.map(r => ({
+      repairId: r.id,
+      name: `${r.reference} ${r.color} ${r.capacity} — ${r.repairType}`.trim(),
+      qty: 1, price: r.quotePrice || 0,
+    }));
+    const total = items.reduce((s, i) => s + i.price, 0);
+    const newRcv: Receivable = {
+      id: `COB-${Date.now().toString(36).toUpperCase()}`,
+      clientName: clientProfile.name, clientPhone: '', clientCedula: '',
+      clientProfileId: clientProfile.id,
+      description: `Servicios período ${rcvGenStart} al ${rcvGenEnd}`,
+      periodStart: rcvGenStart, periodEnd: rcvGenEnd,
+      total, amountPaid: 0, status: 'pendiente',
+      items, payments: [], repairIds: selectedRepairs.map(r => r.id),
+      createdAt: new Date().toISOString().split('T')[0], sellerName: 'Administrador',
+    };
+    setReceivables(prev => [newRcv, ...prev]);
+    setRcvGenModal(false); setRcvGenClientId(''); setRcvGenStart(''); setRcvGenEnd(''); setRcvGenSelected(new Set());
+    try {
+      await supabase.from('istore_receivables').insert([{
+        id: newRcv.id, client_name: newRcv.clientName, client_phone: '', client_cedula: '',
+        client_profile_id: newRcv.clientProfileId, description: newRcv.description,
+        period_start: newRcv.periodStart, period_end: newRcv.periodEnd,
+        total: newRcv.total, amount_paid: 0, status: 'pendiente',
+        items: newRcv.items, payments: [], repair_ids: newRcv.repairIds,
+        created_at: newRcv.createdAt, seller_name: 'Administrador',
+      }]);
+    } catch (err) { console.error('insert receivable failed', err); }
+  };
+
+  const handleAddPayment = async () => {
+    if (!rcvPayModal || !rcvPayAmount) return;
+    const amount = Number(rcvPayAmount);
+    if (amount <= 0) return;
+    const payment: ReceivablePayment = { date: new Date().toISOString().split('T')[0], amount, method: rcvPayMethod, note: rcvPayNote };
+    const newPaid = rcvPayModal.amountPaid + amount;
+    const newStatus: Receivable['status'] = newPaid >= rcvPayModal.total ? 'pagado' : 'pendiente';
+    const updated = { ...rcvPayModal, amountPaid: newPaid, status: newStatus, payments: [...rcvPayModal.payments, payment] };
+    setReceivables(prev => prev.map(r => r.id === updated.id ? updated : r));
+    setRcvPayModal(null); setRcvPayAmount(''); setRcvPayMethod('efectivo'); setRcvPayNote('');
+    try {
+      await supabase.from('istore_receivables').update({ amount_paid: newPaid, status: newStatus, payments: updated.payments }).eq('id', updated.id);
+    } catch (err) { console.error('update payment failed', err); }
+  };
+
+  const handleValidatePayment = async (rcv: Receivable) => {
+    const today = new Date().toISOString().split('T')[0];
+    const updated = { ...rcv, status: 'pagado' as const, validatedAt: today, amountPaid: rcv.total };
+    setReceivables(prev => prev.map(r => r.id === rcv.id ? updated : r));
+    try {
+      await supabase.from('istore_receivables').update({ status: 'pagado', validated_at: today, amount_paid: rcv.total }).eq('id', rcv.id);
+    } catch (err) { console.error('validate payment failed', err); }
+  };
+
+  const handleUploadProof = async (rcvId: string) => {
+    if (!rcvUploadFile) return;
+    const path = `${rcvId}/${Date.now()}-${rcvUploadFile.name}`;
+    try {
+      const { error: upErr } = await supabase.storage.from('payment-proofs').upload(path, rcvUploadFile, { upsert: true });
+      if (upErr) throw upErr;
+      const { data: urlData } = supabase.storage.from('payment-proofs').getPublicUrl(path);
+      const proofUrl = urlData.publicUrl;
+      setReceivables(prev => prev.map(r => r.id === rcvId ? { ...r, proofUrl, status: 'en_revision' as const } : r));
+      await supabase.from('istore_receivables').update({ proof_url: proofUrl, status: 'en_revision' }).eq('id', rcvId);
+      setRcvProofModal(null); setRcvUploadFile(null);
+    } catch (err) { console.error('upload proof failed', err); }
+  };
+
+  const handlePayCommissions = async () => {
+    if (commSelected.size === 0) return;
+    const today = new Date().toISOString().split('T')[0];
+    const ids = Array.from(commSelected);
+    setRepairs(prev => prev.map(r => ids.includes(r.id)
+      ? { ...r, commissionStatus: 'pagado' as const, commissionPaidAt: today, commissionRate: commRate }
+      : r));
+    try {
+      await supabase.from('istore_repairs')
+        .update({ commission_status: 'pagado', commission_paid_at: today, commission_rate: commRate })
+        .in('id', ids);
+    } catch (err) { console.error('pay commissions failed', err); }
+    setCommSelected(new Set());
+  };
+
+  const generateReceivablePDF = (r: Receivable) => {
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    const blue = [37,99,235] as [number,number,number], dark = [15,23,42] as [number,number,number];
+    const gray = [100,116,139] as [number,number,number], white = [255,255,255] as [number,number,number];
+    const light = [241,245,249] as [number,number,number];
+    doc.setFillColor(...dark); doc.rect(0,0,210,42,'F');
+    doc.setTextColor(...white); doc.setFontSize(24); doc.setFont('helvetica','bold');
+    doc.text('SR TECH', 15, 20); doc.setFontSize(10); doc.setFont('helvetica','normal');
+    doc.text('Cuenta de Cobro', 15, 28); doc.text(`N° ${r.id}`, 15, 34);
+    doc.setTextColor(...gray); doc.setFontSize(8);
+    doc.text(`Fecha: ${r.createdAt}`, 140, 22);
+    if (r.dueDate) doc.text(`Vence: ${r.dueDate}`, 140, 28);
+    doc.text(`Estado: ${rcvLabel(r)}`, 140, 34);
+    let y = 55;
+    doc.setTextColor(51,51,51); doc.setFont('helvetica','bold'); doc.setFontSize(10);
+    doc.text('CLIENTE', 15, y); doc.setFont('helvetica','normal'); doc.setFontSize(9); y += 6;
+    doc.text(`Nombre: ${r.clientName}`, 15, y); y += 5;
+    if (r.clientCedula) { doc.text(`Cédula: ${r.clientCedula}`, 15, y); y += 5; }
+    if (r.clientPhone) { doc.text(`Celular: ${r.clientPhone}`, 15, y); y += 5; }
+    if (r.description) { doc.text(`Concepto: ${r.description}`, 15, y); y += 5; }
+    y += 6; doc.setDrawColor(200,200,200); doc.line(15, y, 195, y); y += 8;
+    doc.setFillColor(...blue); doc.rect(15, y, 180, 9, 'F');
+    doc.setTextColor(...white); doc.setFont('helvetica','bold'); doc.setFontSize(9);
+    doc.text('DESCRIPCIÓN', 18, y+6); doc.text('CANT.', 122, y+6); doc.text('PRECIO', 140, y+6); doc.text('SUBTOTAL', 172, y+6);
+    y += 9;
+    r.items.forEach((item, idx) => {
+      doc.setFillColor(...(idx % 2 === 0 ? light : white));
+      doc.rect(15, y, 180, 8, 'F');
+      doc.setTextColor(51,51,51); doc.setFont('helvetica','normal'); doc.setFontSize(9);
+      doc.text(item.name.substring(0,42), 18, y+5.5);
+      doc.text(String(item.qty), 125, y+5.5);
+      doc.text(`$${item.price.toLocaleString('es-CO')}`, 140, y+5.5);
+      doc.text(`$${(item.price * item.qty).toLocaleString('es-CO')}`, 172, y+5.5);
+      y += 8;
+    });
+    y += 8;
+    doc.setFillColor(...blue); doc.rect(120, y-4, 75, 10, 'F');
+    doc.setTextColor(...white); doc.setFont('helvetica','bold'); doc.setFontSize(11);
+    doc.text(`TOTAL: $${r.total.toLocaleString('es-CO')} COP`, 124, y+3);
+    if (r.payments.length > 0) {
+      y += 18; doc.setTextColor(51,51,51); doc.setFont('helvetica','bold'); doc.setFontSize(9);
+      doc.text('HISTORIAL DE PAGOS', 15, y); y += 6;
+      r.payments.forEach(p => {
+        doc.setFont('helvetica','normal');
+        doc.text(`${p.date}  |  $${p.amount.toLocaleString('es-CO')}  |  ${p.method}  ${p.note ? '— '+p.note : ''}`, 15, y);
+        y += 5;
+      });
+      y += 4; doc.setFont('helvetica','bold');
+      doc.text(`Abonado: $${r.amountPaid.toLocaleString('es-CO')} COP`, 15, y); y += 5;
+      const bal = r.total - r.amountPaid;
+      if (bal > 0) { doc.setTextColor(200,0,0); doc.text(`Saldo pendiente: $${bal.toLocaleString('es-CO')} COP`, 15, y); }
+    }
+    doc.setTextColor(...gray); doc.setFontSize(8); doc.setFont('helvetica','normal');
+    doc.text('Sr Tech — Gracias por su confianza', 105, 285, { align: 'center' });
+    doc.save(`cuenta_cobro_${r.id}.pdf`);
+  };
+
   // ── Venta Mostrador ─────────────────────────────────────────────────────────
-  interface SaleCartItem { product: Product; qty: number; }
+  interface SaleCartItem { product: Product; qty: number; salePrice: number; }
   interface LastSaleInfo {
     saleId: string;
     items: { name: string; qty: number; price: number }[];
@@ -936,16 +1177,15 @@ function App() {
   const [saleCustomerName, setSaleCustomerName] = useState('');
   const [saleCustomerPhone, setSaleCustomerPhone] = useState('');
   const [saleCustomerCedula, setSaleCustomerCedula] = useState('');
-  const [salePaymentMethod, setSalePaymentMethod] = useState<'efectivo' | 'tarjeta' | 'transferencia'>('efectivo');
+  const [salePaymentMethod, setSalePaymentMethod] = useState<'efectivo' | 'nequi' | 'daviplata' | 'llave'>('efectivo');
   const [saleImei, setSaleImei]                 = useState('');
   const [saleWarrantyDays, setSaleWarrantyDays] = useState<number>(30);
   const [saleSuccess, setSaleSuccess]           = useState(false);
   const [lastSale, setLastSale]                 = useState<LastSaleInfo | null>(null);
   const [saleCategoryFilter, setSaleCategoryFilter] = useState<'all' | 'iphone' | 'mac' | 'repuesto'>('all');
-  const [cashReceived, setCashReceived]         = useState('');
 
   const saleCartTotal = useMemo(
-    () => saleCart.reduce((sum, i) => sum + i.product.price * i.qty, 0),
+    () => saleCart.reduce((sum, i) => sum + i.salePrice * i.qty, 0),
     [saleCart]
   );
 
@@ -953,7 +1193,7 @@ function App() {
     setSaleCart(prev => {
       const existing = prev.find(i => i.product.id === product.id);
       if (existing) return prev.map(i => i.product.id === product.id ? { ...i, qty: i.qty + 1 } : i);
-      return [...prev, { product, qty: 1 }];
+      return [...prev, { product, qty: 1, salePrice: product.price }];
     });
   };
 
@@ -963,6 +1203,11 @@ function App() {
   const updateSaleQty = (productId: string, delta: number) =>
     setSaleCart(prev => prev
       .map(i => i.product.id === productId ? { ...i, qty: Math.max(1, i.qty + delta) } : i)
+    );
+
+  const updateSaleItemPrice = (productId: string, price: number) =>
+    setSaleCart(prev => prev
+      .map(i => i.product.id === productId ? { ...i, salePrice: Math.max(0, price) } : i)
     );
 
   const generateSalePDF = (cart: SaleCartItem[], customerName: string, payment: string, saleId: string, imei?: string, warrantyDays?: number, cedula?: string) => {
@@ -1034,8 +1279,8 @@ function App() {
       doc.setTextColor(51,51,51); doc.setFont('helvetica','normal'); doc.setFontSize(9);
       doc.text(item.product.name.substring(0, 42), 18, y + 5.5);
       doc.text(String(item.qty), 125, y + 5.5);
-      doc.text(`$${item.product.price.toLocaleString('es-CO')}`, 138, y + 5.5);
-      doc.text(`$${(item.product.price * item.qty).toLocaleString('es-CO')}`, 172, y + 5.5);
+      doc.text(`$${item.salePrice.toLocaleString('es-CO')}`, 138, y + 5.5);
+      doc.text(`$${(item.salePrice * item.qty).toLocaleString('es-CO')}`, 172, y + 5.5);
       y += 8;
     });
 
@@ -1102,7 +1347,7 @@ function App() {
     const saleItems = saleCart.map(i => ({
       name: i.product.name,
       qty: i.qty,
-      price: i.product.price,
+      price: i.salePrice,
       purchasePrice: i.product.purchasePrice
     }));
 
@@ -1350,6 +1595,24 @@ function App() {
                        <span>Venta Mostrador</span>
                      </button>
                    )}
+                   {(userRole === 'admin' || userRole === 'vendedor') && (
+                     <button
+                       onClick={() => setAdminTab('cuentas')}
+                       className={`sidebar-btn ${adminTab === 'cuentas' ? 'active' : ''}`}
+                     >
+                       <FileText size={18} />
+                       <span>Cuentas por Cobrar</span>
+                     </button>
+                   )}
+                   {userRole === 'admin' && (
+                     <button
+                       onClick={() => setAdminTab('comisiones')}
+                       className={`sidebar-btn ${adminTab === 'comisiones' ? 'active' : ''}`}
+                     >
+                       <DollarSign size={18} />
+                       <span>Comisiones Técnicos</span>
+                     </button>
+                   )}
                  </>
                ) : (
                  <>
@@ -1360,14 +1623,21 @@ function App() {
                      <Smartphone size={18} />
                      <span>Mis Equipos</span>
                    </button>
-                   <button 
+                   <button
                      onClick={() => setPrefTab('ingresar')}
                      className={`sidebar-btn ${prefTab === 'ingresar' ? 'active' : ''}`}
                    >
                      <PlusCircle size={18} />
                      <span>Ingresar Equipo</span>
                    </button>
-                   <button 
+                   <button
+                     onClick={() => setPrefTab('cuentas')}
+                     className={`sidebar-btn ${prefTab === 'cuentas' ? 'active' : ''}`}
+                   >
+                     <FileText size={18} />
+                     <span>Mis Cuentas</span>
+                   </button>
+                   <button
                      onClick={() => sendWhatsAppMessage(`Hola Sr Tech, soy el cliente preferencial ${loggedClientName}. Tengo una consulta técnica...`)}
                      className="sidebar-btn"
                    >
@@ -2654,323 +2924,861 @@ function App() {
                       ))}
                     </div>
                   </div>
+
+                  {/* ── Informe Clientes Preferenciales ─────────────────── */}
+                  {userRole === 'admin' && (() => {
+                    const prefRepairs = repairs.filter(r =>
+                      r.clientType === 'preferencial' &&
+                      r.createdAt >= prefReportStart && r.createdAt <= prefReportEnd
+                    );
+                    const byClient: Record<string, { total: number; count: number; entregados: number; enProceso: number; valor: number; partsCost: number }> = {};
+                    prefRepairs.forEach(r => {
+                      if (!byClient[r.clientName]) byClient[r.clientName] = { total: 0, count: 0, entregados: 0, enProceso: 0, valor: 0, partsCost: 0 };
+                      byClient[r.clientName].count++;
+                      byClient[r.clientName].valor += r.quotePrice || 0;
+                      byClient[r.clientName].partsCost += r.partsCost || 0;
+                      if (r.status === 'entregado') byClient[r.clientName].entregados++;
+                      else byClient[r.clientName].enProceso++;
+                    });
+                    const rows = Object.entries(byClient).sort((a, b) => b[1].valor - a[1].valor);
+                    const totalValor = rows.reduce((s, [, v]) => s + v.valor, 0);
+                    const totalCount = rows.reduce((s, [, v]) => s + v.count, 0);
+                    return (
+                      <div className="glass-card p-6 space-y-5" style={{ borderLeft: '3px solid #818cf8' }}>
+                        {/* Header + filtro */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/5 pb-4">
+                          <div>
+                            <h4 className="font-bold text-sm uppercase tracking-wider text-indigo-400 flex items-center gap-2">
+                              <Star size={14} /> Clientes Preferenciales
+                            </h4>
+                            <p className="text-[10px] text-neutral-500 mt-0.5">Arreglos y facturación por cliente en el período</p>
+                          </div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <input type="date" value={prefReportStart} onChange={e => setPrefReportStart(e.target.value)}
+                              className="bg-black/40 border border-white/10 rounded-lg text-xs text-white px-3 py-1.5 focus:outline-none focus:border-indigo-500" />
+                            <span className="text-neutral-500 text-xs">→</span>
+                            <input type="date" value={prefReportEnd} onChange={e => setPrefReportEnd(e.target.value)}
+                              className="bg-black/40 border border-white/10 rounded-lg text-xs text-white px-3 py-1.5 focus:outline-none focus:border-indigo-500" />
+                          </div>
+                        </div>
+
+                        {/* KPIs rápidos */}
+                        <div className="grid grid-cols-3 gap-3">
+                          <div className="bg-black/30 rounded-xl p-4 border border-white/5 space-y-1">
+                            <span className="text-[9px] uppercase font-bold text-neutral-500 tracking-wider block">Clientes Activos</span>
+                            <p className="text-lg font-extrabold text-indigo-400">{rows.length}</p>
+                            <p className="text-[10px] text-neutral-400">con actividad</p>
+                          </div>
+                          <div className="bg-black/30 rounded-xl p-4 border border-white/5 space-y-1">
+                            <span className="text-[9px] uppercase font-bold text-neutral-500 tracking-wider block">Total Arreglos</span>
+                            <p className="text-lg font-extrabold text-white">{totalCount}</p>
+                            <p className="text-[10px] text-neutral-400">en el período</p>
+                          </div>
+                          <div className="bg-black/30 rounded-xl p-4 border border-indigo-500/15 bg-indigo-500/5 space-y-1">
+                            <span className="text-[9px] uppercase font-bold text-indigo-400 tracking-wider block">Valor Facturado</span>
+                            <p className="text-lg font-extrabold text-indigo-400">${totalValor.toLocaleString('es-CO')}</p>
+                            <p className="text-[10px] text-neutral-400">COP</p>
+                          </div>
+                        </div>
+
+                        {/* Tabla */}
+                        {rows.length === 0 ? (
+                          <p className="text-xs text-neutral-600 italic text-center py-4">Sin reparaciones de clientes preferenciales en este período</p>
+                        ) : (
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-left text-xs border-collapse">
+                              <thead>
+                                <tr className="border-b border-white/5 text-neutral-400 uppercase tracking-wider font-bold text-[10px]">
+                                  <th className="py-2.5 pr-4">#</th>
+                                  <th className="py-2.5 pr-4">Cliente</th>
+                                  <th className="py-2.5 text-center">Arreglos</th>
+                                  <th className="py-2.5 text-center">Entregados</th>
+                                  <th className="py-2.5 text-center">En Proceso</th>
+                                  <th className="py-2.5 text-right">Valor Facturado</th>
+                                  <th className="py-2.5 text-right text-emerald-400">Utilidad</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {rows.map(([name, d], idx) => {
+                                  const util = d.valor - d.partsCost;
+                                  const isTop = idx === 0;
+                                  return (
+                                    <tr key={name} className="border-b border-white/5 last:border-0 hover:bg-white/2 transition-colors">
+                                      <td className="py-3 pr-4">
+                                        <span style={{ fontSize: '10px', fontWeight: 800, color: idx === 0 ? '#fbbf24' : idx === 1 ? '#94a3b8' : idx === 2 ? '#cd7c3a' : '#475569' }}>
+                                          {idx === 0 ? '★' : `#${idx + 1}`}
+                                        </span>
+                                      </td>
+                                      <td className="py-3 pr-4">
+                                        <div className="flex items-center gap-2">
+                                          <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: isTop ? 'rgba(251,191,36,0.15)' : 'rgba(99,102,241,0.1)', border: `1px solid ${isTop ? 'rgba(251,191,36,0.3)' : 'rgba(99,102,241,0.2)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 800, color: isTop ? '#fbbf24' : '#818cf8', flexShrink: 0 }}>
+                                            {name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                                          </div>
+                                          <span className="font-semibold text-white">{name}</span>
+                                        </div>
+                                      </td>
+                                      <td className="py-3 text-center font-bold text-white">{d.count}</td>
+                                      <td className="py-3 text-center">
+                                        <span className="text-emerald-400 font-medium">{d.entregados}</span>
+                                      </td>
+                                      <td className="py-3 text-center">
+                                        {d.enProceso > 0
+                                          ? <span className="text-amber-400 font-medium">{d.enProceso}</span>
+                                          : <span className="text-neutral-600">—</span>}
+                                      </td>
+                                      <td className="py-3 text-right font-bold text-white">${d.valor.toLocaleString('es-CO')}</td>
+                                      <td className="py-3 text-right font-bold text-emerald-400">${util.toLocaleString('es-CO')}</td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                              <tfoot>
+                                <tr className="border-t border-white/10">
+                                  <td colSpan={2} className="py-3 text-xs font-bold text-neutral-400 uppercase tracking-wider">Total</td>
+                                  <td className="py-3 text-center font-bold text-white">{totalCount}</td>
+                                  <td className="py-3 text-center font-bold text-emerald-400">{rows.reduce((s,[,v])=>s+v.entregados,0)}</td>
+                                  <td className="py-3 text-center font-bold text-amber-400">{rows.reduce((s,[,v])=>s+v.enProceso,0) || '—'}</td>
+                                  <td className="py-3 text-right font-bold text-indigo-400">${totalValor.toLocaleString('es-CO')}</td>
+                                  <td className="py-3 text-right font-bold text-emerald-400">${rows.reduce((s,[,v])=>s+(v.valor-v.partsCost),0).toLocaleString('es-CO')}</td>
+                                </tr>
+                              </tfoot>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+
+                  {/* Sección: Mis Comisiones (solo técnico) */}
+                  {userRole === 'tecnico' && (() => {
+                    const myRepairs = repairs.filter(r =>
+                      r.assignedTechId === loggedUserId &&
+                      r.status === 'entregado' &&
+                      r.quotePrice && r.quotePrice > 0 &&
+                      r.createdAt >= commStart && r.createdAt <= commEnd
+                    );
+                    const pending = myRepairs.filter(r => r.commissionStatus !== 'pagado');
+                    const paid = myRepairs.filter(r => r.commissionStatus === 'pagado');
+                    const pendingUtil = pending.reduce((s, r) => s + Math.max(0, (r.quotePrice||0) - (r.partsCost||0)), 0);
+                    const paidUtil = paid.reduce((s, r) => s + Math.max(0, (r.quotePrice||0) - (r.partsCost||0)), 0);
+                    const paidComm = paid.reduce((s, r) => s + Math.round(Math.max(0,(r.quotePrice||0)-(r.partsCost||0)) * (r.commissionRate||techCommissionRate) / 100), 0);
+                    const pendingComm = Math.round(pendingUtil * techCommissionRate / 100);
+                    return (
+                      <div className="glass-card p-6 space-y-5" style={{ borderLeft: '3px solid #6366f1' }}>
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/5 pb-4">
+                          <div>
+                            <h3 className="font-bold text-sm uppercase tracking-wider text-indigo-400">Mis Comisiones</h3>
+                            <p className="text-[10px] text-neutral-500 mt-0.5">Servicios entregados y estado de pago de comisión</p>
+                          </div>
+                          <div className="flex gap-2 items-center">
+                            <input type="date" value={commStart} onChange={e => setCommStart(e.target.value)}
+                              className="bg-black/40 border border-white/10 rounded-lg text-xs text-white px-3 py-1.5 focus:outline-none focus:border-indigo-500" />
+                            <span className="text-neutral-600 text-xs">→</span>
+                            <input type="date" value={commEnd} onChange={e => setCommEnd(e.target.value)}
+                              className="bg-black/40 border border-white/10 rounded-lg text-xs text-white px-3 py-1.5 focus:outline-none focus:border-indigo-500" />
+                          </div>
+                        </div>
+
+                        {/* KPIs */}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                          <div className="bg-black/30 rounded-xl p-4 border border-white/5 space-y-1">
+                            <span className="text-[9px] uppercase font-bold text-neutral-500 tracking-wider block">Total Servicios</span>
+                            <p className="text-lg font-extrabold text-white">{myRepairs.length}</p>
+                          </div>
+                          <div className="bg-black/30 rounded-xl p-4 border border-white/5 space-y-1">
+                            <span className="text-[9px] uppercase font-bold text-neutral-500 tracking-wider block">Pendientes</span>
+                            <p className="text-lg font-extrabold text-red-400">{pending.length}</p>
+                            <p className="text-[10px] text-neutral-400">${pendingComm.toLocaleString('es-CO')}</p>
+                          </div>
+                          <div className="bg-black/30 rounded-xl p-4 border border-white/5 space-y-1">
+                            <span className="text-[9px] uppercase font-bold text-neutral-500 tracking-wider block">Pagados</span>
+                            <p className="text-lg font-extrabold text-emerald-400">{paid.length}</p>
+                            <p className="text-[10px] text-neutral-400">${paidComm.toLocaleString('es-CO')}</p>
+                          </div>
+                          <div className="bg-black/30 rounded-xl p-4 border border-indigo-500/15 bg-indigo-500/5 space-y-1">
+                            <span className="text-[9px] uppercase font-bold text-indigo-400 tracking-wider block">Utilidad pendiente</span>
+                            <p className="text-lg font-extrabold text-indigo-400">${pendingUtil.toLocaleString('es-CO')}</p>
+                            <p className="text-[10px] text-neutral-400">× {techCommissionRate}% = ${pendingComm.toLocaleString('es-CO')}</p>
+                          </div>
+                        </div>
+
+                        {/* List */}
+                        {myRepairs.length === 0 ? (
+                          <div className="text-center text-neutral-500 text-xs py-6">No hay servicios en el período seleccionado.</div>
+                        ) : (
+                          <div style={{ overflowX: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+                              <thead>
+                                <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                                  {['Fecha','Servicio','Valor','Repuestos','Utilidad','Comisión','Estado'].map(h => (
+                                    <th key={h} style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', fontSize: '9px', letterSpacing: '0.06em' }}>{h}</th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {myRepairs.map(r => {
+                                  const util = Math.max(0, (r.quotePrice||0) - (r.partsCost||0));
+                                  const rate = r.commissionStatus === 'pagado' ? (r.commissionRate||techCommissionRate) : techCommissionRate;
+                                  const comm = Math.round(util * rate / 100);
+                                  const isPaid = r.commissionStatus === 'pagado';
+                                  return (
+                                    <tr key={r.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', background: isPaid ? 'rgba(74,222,128,0.03)' : 'transparent' }}>
+                                      <td style={{ padding: '8px 12px', color: '#64748b', whiteSpace: 'nowrap' }}>{r.createdAt}</td>
+                                      <td style={{ padding: '8px 12px', maxWidth: '180px' }}>
+                                        <div style={{ fontWeight: 600, color: '#f1f5f9' }}>{r.reference}</div>
+                                        <div style={{ fontSize: '10px', color: '#475569' }}>{r.repairType.slice(0,50)}{r.repairType.length>50?'…':''}</div>
+                                      </td>
+                                      <td style={{ padding: '8px 12px', color: '#f1f5f9', fontWeight: 700 }}>${(r.quotePrice||0).toLocaleString('es-CO')}</td>
+                                      <td style={{ padding: '8px 12px', color: '#f87171' }}>${(r.partsCost||0).toLocaleString('es-CO')}</td>
+                                      <td style={{ padding: '8px 12px', color: '#4ade80', fontWeight: 700 }}>${util.toLocaleString('es-CO')}</td>
+                                      <td style={{ padding: '8px 12px', color: '#a5b4fc', fontWeight: 800 }}>${comm.toLocaleString('es-CO')}<span style={{ fontSize: '9px', color: '#64748b', marginLeft: '3px' }}>({rate}%)</span></td>
+                                      <td style={{ padding: '8px 12px' }}>
+                                        <span style={{ fontSize: '9px', fontWeight: 800, padding: '2px 8px', borderRadius: '999px', textTransform: 'uppercase', background: isPaid ? 'rgba(74,222,128,0.15)' : 'rgba(248,113,113,0.12)', color: isPaid ? '#4ade80' : '#f87171', border: `1px solid ${isPaid ? 'rgba(74,222,128,0.3)' : 'rgba(248,113,113,0.25)'}` }}>
+                                          {isPaid ? 'Pagado' : 'Pendiente'}
+                                        </span>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+
                 </div>
               )}
 
-              {/* Sub-tab 6: Venta Mostrador (POS) */}
+              {/* Sub-tab 6: Nueva Factura (POS) */}
               {adminTab === 'ventas' && (
-                <div className="space-y-6 animate-fade-in">
-                  <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-6">
-                    {/* Left: Product POS Layout */}
-                    <div className="space-y-4 min-w-0">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/5 pb-4">
-                        <h3 className="text-sm font-bold uppercase tracking-wider text-indigo-400">Terminal de Punto de Venta (POS)</h3>
-                        <div className="w-full sm:w-64">
-                          <input
-                            type="text"
-                            value={saleSearch}
-                            onChange={(e) => setSaleSearch(e.target.value)}
-                            placeholder="🔍 Buscar por nombre o especificaciones..."
-                            className="w-full"
-                          />
-                        </div>
-                      </div>
+                <div className="animate-fade-in" style={{ display: 'flex', gap: '16px', height: 'calc(100vh - 160px)', overflow: 'hidden' }}>
 
-                      {/* Category Navigation Bar */}
-                      <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-                        {[
-                          { id: 'all', label: '🎛️ Todos' },
-                          { id: 'iphone', label: '📱 iPhones' },
-                          { id: 'mac', label: '💻 Macs' },
-                          { id: 'repuesto', label: '⚙️ Repuestos' }
-                        ].map(cat => (
-                          <button
-                            key={cat.id}
-                            type="button"
-                            onClick={() => setSaleCategoryFilter(cat.id as any)}
-                            className={`chip-filter flex-shrink-0 ${saleCategoryFilter === cat.id ? 'active' : ''}`}
-                          >
-                            {cat.label}
-                          </button>
-                        ))}
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 max-h-[62vh] overflow-y-auto pr-1 no-scrollbar">
-                        {products
-                          .filter(p => saleCategoryFilter === 'all' || p.category === saleCategoryFilter)
-                          .filter(p => p.name.toLowerCase().includes(saleSearch.toLowerCase()) || p.specs.toLowerCase().includes(saleSearch.toLowerCase()))
-                          .map(prod => (
-                            <button
-                              key={prod.id}
-                              type="button"
-                              onClick={() => addToSaleCart(prod)}
-                              disabled={prod.stock === 0}
-                              className={`glass-card p-4 text-left flex flex-col justify-between h-40 transition-all hover:border-indigo-500/40 active:scale-[0.97] ${prod.stock === 0 ? 'opacity-30 cursor-not-allowed' : ''}`}
-                            >
-                              <div className="space-y-1.5 w-full">
-                                <div className="flex justify-between items-start gap-2">
-                                  <span className="font-bold text-xs text-white leading-snug line-clamp-2">{prod.name}</span>
-                                  <span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded-full border flex-shrink-0 uppercase ${
-                                    prod.stock <= 2 ? 'bg-red-500/10 text-red-400 border-red-500/20' : 'bg-green-500/10 text-green-400 border-green-500/20'
-                                  }`}>{prod.stock} stock</span>
-                                </div>
-                                <span className="text-[10px] text-neutral-400 block line-clamp-2">{prod.specs}</span>
-                              </div>
-                              <div className="flex justify-between items-end w-full border-t border-white/5 pt-2 mt-2">
-                                <span className="text-[8px] font-bold uppercase text-neutral-500">{prod.category}</span>
-                                <span className="font-bold text-indigo-400 text-sm font-technical">${prod.price.toLocaleString('es-CO')}</span>
-                              </div>
-                            </button>
-                          ))}
-                      </div>
+                  {/* ── LEFT: Catálogo ── */}
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px', minWidth: 0 }}>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                      <input
+                        type="text" value={saleSearch}
+                        onChange={(e) => setSaleSearch(e.target.value)}
+                        placeholder="🔍 Buscar producto..."
+                        autoFocus
+                        style={{ flex: 1, minWidth: '140px', fontSize: '13px', padding: '8px 12px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', color: '#fff', outline: 'none' }}
+                      />
+                      {(['all','iphone','mac','repuesto'] as const).map(cat => (
+                        <button key={cat} type="button" onClick={() => setSaleCategoryFilter(cat)}
+                          style={{ padding: '7px 11px', borderRadius: '8px', fontSize: '11px', fontWeight: 700, border: '1px solid', whiteSpace: 'nowrap', cursor: 'pointer', background: saleCategoryFilter === cat ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.03)', borderColor: saleCategoryFilter === cat ? 'rgb(99,102,241)' : 'rgba(255,255,255,0.08)', color: saleCategoryFilter === cat ? '#818cf8' : '#94a3b8' }}>
+                          {cat === 'all' ? 'Todos' : cat === 'iphone' ? 'iPhones' : cat === 'mac' ? 'Macs' : 'Repuestos'}
+                        </button>
+                      ))}
                     </div>
+                    <div style={{ flex: 1, overflowY: 'auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(148px, 1fr))', gap: '8px', alignContent: 'start', paddingRight: '4px' }}>
+                      {products
+                        .filter(p => saleCategoryFilter === 'all' || p.category === saleCategoryFilter)
+                        .filter(p => p.name.toLowerCase().includes(saleSearch.toLowerCase()) || p.specs.toLowerCase().includes(saleSearch.toLowerCase()))
+                        .map(prod => {
+                          const inCart = saleCart.find(i => i.product.id === prod.id);
+                          return (
+                            <button key={prod.id} type="button" onClick={() => addToSaleCart(prod)} disabled={prod.stock === 0}
+                              style={{ position: 'relative', padding: '10px', borderRadius: '10px', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '5px', cursor: prod.stock === 0 ? 'not-allowed' : 'pointer', opacity: prod.stock === 0 ? 0.35 : 1, transition: 'all 0.15s', background: inCart ? 'rgba(99,102,241,0.1)' : 'rgba(255,255,255,0.02)', border: `1px solid ${inCart ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.06)'}` }}>
+                              {inCart && <span style={{ position: 'absolute', top: '5px', right: '5px', background: '#6366f1', color: '#fff', borderRadius: '999px', fontSize: '9px', fontWeight: 800, padding: '1px 6px' }}>×{inCart.qty}</span>}
+                              <span style={{ fontSize: '11px', fontWeight: 700, color: '#f1f5f9', lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{prod.name}</span>
+                              <span style={{ fontSize: '9px', color: '#64748b', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{prod.specs}</span>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '5px', borderTop: '1px solid rgba(255,255,255,0.05)', marginTop: 'auto' }}>
+                                <span style={{ fontSize: '9px', fontWeight: 700, color: prod.stock <= 2 ? '#f87171' : '#4ade80' }}>{prod.stock} uds</span>
+                                <span style={{ fontSize: '12px', fontWeight: 800, color: '#818cf8' }}>${prod.price.toLocaleString('es-CO')}</span>
+                              </div>
+                            </button>
+                          );
+                        })}
+                    </div>
+                  </div>
 
-                    {/* Right: POS Order Summary & Cart */}
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-center border-b border-white/5 pb-3">
-                        <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-400 flex items-center gap-2">
-                          <ShoppingCart size={14} /> Resumen de Orden
-                        </h3>
-                        {saleCart.length > 0 && (
-                          <button 
-                            onClick={() => setSaleCart([])}
-                            className="text-[10px] text-red-400 hover:text-red-300 font-bold uppercase tracking-wider transition-colors"
-                          >
-                            Limpiar
-                          </button>
-                        )}
+                  {/* ── RIGHT: Factura ── */}
+                  <div style={{ width: '340px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto' }}>
+
+                    {/* Venta completada */}
+                    {saleSuccess && lastSale ? (
+                      <div style={{ background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#4ade80', fontWeight: 700, fontSize: '12px' }}>
+                          <CheckCircle2 size={14} /> Factura {lastSale.saleId} generada
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                          <button onClick={() => sendViaWhatsApp(lastSale)} style={{ background: '#22c55e', color: '#000', border: 'none', borderRadius: '8px', padding: '9px', fontSize: '11px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}><MessageCircle size={12} /> WhatsApp</button>
+                          <button onClick={() => sendViaEmail(lastSale)} style={{ background: 'rgba(255,255,255,0.06)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '9px', fontSize: '11px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}><Mail size={12} /> E-mail</button>
+                        </div>
+                        <button onClick={() => { setSaleSuccess(false); setLastSale(null); }} style={{ background: 'none', border: 'none', color: '#818cf8', fontSize: '12px', fontWeight: 700, cursor: 'pointer', paddingTop: '4px' }}>+ Nueva Factura</button>
                       </div>
-
-                      {saleSuccess && lastSale && (
-                        <div className="glass-card p-4 space-y-3 border border-green-500/20 bg-green-500/5">
-                          <div className="flex items-center gap-2 text-green-400 font-bold text-xs">
-                            <CheckCircle2 size={14} /> Recibo {lastSale.saleId} Completado
-                          </div>
-                          <p className="text-[10px] text-neutral-400">El recibo PDF fue generado y descargado de forma automática.</p>
-                          <div className="grid grid-cols-2 gap-2">
-                            <button
-                              onClick={() => sendViaWhatsApp(lastSale)}
-                              className="flex items-center justify-center gap-1.5 bg-green-500 hover:bg-green-600 text-neutral-950 text-[10px] font-bold py-2 rounded-xl transition-all"
-                            >
-                              <MessageCircle size={12} /> WhatsApp
-                            </button>
-                            <button
-                              onClick={() => sendViaEmail(lastSale)}
-                              className="flex items-center justify-center gap-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white text-[10px] font-bold py-2 rounded-xl transition-all"
-                            >
-                              <Mail size={12} /> E-mail
-                            </button>
-                          </div>
+                    ) : (
+                      <>
+                        {/* Encabezado con botón Nueva Factura */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '4px' }}>
+                          <span style={{ fontSize: '13px', fontWeight: 800, color: '#f1f5f9' }}>Nueva Factura</span>
                           <button
-                            onClick={() => { setSaleSuccess(false); setLastSale(null); setCashReceived(''); }}
-                            className="w-full text-[10px] text-indigo-400 hover:text-indigo-300 font-bold uppercase tracking-wider pt-1"
+                            type="button"
+                            onClick={() => {
+                              setSaleCart([]);
+                              setSaleCustomerName(''); setSaleCustomerPhone('');
+                              setSaleCustomerCedula(''); setSaleImei('');
+                              setSaleWarrantyDays(30); setSalePaymentMethod('efectivo');
+                            }}
+                            style={{ padding: '5px 12px', background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: '7px', color: '#818cf8', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}
                           >
-                            + Nueva Venta POS
+                            + Nueva Factura
                           </button>
                         </div>
-                      )}
 
-                      <div className="glass-card p-4 space-y-3 max-h-[30vh] overflow-y-auto no-scrollbar min-h-[140px]">
-                        {saleCart.length === 0 ? (
-                          <div className="flex flex-col items-center justify-center py-8 text-neutral-500 text-center gap-2">
-                            <Smartphone size={20} className="opacity-40" />
-                            <p className="text-xs">El carrito está vacío</p>
-                          </div>
-                        ) : (
-                          saleCart.map(item => (
-                            <div key={item.product.id} className="flex items-center justify-between gap-3 border-b border-white/5 pb-2.5 last:border-0 last:pb-0">
-                              <div className="flex-1 min-w-0">
-                                <p className="text-xs font-bold text-white truncate">{item.product.name}</p>
-                                <p className="text-[10px] text-neutral-400 font-technical">${item.product.price.toLocaleString('es-CO')} c/u</p>
+                        {/* Datos del cliente */}
+                        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <span style={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Datos del Cliente</span>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '7px' }}>
+                            {[
+                              { label: 'Nombre', value: saleCustomerName, onChange: (v: string) => setSaleCustomerName(v), placeholder: 'Nombre o mostrador', type: 'text' },
+                              { label: 'Cédula', value: saleCustomerCedula, onChange: (v: string) => setSaleCustomerCedula(v.replace(/\D/g,'').slice(0,12)), placeholder: 'Opcional', type: 'text' },
+                              { label: 'Celular / WhatsApp', value: saleCustomerPhone, onChange: (v: string) => setSaleCustomerPhone(v), placeholder: '573001234567', type: 'tel' },
+                              { label: 'IMEI (opcional)', value: saleImei, onChange: (v: string) => setSaleImei(v.replace(/\D/g,'').slice(0,15)), placeholder: '15 dígitos', type: 'text' },
+                            ].map(f => (
+                              <div key={f.label}>
+                                <label style={{ fontSize: '9px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', display: 'block', marginBottom: '3px' }}>{f.label}</label>
+                                <input type={f.type} value={f.value} onChange={e => f.onChange(e.target.value)} placeholder={f.placeholder}
+                                  style={{ width: '100%', fontSize: '11px', padding: '6px 8px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '7px', color: '#fff', outline: 'none', boxSizing: 'border-box' }} />
                               </div>
-                              <div className="flex items-center gap-2 flex-shrink-0">
-                                <div className="flex items-center bg-white/5 rounded-lg p-0.5 border border-white/5">
-                                  <button
-                                    onClick={() => updateSaleQty(item.product.id, -1)}
-                                    className="w-5 h-5 flex items-center justify-center text-neutral-400 hover:text-white"
-                                  >
-                                    <Minus size={10} />
-                                  </button>
-                                  <span className="text-xs font-bold text-white w-6 text-center font-technical">{item.qty}</span>
-                                  <button
-                                    onClick={() => updateSaleQty(item.product.id, 1)}
-                                    className="w-5 h-5 flex items-center justify-center text-neutral-400 hover:text-white"
-                                  >
-                                    <Plus size={10} />
-                                  </button>
-                                </div>
-                                <button
-                                  onClick={() => removeFromSaleCart(item.product.id)}
-                                  className="w-6 h-6 rounded-lg bg-red-500/10 hover:bg-red-500/20 flex items-center justify-center text-red-400 transition-colors"
-                                >
-                                  <Trash2 size={11} />
-                                </button>
-                              </div>
-                            </div>
-                          ))
-                        )}
-                      </div>
-
-                      {saleCart.length > 0 && (
-                        <div className="glass-card p-4 space-y-4">
-                          <div className="flex justify-between items-center border-b border-white/5 pb-3">
-                            <span className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Total</span>
-                            <span className="text-lg font-extrabold text-indigo-400 font-technical">${saleCartTotal.toLocaleString('es-CO')}</span>
+                            ))}
                           </div>
-
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-1">
-                              <label className="text-[9px] uppercase font-bold text-neutral-400 tracking-wider">Nombre del Cliente</label>
-                              <input
-                                type="text"
-                                value={saleCustomerName}
-                                onChange={(e) => setSaleCustomerName(e.target.value)}
-                                placeholder="Cliente mostrador"
-                              />
-                            </div>
-                            <div className="space-y-1">
-                              <label className="text-[9px] uppercase font-bold text-neutral-400 tracking-wider">Cédula</label>
-                              <input
-                                type="text"
-                                value={saleCustomerCedula}
-                                onChange={(e) => setSaleCustomerCedula(e.target.value.replace(/\D/g, '').slice(0, 12))}
-                                placeholder="Ej: 1234567890"
-                                className="font-technical"
-                              />
-                            </div>
+                          <div>
+                            <label style={{ fontSize: '9px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', display: 'block', marginBottom: '3px' }}>Garantía</label>
+                            <select value={saleWarrantyDays} onChange={e => setSaleWarrantyDays(Number(e.target.value))}
+                              style={{ width: '100%', fontSize: '11px', padding: '6px 8px', background: 'rgba(15,23,42,0.9)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '7px', color: '#fff', outline: 'none' }}>
+                              <option value={0}>Sin garantía</option><option value={15}>15 días</option><option value={30}>1 mes</option>
+                              <option value={90}>3 meses</option><option value={180}>6 meses</option><option value={365}>1 año</option>
+                            </select>
                           </div>
-                          <div className="space-y-1">
-                            <label className="text-[9px] uppercase font-bold text-neutral-400 tracking-wider">WhatsApp / Celular</label>
-                            <input
-                              type="tel"
-                              value={saleCustomerPhone}
-                              onChange={(e) => setSaleCustomerPhone(e.target.value)}
-                              placeholder="Ej: 57300..."
-                            />
-                          </div>
-
-                          {/* IMEI + Garantía */}
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-1">
-                              <label className="text-[9px] uppercase font-bold text-neutral-400 tracking-wider">
-                                IMEI del Equipo
-                                <span className="ml-1 text-neutral-500 normal-case font-normal">(opcional)</span>
-                              </label>
-                              <input
-                                type="text"
-                                value={saleImei}
-                                onChange={(e) => setSaleImei(e.target.value.replace(/\D/g, '').slice(0, 15))}
-                                placeholder="15 dígitos"
-                                className="font-technical"
-                                maxLength={15}
-                              />
-                              {saleImei && saleImei.length > 0 && saleImei.length !== 15 && (
-                                <p className="text-[9px] text-amber-400">{saleImei.length}/15 dígitos</p>
-                              )}
-                              {saleImei.length === 15 && (
-                                <p className="text-[9px] text-green-400">IMEI válido</p>
-                              )}
-                            </div>
-                            <div className="space-y-1">
-                              <label className="text-[9px] uppercase font-bold text-neutral-400 tracking-wider">Garantía</label>
-                              <select
-                                value={saleWarrantyDays}
-                                onChange={(e) => setSaleWarrantyDays(Number(e.target.value))}
-                              >
-                                <option value={0}>Sin garantía</option>
-                                <option value={15}>15 días</option>
-                                <option value={30}>1 mes</option>
-                                <option value={90}>3 meses</option>
-                                <option value={180}>6 meses</option>
-                                <option value={365}>1 año</option>
-                              </select>
-                            </div>
-                          </div>
-
-                          {/* POS Payment Methods cards */}
-                          <div className="space-y-1.5">
-                            <label className="text-[9px] uppercase font-bold text-neutral-400 tracking-wider">Forma de Pago</label>
-                            <div className="grid grid-cols-3 gap-2">
-                              {[
-                                { id: 'efectivo', label: 'Efectivo', icon: '💵' },
-                                { id: 'tarjeta', label: 'Tarjeta', icon: '💳' },
-                                { id: 'transferencia', label: 'Transf.', icon: '📲' }
-                              ].map(method => (
-                                <button
-                                  key={method.id}
-                                  type="button"
-                                  onClick={() => setSalePaymentMethod(method.id as any)}
-                                  className={`p-2.5 rounded-xl border text-center flex flex-col items-center justify-center gap-1 transition-all ${
-                                    salePaymentMethod === method.id 
-                                      ? 'bg-indigo-500/10 border-indigo-500 text-indigo-400 font-bold' 
-                                      : 'bg-white/5 border-white/5 text-neutral-400 hover:bg-white/10'
-                                  }`}
-                                >
-                                  <span className="text-base">{method.icon}</span>
-                                  <span className="text-[8px] uppercase font-bold tracking-wider">{method.label}</span>
+                          <div>
+                            <label style={{ fontSize: '9px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', display: 'block', marginBottom: '5px' }}>Medio de Pago</label>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              {[{ id: 'efectivo', label: '💵 Efectivo' }, { id: 'nequi', label: '🟣 Nequi' }, { id: 'daviplata', label: '🔴 Daviplata' }, { id: 'llave', label: '🔑 Llave' }].map(m => (
+                                <button key={m.id} type="button" onClick={() => setSalePaymentMethod(m.id as any)}
+                                  style={{ padding: '7px 10px', borderRadius: '7px', border: '1px solid', textAlign: 'left', cursor: 'pointer', fontSize: '11px', fontWeight: salePaymentMethod === m.id ? 700 : 500, background: salePaymentMethod === m.id ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.02)', borderColor: salePaymentMethod === m.id ? 'rgba(99,102,241,0.6)' : 'rgba(255,255,255,0.06)', color: salePaymentMethod === m.id ? '#a5b4fc' : '#94a3b8' }}>
+                                  {m.label}
                                 </button>
                               ))}
                             </div>
                           </div>
+                        </div>
 
-                          {/* Live change calculator for Cash */}
-                          {salePaymentMethod === 'efectivo' && (
-                            <div className="bg-neutral-900/40 border border-white/5 rounded-xl p-3.5 space-y-3">
-                              <span className="text-[9px] uppercase font-bold text-neutral-400 tracking-wider block">Calcular Cambio (Devuelta)</span>
-                              <div className="flex gap-2">
-                                <input
-                                  type="number"
-                                  value={cashReceived}
-                                  onChange={(e) => setCashReceived(e.target.value)}
-                                  placeholder="Paga con... (ej: 100000)"
-                                  className="flex-1 font-technical"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => setCashReceived(String(saleCartTotal))}
-                                  className="btn-secondary py-2 px-3 text-[9px] uppercase font-bold"
-                                >
-                                  Exacto
+                        {/* Productos en factura */}
+                        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                              Productos ({saleCart.length})
+                            </span>
+                            {saleCart.length > 0 && <button onClick={() => setSaleCart([])} style={{ background: 'none', border: 'none', color: '#f87171', fontSize: '10px', fontWeight: 700, cursor: 'pointer' }}>Limpiar</button>}
+                          </div>
+
+                          {saleCart.length === 0 ? (
+                            <div style={{ textAlign: 'center', padding: '16px 0', color: '#475569' }}>
+                              <p style={{ fontSize: '11px' }}>← Selecciona productos del catálogo</p>
+                            </div>
+                          ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                              {saleCart.map(item => (
+                                <div key={item.product.id} style={{ display: 'flex', flexDirection: 'column', gap: '5px', paddingBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#f1f5f9', flex: 1, marginRight: '8px', lineHeight: 1.3 }}>{item.product.name}</span>
+                                    <button onClick={() => removeFromSaleCart(item.product.id)} style={{ width: '18px', height: '18px', background: 'rgba(239,68,68,0.1)', border: 'none', borderRadius: '5px', color: '#f87171', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Trash2 size={9} /></button>
+                                  </div>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '3px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '6px', padding: '2px 4px' }}>
+                                      <button onClick={() => updateSaleQty(item.product.id, -1)} style={{ width: '18px', height: '18px', background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Minus size={9} /></button>
+                                      <span style={{ fontSize: '11px', fontWeight: 700, color: '#fff', width: '18px', textAlign: 'center' }}>{item.qty}</span>
+                                      <button onClick={() => updateSaleQty(item.product.id, 1)} style={{ width: '18px', height: '18px', background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Plus size={9} /></button>
+                                    </div>
+                                    <span style={{ fontSize: '9px', color: '#475569' }}>×</span>
+                                    <div style={{ flex: 1, position: 'relative' }}>
+                                      <span style={{ position: 'absolute', left: '7px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', color: '#64748b', pointerEvents: 'none' }}>$</span>
+                                      <input
+                                        type="number" value={item.salePrice}
+                                        onChange={e => updateSaleItemPrice(item.product.id, Number(e.target.value))}
+                                        style={{ width: '100%', fontSize: '11px', fontWeight: 700, padding: '5px 6px 5px 16px', background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '6px', color: '#a5b4fc', outline: 'none', boxSizing: 'border-box' }}
+                                      />
+                                    </div>
+                                    <span style={{ fontSize: '10px', color: '#64748b', flexShrink: 0 }}>= ${(item.salePrice * item.qty).toLocaleString('es-CO')}</span>
+                                  </div>
+                                </div>
+                              ))}
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '6px' }}>
+                                <span style={{ fontSize: '12px', fontWeight: 700, color: '#94a3b8' }}>TOTAL</span>
+                                <span style={{ fontSize: '20px', fontWeight: 800, color: '#818cf8' }}>${saleCartTotal.toLocaleString('es-CO')}</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {saleCart.length > 0 && (
+                          <button type="button" onClick={handleCompleteSale}
+                            style={{ width: '100%', padding: '13px', background: 'linear-gradient(135deg,#6366f1,#4f46e5)', border: 'none', borderRadius: '10px', color: '#fff', fontSize: '13px', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                            <Printer size={15} /> Generar Factura · ${saleCartTotal.toLocaleString('es-CO')}
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Sub-tab 7: Cuentas por Cobrar */}
+              {adminTab === 'cuentas' && (
+                <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '16px', height: 'calc(100vh - 160px)', overflow: 'hidden' }}>
+
+                  {/* Header */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+                    <div>
+                      <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#f1f5f9' }}>Cuentas por Cobrar</h3>
+                      <p style={{ fontSize: '11px', color: '#64748b' }}>
+                        {receivables.length} cuenta{receivables.length !== 1 ? 's' : ''} ·
+                        Pendiente: ${receivables.filter(r => r.status !== 'pagado').reduce((s,r) => s + rcvBalance(r), 0).toLocaleString('es-CO')} ·
+                        En revisión: {receivables.filter(r => r.status === 'en_revision').length}
+                      </p>
+                    </div>
+                    <button onClick={() => setRcvGenModal(true)}
+                      style={{ padding: '8px 16px', background: 'linear-gradient(135deg,#6366f1,#4f46e5)', border: 'none', borderRadius: '9px', color: '#fff', fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Plus size={13} /> Generar Cuenta
+                    </button>
+                  </div>
+
+                  {/* Grilla de cuentas */}
+                  <div style={{ flex: 1, overflowY: 'auto', paddingRight: '2px' }}>
+                    {receivables.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '60px 0', color: '#475569' }}>
+                        <FileText size={32} style={{ margin: '0 auto 12px', opacity: 0.3 }} />
+                        <p style={{ fontSize: '13px' }}>No hay cuentas por cobrar</p>
+                        <p style={{ fontSize: '11px', marginTop: '4px' }}>Genera una cuenta de cobro seleccionando las reparaciones del cliente</p>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '12px' }}>
+                        {receivables.map(r => {
+                          const color = rcvColor(r);
+                          const bgMap: Record<string, string> = { pagado: 'rgba(74,222,128,0.04)', en_revision: 'rgba(251,191,36,0.04)', pendiente: 'rgba(248,113,113,0.04)' };
+                          return (
+                            <div key={r.id} style={{ background: bgMap[r.status] || 'rgba(255,255,255,0.02)', border: `1px solid ${color}25`, borderTop: `3px solid ${color}`, borderRadius: '14px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                              {/* Top row */}
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '4px' }}>
+                                    <span style={{ fontSize: '9px', fontWeight: 800, padding: '2px 8px', borderRadius: '999px', background: `${color}18`, color, border: `1px solid ${color}35`, textTransform: 'uppercase', letterSpacing: '0.05em', flexShrink: 0 }}>{rcvLabel(r)}</span>
+                                    <span style={{ fontSize: '10px', color: '#64748b', fontFamily: 'monospace' }}>{r.id}</span>
+                                  </div>
+                                  <div style={{ fontSize: '14px', fontWeight: 800, color: '#f1f5f9', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.clientName}</div>
+                                  <div style={{ fontSize: '10px', color: '#64748b' }}>
+                                    {r.periodStart ? `${r.periodStart} → ${r.periodEnd}` : r.createdAt}
+                                    {r.validatedAt && <span style={{ color: '#4ade80', marginLeft: '6px' }}>· Validado {r.validatedAt}</span>}
+                                  </div>
+                                </div>
+                                <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: '12px' }}>
+                                  <div style={{ fontSize: '20px', fontWeight: 800, color: '#f1f5f9', letterSpacing: '-0.03em' }}>${r.total.toLocaleString('es-CO')}</div>
+                                  <div style={{ fontSize: '9px', color: '#64748b' }}>COP · {r.items.length} ítem{r.items.length !== 1 ? 's' : ''}</div>
+                                </div>
+                              </div>
+
+                              {/* Items mini-list */}
+                              {r.items.length > 0 && (
+                                <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: '8px', padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                  {r.items.slice(0, 3).map((item, idx) => (
+                                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px' }}>
+                                      <span style={{ color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '70%' }}>{item.name}</span>
+                                      <span style={{ color: '#f1f5f9', fontWeight: 700, flexShrink: 0, marginLeft: '8px' }}>${item.price.toLocaleString('es-CO')}</span>
+                                    </div>
+                                  ))}
+                                  {r.items.length > 3 && <div style={{ fontSize: '10px', color: '#475569' }}>+{r.items.length - 3} más</div>}
+                                </div>
+                              )}
+
+                              {/* Actions */}
+                              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: 'auto' }}>
+                                {r.status === 'en_revision' && (
+                                  <>
+                                    {r.proofUrl && (
+                                      <a href={r.proofUrl} target="_blank" rel="noreferrer"
+                                        style={{ padding: '5px 12px', background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.3)', borderRadius: '7px', color: '#fbbf24', fontSize: '10px', fontWeight: 700, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                        Ver Soporte
+                                      </a>
+                                    )}
+                                    <button onClick={() => handleValidatePayment(r)}
+                                      style={{ padding: '5px 12px', background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: '7px', color: '#4ade80', fontSize: '10px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                      <Check size={10} /> Validar Pago
+                                    </button>
+                                  </>
+                                )}
+                                {r.status === 'pendiente' && (
+                                  <button onClick={() => { setRcvPayModal(r); setRcvPayAmount(''); setRcvPayNote(''); }}
+                                    style={{ padding: '5px 12px', background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: '7px', color: '#818cf8', fontSize: '10px', fontWeight: 700, cursor: 'pointer' }}>
+                                    + Pago Manual
+                                  </button>
+                                )}
+                                <button onClick={() => generateReceivablePDF(r)}
+                                  style={{ padding: '5px 12px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '7px', color: '#64748b', fontSize: '10px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', marginLeft: 'auto' }}>
+                                  <Printer size={10} /> PDF
                                 </button>
                               </div>
-                              <div className="flex justify-between gap-1.5">
-                                {[50000, 100000, 200000].map(val => (
-                                  <button
-                                    key={val}
-                                    type="button"
-                                    onClick={() => setCashReceived(String(val))}
-                                    className="bg-white/5 hover:bg-white/10 border border-white/5 text-[9px] font-bold text-white py-1.5 flex-1 rounded-lg font-technical"
-                                  >
-                                    ${(val / 1000)}k
-                                  </button>
-                                ))}
-                              </div>
-                              {cashReceived && (
-                                <div className="flex justify-between items-center pt-2.5 border-t border-white/5 text-xs">
-                                  <span className="text-[9px] text-neutral-400 uppercase font-bold">Cambio a entregar:</span>
-                                  <span className={`font-bold font-technical ${Number(cashReceived) - saleCartTotal >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                                    {Number(cashReceived) - saleCartTotal >= 0 
-                                      ? `$${(Number(cashReceived) - saleCartTotal).toLocaleString('es-CO')} COP` 
-                                      : 'Monto insuficiente'}
-                                  </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Modal Generar Cuenta — con selector de reparaciones */}
+                  {rcvGenModal && (() => {
+                    const cp = profiles.find(p => p.id === rcvGenClientId);
+                    const alreadyBilled = new Set(
+                      receivables
+                        .filter(r => r.status === 'en_revision' || r.status === 'pagado')
+                        .flatMap(r => r.repairIds)
+                    );
+                    const availableRepairs = cp && rcvGenStart && rcvGenEnd
+                      ? repairs.filter(r =>
+                          r.clientName.toLowerCase() === cp.name.toLowerCase() &&
+                          r.createdAt >= rcvGenStart && r.createdAt <= rcvGenEnd &&
+                          r.status === 'entregado' && r.quotePrice && r.quotePrice > 0 &&
+                          !alreadyBilled.has(r.id)
+                        )
+                      : [];
+                    const selectedTotal = availableRepairs
+                      .filter(r => rcvGenSelected.has(r.id))
+                      .reduce((s, r) => s + (r.quotePrice || 0), 0);
+                    const allSelected = availableRepairs.length > 0 && availableRepairs.every(r => rcvGenSelected.has(r.id));
+                    const toggleAll = () => {
+                      if (allSelected) setRcvGenSelected(new Set());
+                      else setRcvGenSelected(new Set(availableRepairs.map(r => r.id)));
+                    };
+                    const toggleOne = (id: string) => {
+                      const next = new Set(rcvGenSelected);
+                      next.has(id) ? next.delete(id) : next.add(id);
+                      setRcvGenSelected(next);
+                    };
+                    return (
+                      <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}>
+                        <div style={{ background: '#0f172a', border: '1px solid rgba(99,102,241,0.3)', borderRadius: '18px', padding: '24px', width: '100%', maxWidth: '520px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                          {/* Header */}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+                            <div>
+                              <div style={{ fontSize: '15px', fontWeight: 800, color: '#f1f5f9' }}>Generar Cuenta de Cobro</div>
+                              <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>Selecciona el cliente, período y las reparaciones a incluir</div>
+                            </div>
+                            <button onClick={() => { setRcvGenModal(false); setRcvGenClientId(''); setRcvGenStart(''); setRcvGenEnd(''); setRcvGenSelected(new Set()); }}
+                              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', color: '#94a3b8', cursor: 'pointer', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                              <X size={14} />
+                            </button>
+                          </div>
+
+                          {/* Cliente */}
+                          <div style={{ flexShrink: 0 }}>
+                            <label style={{ fontSize: '9px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', display: 'block', marginBottom: '5px' }}>Cliente Preferencial *</label>
+                            <select value={rcvGenClientId}
+                              onChange={e => { setRcvGenClientId(e.target.value); setRcvGenSelected(new Set()); }}
+                              style={{ width: '100%', fontSize: '12px', padding: '9px 10px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '9px', color: rcvGenClientId ? '#f1f5f9' : '#64748b', outline: 'none', boxSizing: 'border-box' }}>
+                              <option value="">-- Seleccionar cliente --</option>
+                              {profiles.filter(p => p.role === 'preferencial' && p.status === 'active').map(p => (
+                                <option key={p.id} value={p.id}>{p.name}</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* Rango de fechas */}
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', flexShrink: 0 }}>
+                            <div>
+                              <label style={{ fontSize: '9px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', display: 'block', marginBottom: '5px' }}>Desde *</label>
+                              <input type="date" value={rcvGenStart}
+                                onChange={e => { setRcvGenStart(e.target.value); setRcvGenSelected(new Set()); }}
+                                style={{ width: '100%', fontSize: '12px', padding: '9px 10px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '9px', color: '#f1f5f9', outline: 'none', boxSizing: 'border-box' }} />
+                            </div>
+                            <div>
+                              <label style={{ fontSize: '9px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', display: 'block', marginBottom: '5px' }}>Hasta *</label>
+                              <input type="date" value={rcvGenEnd}
+                                onChange={e => { setRcvGenEnd(e.target.value); setRcvGenSelected(new Set()); }}
+                                style={{ width: '100%', fontSize: '12px', padding: '9px 10px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '9px', color: '#f1f5f9', outline: 'none', boxSizing: 'border-box' }} />
+                            </div>
+                          </div>
+
+                          {/* Lista de reparaciones seleccionables */}
+                          {rcvGenClientId && rcvGenStart && rcvGenEnd && (
+                            <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+                              {availableRepairs.length === 0 ? (
+                                <div style={{ fontSize: '12px', color: '#f87171', padding: '14px', background: 'rgba(239,68,68,0.06)', borderRadius: '10px', border: '1px solid rgba(239,68,68,0.2)', textAlign: 'center' }}>
+                                  Sin reparaciones entregadas con valor en este período
+                                </div>
+                              ) : (
+                                <div style={{ border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', overflow: 'hidden' }}>
+                                  {/* Header con "seleccionar todo" */}
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', background: 'rgba(99,102,241,0.08)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                                    <input type="checkbox" checked={allSelected} onChange={toggleAll}
+                                      style={{ width: '14px', height: '14px', cursor: 'pointer', accentColor: '#6366f1' }} />
+                                    <span style={{ fontSize: '10px', fontWeight: 700, color: '#818cf8', textTransform: 'uppercase', flex: 1 }}>
+                                      {availableRepairs.length} ingreso{availableRepairs.length !== 1 ? 's' : ''} encontrado{availableRepairs.length !== 1 ? 's' : ''}
+                                    </span>
+                                    <span style={{ fontSize: '10px', color: '#64748b' }}>{rcvGenSelected.size} seleccionado{rcvGenSelected.size !== 1 ? 's' : ''}</span>
+                                  </div>
+                                  {/* Filas */}
+                                  {availableRepairs.map((r, idx) => {
+                                    const sel = rcvGenSelected.has(r.id);
+                                    return (
+                                      <div key={r.id} onClick={() => toggleOne(r.id)}
+                                        style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', cursor: 'pointer', background: sel ? 'rgba(99,102,241,0.08)' : 'transparent', borderBottom: idx < availableRepairs.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none', transition: 'background 0.15s' }}>
+                                        <input type="checkbox" checked={sel} onChange={() => toggleOne(r.id)}
+                                          onClick={e => e.stopPropagation()}
+                                          style={{ width: '14px', height: '14px', cursor: 'pointer', accentColor: '#6366f1', flexShrink: 0 }} />
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                          <div style={{ fontSize: '12px', fontWeight: sel ? 700 : 500, color: sel ? '#f1f5f9' : '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                            {r.reference} {r.color} {r.capacity}
+                                          </div>
+                                          <div style={{ fontSize: '10px', color: '#475569' }}>{r.repairType} · {r.createdAt}</div>
+                                        </div>
+                                        <div style={{ fontSize: '13px', fontWeight: 800, color: sel ? '#818cf8' : '#64748b', flexShrink: 0 }}>
+                                          ${(r.quotePrice || 0).toLocaleString('es-CO')}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
                                 </div>
                               )}
                             </div>
                           )}
 
-                          <button
-                            type="button"
-                            onClick={handleCompleteSale}
-                            className="btn-primary w-full py-3.5 flex items-center justify-center gap-2"
-                          >
-                            <Printer size={16} /> Completar y Generar PDF
-                          </button>
+                          {/* Total seleccionado + botones */}
+                          <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            {rcvGenSelected.size > 0 && (
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'rgba(99,102,241,0.1)', borderRadius: '10px', border: '1px solid rgba(99,102,241,0.25)' }}>
+                                <span style={{ fontSize: '12px', fontWeight: 700, color: '#818cf8' }}>{rcvGenSelected.size} ítem{rcvGenSelected.size !== 1 ? 's' : ''} seleccionado{rcvGenSelected.size !== 1 ? 's' : ''}</span>
+                                <span style={{ fontSize: '16px', fontWeight: 800, color: '#f1f5f9' }}>${selectedTotal.toLocaleString('es-CO')}</span>
+                              </div>
+                            )}
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              <button onClick={() => { setRcvGenModal(false); setRcvGenClientId(''); setRcvGenStart(''); setRcvGenEnd(''); setRcvGenSelected(new Set()); }}
+                                style={{ flex: 1, padding: '11px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', color: '#94a3b8', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>
+                                Cancelar
+                              </button>
+                              <button onClick={handleGenerateReceivable}
+                                disabled={rcvGenSelected.size === 0}
+                                style={{ flex: 2, padding: '11px', background: rcvGenSelected.size > 0 ? 'linear-gradient(135deg,#6366f1,#4f46e5)' : 'rgba(255,255,255,0.05)', border: 'none', borderRadius: '10px', color: rcvGenSelected.size > 0 ? '#fff' : '#475569', fontSize: '12px', fontWeight: 800, cursor: rcvGenSelected.size > 0 ? 'pointer' : 'default' }}>
+                                Generar Cuenta · ${selectedTotal.toLocaleString('es-CO')}
+                              </button>
+                            </div>
+                          </div>
                         </div>
-                      )}
+                      </div>
+                    );
+                  })()}
+
+                  {/* Modal pago manual */}
+                  {rcvPayModal && (
+                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+                      <div style={{ background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', padding: '24px', width: '380px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontSize: '14px', fontWeight: 800, color: '#f1f5f9' }}>Registrar Pago Manual</span>
+                          <button onClick={() => setRcvPayModal(null)} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '18px', lineHeight: 1 }}>×</button>
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#94a3b8' }}>
+                          <b style={{ color: '#f1f5f9' }}>{rcvPayModal.clientName}</b> · Total: <b style={{ color: '#f87171' }}>${rcvPayModal.total.toLocaleString('es-CO')}</b>
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '9px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Monto *</label>
+                          <input type="number" value={rcvPayAmount} placeholder={`Total: $${rcvPayModal.total.toLocaleString('es-CO')}`}
+                            onChange={e => setRcvPayAmount(e.target.value)}
+                            style={{ width: '100%', fontSize: '14px', fontWeight: 700, padding: '9px 12px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '9px', color: '#f1f5f9', outline: 'none', boxSizing: 'border-box' }} />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '9px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', display: 'block', marginBottom: '5px' }}>Medio de pago</label>
+                          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                            {[{ id: 'efectivo', label: 'Efectivo' }, { id: 'nequi', label: 'Nequi' }, { id: 'daviplata', label: 'Daviplata' }, { id: 'llave', label: 'Llave' }].map(m => (
+                              <button key={m.id} type="button" onClick={() => setRcvPayMethod(m.id)}
+                                style={{ padding: '6px 12px', borderRadius: '7px', border: '1px solid', cursor: 'pointer', fontSize: '11px', fontWeight: 700, background: rcvPayMethod === m.id ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.03)', borderColor: rcvPayMethod === m.id ? '#6366f1' : 'rgba(255,255,255,0.08)', color: rcvPayMethod === m.id ? '#a5b4fc' : '#94a3b8' }}>
+                                {m.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '9px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Nota (opcional)</label>
+                          <input type="text" value={rcvPayNote} placeholder="Ej: Pago completo en efectivo"
+                            onChange={e => setRcvPayNote(e.target.value)}
+                            style={{ width: '100%', fontSize: '11px', padding: '7px 10px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', color: '#fff', outline: 'none', boxSizing: 'border-box' }} />
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button onClick={() => setRcvPayModal(null)} style={{ flex: 1, padding: '10px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '9px', color: '#94a3b8', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>Cancelar</button>
+                          <button onClick={handleAddPayment} style={{ flex: 2, padding: '10px', background: 'linear-gradient(135deg,#22c55e,#16a34a)', border: 'none', borderRadius: '9px', color: '#fff', fontSize: '12px', fontWeight: 800, cursor: 'pointer' }}>Confirmar Pago</button>
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               )}
+
+              {/* Sub-tab 8: Comisiones Técnicos */}
+              {adminTab === 'comisiones' && (
+                <div className="animate-fade-in space-y-5">
+
+                  {/* Header */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
+                    <div>
+                      <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#f1f5f9' }}>Comisiones Técnicos</h3>
+                      <p style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>Selecciona los servicios y aplica el % de comisión sobre la utilidad</p>
+                    </div>
+                  </div>
+
+                  {/* Filters */}
+                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                    <div>
+                      <label style={{ fontSize: '9px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Desde</label>
+                      <input type="date" value={commStart} onChange={e => setCommStart(e.target.value)}
+                        style={{ fontSize: '11px', padding: '7px 10px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', color: '#fff', outline: 'none' }} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '9px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Hasta</label>
+                      <input type="date" value={commEnd} onChange={e => setCommEnd(e.target.value)}
+                        style={{ fontSize: '11px', padding: '7px 10px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', color: '#fff', outline: 'none' }} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '9px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Técnico</label>
+                      <select value={commTechId} onChange={e => { setCommTechId(e.target.value); setCommSelected(new Set()); }}
+                        style={{ fontSize: '11px', padding: '7px 10px', background: 'rgba(15,23,42,0.9)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', color: '#fff', outline: 'none' }}>
+                        <option value="">Todos los técnicos</option>
+                        {profiles.filter(p => p.role === 'tecnico' && p.status === 'active').map(p => (
+                          <option key={p.id} value={p.id}>{p.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '9px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>% Comisión</label>
+                      <select value={commRate} onChange={e => setCommRate(Number(e.target.value))}
+                        style={{ fontSize: '11px', padding: '7px 10px', background: 'rgba(15,23,42,0.9)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', color: '#fff', outline: 'none' }}>
+                        {[10,15,20,25,30,35,40,45,50,60,70,80].map(n => (
+                          <option key={n} value={n}>{n}%</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {(() => {
+                    const techProfiles = profiles.filter(p => p.role === 'tecnico');
+                    const visibleRepairs = repairs.filter(r =>
+                      r.status === 'entregado' &&
+                      r.quotePrice && r.quotePrice > 0 &&
+                      r.createdAt >= commStart && r.createdAt <= commEnd &&
+                      (commTechId === '' || r.assignedTechId === commTechId)
+                    );
+                    const selectedItems = visibleRepairs.filter(r => commSelected.has(r.id));
+                    const totalUtil = selectedItems.reduce((s, r) => s + Math.max(0, (r.quotePrice||0) - (r.partsCost||0)), 0);
+                    const totalComm = Math.round(totalUtil * commRate / 100);
+
+                    const toggleAll = () => {
+                      const pendientes = visibleRepairs.filter(r => r.commissionStatus !== 'pagado');
+                      if (commSelected.size === pendientes.length) {
+                        setCommSelected(new Set());
+                      } else {
+                        setCommSelected(new Set(pendientes.map(r => r.id)));
+                      }
+                    };
+                    const toggleOne = (id: string) => {
+                      setCommSelected(prev => {
+                        const n = new Set(prev);
+                        n.has(id) ? n.delete(id) : n.add(id);
+                        return n;
+                      });
+                    };
+
+                    if (visibleRepairs.length === 0) return (
+                      <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px', padding: '32px', textAlign: 'center', color: '#475569', fontSize: '12px' }}>
+                        No hay servicios entregados en el período seleccionado.
+                      </div>
+                    );
+
+                    return (
+                      <>
+                        {/* Table */}
+                        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '14px', overflow: 'hidden' }}>
+                          <div style={{ overflowX: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+                              <thead>
+                                <tr style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                                  <th style={{ padding: '10px 14px', textAlign: 'left', width: '32px' }}>
+                                    <input type="checkbox"
+                                      checked={commSelected.size > 0 && commSelected.size === visibleRepairs.filter(r => r.commissionStatus !== 'pagado').length}
+                                      onChange={toggleAll}
+                                      style={{ cursor: 'pointer' }} />
+                                  </th>
+                                  {['Fecha','Técnico','Servicio','Cliente','Valor','Repuestos','Utilidad',`Comisión (${commRate}%)`, 'Estado'].map(h => (
+                                    <th key={h} style={{ padding: '10px 14px', textAlign: h === 'Estado' ? 'center' : 'left', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', fontSize: '9px', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{h}</th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {visibleRepairs.map((r, i) => {
+                                  const tech = techProfiles.find(p => p.id === r.assignedTechId);
+                                  const util = Math.max(0, (r.quotePrice||0) - (r.partsCost||0));
+                                  const comm = Math.round(util * commRate / 100);
+                                  const isPaid = r.commissionStatus === 'pagado';
+                                  return (
+                                    <tr key={r.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', background: isPaid ? 'rgba(74,222,128,0.03)' : commSelected.has(r.id) ? 'rgba(99,102,241,0.06)' : i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)' }}>
+                                      <td style={{ padding: '9px 14px' }}>
+                                        {!isPaid && (
+                                          <input type="checkbox" checked={commSelected.has(r.id)} onChange={() => toggleOne(r.id)} style={{ cursor: 'pointer' }} />
+                                        )}
+                                      </td>
+                                      <td style={{ padding: '9px 14px', color: '#94a3b8', whiteSpace: 'nowrap' }}>{r.createdAt}</td>
+                                      <td style={{ padding: '9px 14px', color: '#e2e8f0', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                                        {tech?.name || 'Sin asignar'}
+                                      </td>
+                                      <td style={{ padding: '9px 14px', color: '#94a3b8', maxWidth: '160px' }}>
+                                        <div style={{ fontWeight: 600, color: '#f1f5f9' }}>{r.reference}</div>
+                                        <div style={{ fontSize: '10px', color: '#475569' }}>{r.repairType.slice(0, 40)}{r.repairType.length > 40 ? '…' : ''}</div>
+                                      </td>
+                                      <td style={{ padding: '9px 14px', color: '#94a3b8' }}>{r.clientName}</td>
+                                      <td style={{ padding: '9px 14px', color: '#f1f5f9', fontWeight: 700, whiteSpace: 'nowrap' }}>${(r.quotePrice||0).toLocaleString('es-CO')}</td>
+                                      <td style={{ padding: '9px 14px', color: '#f87171', whiteSpace: 'nowrap' }}>${(r.partsCost||0).toLocaleString('es-CO')}</td>
+                                      <td style={{ padding: '9px 14px', color: '#4ade80', fontWeight: 700, whiteSpace: 'nowrap' }}>${util.toLocaleString('es-CO')}</td>
+                                      <td style={{ padding: '9px 14px', color: '#a5b4fc', fontWeight: 800, whiteSpace: 'nowrap' }}>${comm.toLocaleString('es-CO')}</td>
+                                      <td style={{ padding: '9px 14px', textAlign: 'center' }}>
+                                        <span style={{ fontSize: '9px', fontWeight: 800, padding: '2px 8px', borderRadius: '999px', textTransform: 'uppercase', background: isPaid ? 'rgba(74,222,128,0.15)' : 'rgba(248,113,113,0.15)', color: isPaid ? '#4ade80' : '#f87171', border: `1px solid ${isPaid ? 'rgba(74,222,128,0.3)' : 'rgba(248,113,113,0.3)'}` }}>
+                                          {isPaid ? `Pagado${r.commissionPaidAt ? ' ' + r.commissionPaidAt : ''}` : 'Pendiente'}
+                                        </span>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+
+                        {/* Summary & Action */}
+                        <div style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '14px', padding: '18px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                          <div style={{ display: 'flex', gap: '32px', flexWrap: 'wrap' }}>
+                            <div>
+                              <div style={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '3px' }}>Servicios seleccionados</div>
+                              <div style={{ fontSize: '20px', fontWeight: 800, color: '#f1f5f9' }}>{commSelected.size}</div>
+                            </div>
+                            <div>
+                              <div style={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '3px' }}>Utilidad neta seleccionada</div>
+                              <div style={{ fontSize: '20px', fontWeight: 800, color: '#4ade80' }}>${totalUtil.toLocaleString('es-CO')}</div>
+                            </div>
+                            <div>
+                              <div style={{ fontSize: '10px', fontWeight: 700, color: '#818cf8', textTransform: 'uppercase', marginBottom: '3px' }}>Comisión a pagar ({commRate}%)</div>
+                              <div style={{ fontSize: '24px', fontWeight: 900, color: '#818cf8' }}>${totalComm.toLocaleString('es-CO')}</div>
+                            </div>
+                          </div>
+                          <button
+                            onClick={handlePayCommissions}
+                            disabled={commSelected.size === 0}
+                            style={{ padding: '12px 24px', background: commSelected.size === 0 ? 'rgba(255,255,255,0.04)' : 'linear-gradient(135deg,#6366f1,#4f46e5)', border: commSelected.size === 0 ? '1px solid rgba(255,255,255,0.08)' : 'none', borderRadius: '10px', color: commSelected.size === 0 ? '#475569' : '#fff', fontSize: '13px', fontWeight: 800, cursor: commSelected.size === 0 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <Check size={15} /> Marcar como Pagado
+                          </button>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              )}
+
             </div>
           )}
 
@@ -3316,6 +4124,115 @@ function App() {
                   </button>
                 </form>
               )}
+
+              {/* View 3: Mis Cuentas */}
+              {prefTab === 'cuentas' && (
+                <div className="space-y-4 animate-fade-in">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-indigo-400 border-b border-white/5 pb-2 flex items-center gap-2">
+                    <FileText size={15} /> Mis Cuentas por Cobrar
+                  </h3>
+                  {(() => {
+                    const myCuentas = receivables.filter(r =>
+                      r.clientProfileId === loggedUserId ||
+                      r.clientName.toLowerCase() === loggedClientName.toLowerCase()
+                    );
+                    if (myCuentas.length === 0) return (
+                      <div className="glass-card p-8 text-center text-neutral-400 text-xs">
+                        No tienes cuentas de cobro generadas aún. Cuando el administrador genere una cuenta para ti, aparecerá aquí.
+                      </div>
+                    );
+                    return myCuentas.map(r => {
+                      const color = r.status === 'pagado' ? '#4ade80' : rcvColor(r);
+                      const clientLabel = r.status === 'pagado' ? 'CANCELADO' : rcvLabel(r);
+                      const bgCard = r.status === 'pagado' ? 'rgba(74,222,128,0.04)' : 'rgba(255,255,255,0.02)';
+                      return (
+                        <div key={r.id} style={{ background: bgCard, border: `1px solid ${color}30`, borderLeft: `3px solid ${color}`, borderRadius: '12px', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            <div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span style={{ fontSize: '13px', fontWeight: 800, color: '#f1f5f9' }}>{r.id}</span>
+                                <span style={{ fontSize: '9px', fontWeight: 800, padding: '2px 8px', borderRadius: '999px', background: `${color}18`, color, border: `1px solid ${color}40`, textTransform: 'uppercase' }}>{clientLabel}</span>
+                              </div>
+                              <div style={{ fontSize: '11px', color: '#64748b', marginTop: '3px' }}>
+                                {r.description}
+                                {r.periodStart && ` · ${r.periodStart} → ${r.periodEnd}`}
+                              </div>
+                              {r.items.length > 0 && (
+                                <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                                  {r.items.map((item, idx) => (
+                                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#94a3b8' }}>
+                                      <span>{item.name}</span>
+                                      <span style={{ fontWeight: 700, color: '#f1f5f9' }}>${item.price.toLocaleString('es-CO')}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                            <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: '16px' }}>
+                              <div style={{ fontSize: '20px', fontWeight: 800, color: '#f1f5f9' }}>${r.total.toLocaleString('es-CO')}</div>
+                              <div style={{ fontSize: '10px', color: '#64748b' }}>COP</div>
+                            </div>
+                          </div>
+
+                          {r.status === 'pendiente' && (
+                            <div style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: '10px', padding: '12px' }}>
+                              <p style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '10px' }}>
+                                Adjunta el comprobante de pago (captura de transferencia, Nequi, Daviplata, etc.) y lo revisaremos a la brevedad.
+                              </p>
+                              {rcvProofModal === r.id ? (
+                                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                  <input type="file" accept="image/*,application/pdf"
+                                    onChange={e => setRcvUploadFile(e.target.files?.[0] || null)}
+                                    style={{ fontSize: '11px', color: '#94a3b8', flex: 1 }} />
+                                  <button onClick={() => handleUploadProof(r.id)}
+                                    disabled={!rcvUploadFile}
+                                    style={{ padding: '7px 14px', background: rcvUploadFile ? 'linear-gradient(135deg,#6366f1,#4f46e5)' : 'rgba(255,255,255,0.05)', border: 'none', borderRadius: '8px', color: rcvUploadFile ? '#fff' : '#475569', fontSize: '11px', fontWeight: 700, cursor: rcvUploadFile ? 'pointer' : 'default' }}>
+                                    Enviar
+                                  </button>
+                                  <button onClick={() => { setRcvProofModal(null); setRcvUploadFile(null); }}
+                                    style={{ padding: '7px 10px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', color: '#64748b', fontSize: '11px', cursor: 'pointer' }}>
+                                    ×
+                                  </button>
+                                </div>
+                              ) : (
+                                <button onClick={() => setRcvProofModal(r.id)}
+                                  style={{ padding: '8px 16px', background: 'linear-gradient(135deg,#6366f1,#4f46e5)', border: 'none', borderRadius: '8px', color: '#fff', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}>
+                                  Adjuntar Comprobante de Pago
+                                </button>
+                              )}
+                            </div>
+                          )}
+
+                          {r.status === 'en_revision' && (
+                            <div style={{ background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.2)', borderRadius: '10px', padding: '10px 14px', fontSize: '11px', color: '#fbbf24' }}>
+                              Comprobante recibido. El administrador está revisando tu pago. Te notificaremos cuando sea validado.
+                              {r.proofUrl && (
+                                <a href={r.proofUrl} target="_blank" rel="noreferrer"
+                                  style={{ display: 'inline-block', marginLeft: '8px', color: '#fbbf24', fontWeight: 700, textDecoration: 'underline' }}>
+                                  Ver soporte enviado
+                                </a>
+                              )}
+                            </div>
+                          )}
+
+                          {r.status === 'pagado' && (
+                            <div style={{ background: 'rgba(74,222,128,0.06)', border: '1px solid rgba(74,222,128,0.2)', borderRadius: '10px', padding: '10px 14px', fontSize: '11px', color: '#4ade80', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <CheckCircle2 size={14} /> Pago validado por el administrador{r.validatedAt ? ` el ${r.validatedAt}` : ''}. ¡Gracias!
+                            </div>
+                          )}
+
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <button onClick={() => generateReceivablePDF(r)}
+                              style={{ padding: '6px 14px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '7px', color: '#94a3b8', fontSize: '10px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <Printer size={10} /> Descargar PDF
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+              )}
             </div>
           )}
         </main>
@@ -3353,6 +4270,12 @@ function App() {
                 <span>Ventas</span>
               </button>
             )}
+            {userRole === 'admin' && (
+              <button onClick={() => setAdminTab('comisiones')} className={`mobile-nav-btn ${adminTab === 'comisiones' ? 'active' : ''}`}>
+                <DollarSign size={20} />
+                <span>Comisiones</span>
+              </button>
+            )}
           </nav>
         )}
         {userRole === 'preferencial' && (
@@ -3365,7 +4288,11 @@ function App() {
               <PlusCircle size={20} />
               <span>Ingresar</span>
             </button>
-            <button 
+            <button onClick={() => setPrefTab('cuentas')} className={`mobile-nav-btn ${prefTab === 'cuentas' ? 'active' : ''}`}>
+              <FileText size={20} />
+              <span>Cuentas</span>
+            </button>
+            <button
               onClick={() => sendWhatsAppMessage(`Hola Sr Tech, soy el cliente preferencial ${loggedClientName}. Tengo una consulta técnica...`)}
               className="mobile-nav-btn"
             >
