@@ -297,7 +297,7 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, ve
             addLog(`Centros de costo (listado): ${ccList.length}, con nombre: ${Object.keys(ccMap).length}`);
 
             const lastDay = new Date(year, month, 0).getDate();
-            const dateQ = `created_start=${year}-${String(month).padStart(2,'0')}-01&created_end=${year}-${String(month).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
+            const dateQ = `date_start=${year}-${String(month).padStart(2,'0')}-01&date_end=${year}-${String(month).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
 
             // Facturas de venta con detalle de ítems
             addLog('Cargando Facturas de Venta...');
