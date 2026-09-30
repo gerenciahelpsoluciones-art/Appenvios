@@ -419,8 +419,8 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, ve
                 (p.items ?? []).forEach(registerCost);
             });
 
-            // Detallado profundo (top 200 para cubrir todo el periodo)
-            const docsToDetail = allPurchases.slice(0, 200);
+            // Detallado profundo (top 800 para cubrir todo el periodo)
+            const docsToDetail = allPurchases.slice(0, 800);
             
             for (let i = 0; i < docsToDetail.length; i++) {
                 const doc = docsToDetail[i];
@@ -545,12 +545,13 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, ve
             if (num) invByNumber[num] = id;
             (inv.items ?? []).forEach((item: any) => {
                 const venta = lineTotal(item);
+                const price = Number(item.price ?? item.unit_price ?? 0);
                 const c = String(item.code || '').trim();
                 const d = String(item.description || '').trim().toLowerCase().replace(/[áàäâ]/g, 'a').replace(/[éèëê]/g, 'e').replace(/[íìïî]/g, 'i').replace(/[óòöô]/g, 'o').replace(/[úùüû]/g, 'u');
                 
                 // CINTURON DE SEGURIDAD: Forzar 0 si es servicio/logística
                 const isSvc = ['6035', '9289'].includes(c) || d.includes('flete') || d.includes('envio') || d.includes('mensajer') || d.includes('visita tecnica');
-                const uCost = isSvc ? 0 : (productCosts[c] ?? (window as any)._costsByDesc?.[d] ?? 0);
+                const uCost = isSvc ? 0 : (productCosts[c] ?? (window as any)._costsByDesc?.[d] ?? (Number(item.unit_cost) || (price * 0.7)));
                 
                 const costo = uCost * Number(item.quantity ?? 1);
                 row.ventasBruto += venta;
@@ -575,11 +576,12 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, ve
                 row.countDevoluciones++;
                 (cn.items ?? []).forEach((item: any) => {
                     const devol = Math.abs(lineTotal(item));
+                    const price = Number(item.price ?? item.unit_price ?? 0);
                     const c = String(item.code || '').trim();
                     const d = String(item.description || '').trim().toLowerCase().replace(/[áàäâ]/g, 'a').replace(/[éèëê]/g, 'e').replace(/[íìïî]/g, 'i').replace(/[óòöô]/g, 'o').replace(/[úùüû]/g, 'u');
                     
                     const isSvc = ['6035', '9289'].includes(c) || d.includes('flete') || d.includes('envio') || d.includes('mensajer') || d.includes('visita tecnica');
-                    const uCost = isSvc ? 0 : (productCosts[c] ?? (window as any)._costsByDesc?.[d] ?? 0);
+                    const uCost = isSvc ? 0 : (productCosts[c] ?? (window as any)._costsByDesc?.[d] ?? (Number(item.unit_cost) || (price * 0.7)));
                     
                     const costo = uCost * Math.abs(Number(item.quantity ?? 1));
                     row.devoluciones += devol;
