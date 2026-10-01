@@ -297,11 +297,25 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, ve
             addLog(`Centros de costo (listado): ${ccList.length}, con nombre: ${Object.keys(ccMap).length}`);
 
             const lastDay = new Date(year, month, 0).getDate();
-            const dateQ = `date_start=${year}-${String(month).padStart(2,'0')}-01&date_end=${year}-${String(month).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
+            // Para atrapar facturas creadas los primeros días del mes siguiente pero con fecha de este mes
+            const endFilterDate = new Date(year, month, 5);
+            const endYear = endFilterDate.getFullYear();
+            const endMonth = endFilterDate.getMonth() + 1;
+            const endDay = endFilterDate.getDate();
+            const dateQ = `created_start=${year}-${String(month).padStart(2,'0')}-01&created_end=${endYear}-${String(endMonth).padStart(2,'0')}-${String(endDay).padStart(2,'0')}`;
+
+            const docStart = `${year}-${String(month).padStart(2,'0')}-01`;
+            const docEnd = `${year}-${String(month).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
 
             // Facturas de venta con detalle de ítems
             addLog('Cargando Facturas de Venta...');
-            const rawInv = await fetchPages(tk, 'invoices', dateQ);
+            let rawInv = await fetchPagesSafe(tk, 'invoices', {
+                created_start: `${year}-${String(month).padStart(2,'0')}-01`,
+                created_end: `${endYear}-${String(endMonth).padStart(2,'0')}-${String(endDay).padStart(2,'0')}`
+            });
+            // Filtrar localmente por fecha de documento
+            rawInv = rawInv.filter((inv: any) => inv.date >= docStart && inv.date <= docEnd);
+            
             addLog(`Facturas encontradas: ${rawInv.length}. Cargando detalles...`);
             const detailedInv: any[] = [];
             for (let i = 0; i < rawInv.length; i++) {
@@ -342,7 +356,11 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, ve
 
             // Notas de crédito — Usar exactamente el mismo filtro que las facturas (dateQ: created_start / created_end)
             addLog('Cargando Notas de Crédito...');
-            let rawCN = await fetchPages(tk, 'credit-notes', dateQ);
+            let rawCN = await fetchPagesSafe(tk, 'credit-notes', {
+                created_start: `${year}-${String(month).padStart(2,'0')}-01`,
+                created_end: `${endYear}-${String(endMonth).padStart(2,'0')}-${String(endDay).padStart(2,'0')}`
+            });
+            rawCN = rawCN.filter((cn: any) => cn.date >= docStart && cn.date <= docEnd);
             addLog(`Notas de crédito encontradas: ${rawCN.length}. Cargando detalles...`);
 
             // Los detalles ya vienen en el listado; solo buscamos detalle si faltan items
@@ -454,7 +472,11 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, ve
 
             // Notas débito
             addLog('Cargando Notas Débito...');
-            const debitNotes = await fetchPages(tk, 'debit-notes', dateQ);
+            let debitNotes = await fetchPagesSafe(tk, 'debit-notes', {
+                created_start: `${year}-${String(month).padStart(2,'0')}-01`,
+                created_end: `${endYear}-${String(endMonth).padStart(2,'0')}-${String(endDay).padStart(2,'0')}`
+            });
+            debitNotes = debitNotes.filter((dn: any) => dn.date >= docStart && dn.date <= docEnd);
             addLog(`Notas débito: ${debitNotes.length}`);
 
             setDiagInfo({
@@ -516,7 +538,17 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, ve
     const lineTotal = (item: any): number => {
         const qty = Number(item.quantity ?? 1);
         const price = Number(item.price ?? item.unit_price ?? 0);
-        const disc = Number(item.discount ?? 0);
+        let disc = 0;
+        if (typeof item.discount === 'object' && item.discount !== null) {
+            // Si es un objeto, extraemos el porcentaje o lo calculamos desde el valor
+            disc = Number(item.discount.percentage ?? 0);
+            if (disc === 0 && Number(item.discount.value ?? 0) > 0) {
+                disc = (Number(item.discount.value) / (price * qty)) * 100;
+            }
+        } else {
+            disc = Number(item.discount ?? 0);
+        }
+        if (isNaN(disc)) disc = 0;
         return Math.round(price * qty * (1 - disc / 100) * 100) / 100;
     };
 
@@ -551,7 +583,7 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, ve
                 
                 // CINTURON DE SEGURIDAD: Forzar 0 si es servicio/logística
                 const isSvc = ['6035', '9289'].includes(c) || d.includes('flete') || d.includes('envio') || d.includes('mensajer') || d.includes('visita tecnica');
-                const uCost = isSvc ? 0 : (productCosts[c] ?? (window as any)._costsByDesc?.[d] ?? (Number(item.unit_cost) || (price * 0.7)));
+                const uCost = isSvc ? 0 : (productCosts[c] ?? (window as any)._costsByDesc?.[d] ?? (item.unit_cost ? Number(item.unit_cost) : (price * 0.7)));
                 
                 const costo = uCost * Number(item.quantity ?? 1);
                 row.ventasBruto += venta;
@@ -581,7 +613,7 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, ve
                     const d = String(item.description || '').trim().toLowerCase().replace(/[áàäâ]/g, 'a').replace(/[éèëê]/g, 'e').replace(/[íìïî]/g, 'i').replace(/[óòöô]/g, 'o').replace(/[úùüû]/g, 'u');
                     
                     const isSvc = ['6035', '9289'].includes(c) || d.includes('flete') || d.includes('envio') || d.includes('mensajer') || d.includes('visita tecnica');
-                    const uCost = isSvc ? 0 : (productCosts[c] ?? (window as any)._costsByDesc?.[d] ?? (Number(item.unit_cost) || (price * 0.7)));
+                    const uCost = isSvc ? 0 : (productCosts[c] ?? (window as any)._costsByDesc?.[d] ?? (item.unit_cost ? Number(item.unit_cost) : (price * 0.7)));
                     
                     const costo = uCost * Math.abs(Number(item.quantity ?? 1));
                     row.devoluciones += devol;
@@ -593,7 +625,7 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, ve
         manualNCs.filter(nc => nc.month === month && nc.year === year).forEach(nc => {
             const row = map[nc.vendedorId] ?? get(nc.vendedorId, nc.vendedorName);
             row.countDevoluciones++;
-            row.devoluciones += nc.amount;
+            row.devoluciones += (Number(nc.amount) || 0);
         });
 
         return Object.values(map)
@@ -619,7 +651,16 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, ve
             (inv.items ?? []).forEach((item: any) => {
                 const qty = Number(item.quantity ?? 1);
                 const price = Number(item.price ?? item.unit_price ?? 0);
-                const disc = Number(item.discount ?? 0);
+                let disc = 0;
+            if (typeof item.discount === 'object' && item.discount !== null) {
+                disc = Number(item.discount.percentage ?? 0);
+                if (disc === 0 && Number(item.discount.value ?? 0) > 0) {
+                    disc = (Number(item.discount.value) / (price * qty)) * 100;
+                }
+            } else {
+                disc = Number(item.discount ?? 0);
+            }
+            if (isNaN(disc)) disc = 0;
                 const totalV = Math.round(price * qty * (1 - disc / 100) * 100) / 100;
                 const c = String(item.code || '').trim();
                 const d = String(item.description || '').trim().toLowerCase().replace(/[áàäâ]/g, 'a').replace(/[éèëê]/g, 'e').replace(/[íìïî]/g, 'i').replace(/[óòöô]/g, 'o').replace(/[úùüû]/g, 'u');
@@ -647,7 +688,16 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, ve
             (cn.items ?? []).forEach((item: any) => {
                 const qty = Number(item.quantity ?? 1);
                 const price = Number(item.price ?? item.unit_price ?? 0);
-                const disc = Number(item.discount ?? 0);
+                let disc = 0;
+            if (typeof item.discount === 'object' && item.discount !== null) {
+                disc = Number(item.discount.percentage ?? 0);
+                if (disc === 0 && Number(item.discount.value ?? 0) > 0) {
+                    disc = (Number(item.discount.value) / (price * qty)) * 100;
+                }
+            } else {
+                disc = Number(item.discount ?? 0);
+            }
+            if (isNaN(disc)) disc = 0;
                 const totalV = Math.round(price * qty * (1 - disc / 100) * 100) / 100;
                 const c = String(item.code || '').trim();
                 const d = String(item.description || '').trim().toLowerCase().replace(/[áàäâ]/g, 'a').replace(/[éèëê]/g, 'e').replace(/[íìïî]/g, 'i').replace(/[óòöô]/g, 'o').replace(/[úùüû]/g, 'u');
@@ -1310,3 +1360,4 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, ve
 };
 
 export default ComisionesModule;
+
