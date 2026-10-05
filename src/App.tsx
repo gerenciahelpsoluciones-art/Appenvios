@@ -407,6 +407,24 @@ function App() {
     fetchInitialData();
   }, []);
 
+  // Helper para traer todos los registros sin límite de 1000 de Supabase
+  const fetchAll = async (table: string) => {
+    let allData: any[] = [];
+    let from = 0;
+    const step = 999;
+    while (true) {
+      const { data, error } = await supabase.from(table).select('*').range(from, from + step);
+      if (error) {
+        console.error(`Error fetching ${table}:`, error);
+        break;
+      }
+      if (data) allData = allData.concat(data);
+      if (!data || data.length <= step) break;
+      from += step + 1;
+    }
+    return { data: allData, error: null };
+  };
+
   const fetchInitialData = async () => {
     if (IS_DEMO) {
       setUsers(DEMO_USERS);
@@ -433,7 +451,7 @@ function App() {
       if (userError) console.error('Error cargando usuarios:', userError);
       if (userData) setUsers(userData as AppUser[]);
 
-      const { data: clientData } = await supabase.from('clientes').select('*');
+      const { data: clientData } = await fetchAll('clientes');
       if (clientData) {
         setClientes(clientData.map((c: any) => ({
           ...c,
@@ -461,7 +479,7 @@ function App() {
         } as Cliente)));
       }
 
-      const { data: providerData } = await supabase.from('proveedores').select('*');
+      const { data: providerData } = await fetchAll('proveedores');
       if (providerData) {
         setProveedores(providerData.map((p: any) => ({
           ...p,
@@ -469,7 +487,7 @@ function App() {
         } as Proveedor)));
       }
 
-      const { data: productData, error: productError } = await supabase.from('productos').select('*');
+      const { data: productData, error: productError } = await fetchAll('productos');
       if (productError) console.error('Error cargando productos:', productError.message);
       if (productData) {
         // Map snake_case to camelCase for products
@@ -488,7 +506,7 @@ function App() {
         } as Producto)));
       }
 
-      const { data: quoteData } = await supabase.from('cotizaciones').select('*');
+      const { data: quoteData } = await fetchAll('cotizaciones');
       if (quoteData) {
         setCotizaciones(quoteData.map((c: any) => ({
           ...c,
@@ -517,7 +535,7 @@ function App() {
         })));
       }
 
-      const { data: ocData } = await supabase.from('ordenes_compra').select('*');
+      const { data: ocData } = await fetchAll('ordenes_compra');
       if (ocData) {
         setOrdenesCompra(ocData.map((o: any) => ({
           ...o,
@@ -536,7 +554,7 @@ function App() {
         })));
       }
 
-      const { data: despachoData } = await supabase.from('despachos').select('*');
+      const { data: despachoData } = await fetchAll('despachos');
       if (despachoData) {
         setDespachos(despachoData.map((d: any) => ({
           ...d,
@@ -2879,3 +2897,4 @@ function App() {
 }
 
 export default App
+
