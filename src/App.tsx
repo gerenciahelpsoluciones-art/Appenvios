@@ -21,6 +21,7 @@ import RegistrosWeb, { type RegistroPendiente } from './modules/RegistrosWeb'
 import AgenteInformesModule from './modules/AgenteInformes'
 import RemisionesModule from './modules/Remisiones'
 import ComisionesModule from './modules/Comisiones'
+import CarteraModule from './modules/Cartera'
 import PropuestasModule from './modules/Propuestas'
 import { supabase } from './lib/supabaseClient'
 import RegistrationForm from './modules/RegistrationForm';
@@ -1975,10 +1976,12 @@ function App() {
     { id: 'ventas-manuales', label: 'Ventas Manuales', icon: '💰' },
     { id: 'remisiones', label: 'Remisiones', icon: '📄' },
     { id: 'comisiones', label: 'Comisiones', icon: '💸' },
-    { id: 'propuestas', label: 'Propuestas', icon: '📋' },
+    { id: 'cartera', label: 'Cartera', icon: '??' },
+      { id: 'propuestas', label: 'Propuestas', icon: '📋' },
     { id: 'agente-informes', label: 'Agente de Informes', icon: '🤖' },
   ].filter(item => {
     if (item.id === 'productos') return true; // Everyone can see/edit products
+    if (item.id === 'cartera' && (currentUser?.rol === 'Admin' || currentUser?.rol === 'Comercial')) return true;
     if ((item.id === 'facturacion' || item.id === 'ventas-manuales' || item.id === 'leads-web' || item.id === 'registros-web' || item.id === 'vendedores' || item.id === 'informes' || item.id === 'remisiones' || item.id === 'comisiones' || item.id === 'propuestas' || item.id === 'ordenes-compra') && currentUser?.rol === 'Admin') return true;
     if (item.id === 'propuestas' && (currentUser?.rol === 'Admin' || currentUser?.rol?.toLowerCase() === 'admin' || currentUser?.rol === 'Comercial' || currentUser?.rol?.toLowerCase() === 'comercial' || currentUser?.permisos.includes('propuestas'))) return true;
     if (item.id === 'leads-web' && (currentUser?.rol === 'Comercial' || currentUser?.rol?.toLowerCase() === 'comercial')) return true;
@@ -2210,6 +2213,8 @@ function App() {
           productos={productos} 
           currentUser={currentUser} 
         />;
+      case 'cartera':
+        return <CarteraModule currentUser={currentUser!} clientes={clientes} />;
       case 'comisiones':
         return <ComisionesModule
           users={users}
@@ -2897,4 +2902,6 @@ function App() {
 }
 
 export default App
+
+
 
