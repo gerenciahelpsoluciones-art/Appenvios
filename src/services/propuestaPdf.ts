@@ -382,8 +382,11 @@ export const generatePropuestaPDF = (propuesta: Propuesta, action: 'save' | 'vie
     doc.setFontSize(8);
     doc.setTextColor(...TEXT_MUTED);
     doc.setFont('helvetica', 'normal');
-    const slaIntro = slaPropios
-      ? `Los compromisos descritos a continuación responden a los niveles de servicio requeridos por ${propuesta.clienteNombre} en su solicitud${propuesta.slas!.fuente ? ` (${propuesta.slas!.fuente})` : ''}.`
+    const slaFuente = propuesta.slas?.fuente?.trim();
+    const slaIntro = slaPropios && slaFuente
+      ? `Los compromisos descritos a continuación responden a los niveles de servicio requeridos por ${propuesta.clienteNombre} (${slaFuente}).`
+      : slaPropios
+      ? `Los compromisos descritos a continuación aplican para la atención de incidentes y requerimientos de soporte técnico de ${propuesta.clienteNombre}.`
       : 'Los compromisos descritos a continuación aplican exclusivamente para la atención primaria de incidentes y requerimientos de soporte técnico (Nivel 1) sobre los equipos de cómputo de los usuarios finales.';
     const slaIntroLines = doc.splitTextToSize(slaIntro, W - 34);
     doc.text(slaIntroLines, 18, ySla + 5.5);

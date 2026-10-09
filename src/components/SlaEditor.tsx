@@ -1,15 +1,16 @@
-import React, { useMemo, useRef, useState } from 'react';
-import { FileUp, RotateCcw, Plus, Trash2, Loader2 } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { ClipboardPaste, RotateCcw, Plus, Trash2 } from 'lucide-react';
 import type { PropuestaSlas, SlaFila } from '../App';
 import { slaEstandar } from '../data/servicioTemplates';
-import { extraerSlasDeRfp, RFP_ACCEPT } from '../services/slaExtractor';
 
 interface Props {
   value: PropuestaSlas | null | undefined;
   onChange: (slas: PropuestaSlas | null) => void;
 }
 
-const COLS: { key: keyof Omit<SlaFila, 'id'>; label: string; width: string }[] = [
+type Campo = keyof Omit<SlaFila, 'id'>;
+
+const COLS: { key: Campo; label: string; width: string }[] = [
   { key: 'criticidad', label: 'Criticidad', width: '12%' },
   { key: 'descripcion', label: 'Descripción / tipo de incidente', width: '40%' },
   { key: 'tiempoRespuesta', label: 'T. respuesta', width: '14%' },
@@ -17,12 +18,45 @@ const COLS: { key: keyof Omit<SlaFila, 'id'>; label: string; width: string }[] =
   { key: 'canal', label: 'Canal', width: '14%' },
 ];
 
+// Orden en que se reparten las columnas pegadas según cuántas traiga cada fila
+const ORDEN_POR_CANTIDAD: Record<number, Campo[]> = {
+  1: ['descripcion'],
+  2: ['criticidad', 'descripcion'],
+  3: ['criticidad', 'tiempoRespuesta', 'tiempoSolucion'],
+  4: ['criticidad', 'descripcion', 'tiempoRespuesta', 'tiempoSolucion'],
+  5: ['criticidad', 'descripcion', 'tiempoRespuesta', 'tiempoSolucion', 'canal'],
+};
+
+const ES_ENCABEZADO = /criticidad|prioridad|severidad|nivel|tiempo|respuesta|soluci[oó]n|descripci[oó]n/i;
+
+/** Convierte una tabla copiada de Word/Excel (columnas separadas por tabulador,
+ *  "|" o ";") en filas de SLA. Omite la fila de encabezados si la detecta. */
+export const parsearTablaPegada = (texto: string): SlaFila[] => {
+  const lineas = texto.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const sep = lineas.some(l => l.includes('\t')) ? '\t' : lineas.some(l => l.includes('|')) ? '|' : ';';
+  const filas = lineas
+    .map(l => l.split(sep).map(c => c.trim()).filter((c, i, arr) => c || (i > 0 && i < arr.length - 1)))
+    .filter(celdas => celdas.length > 0);
+
+  if (filas.length > 1 && filas[0].every(c => !/\d/.test(c)) && filas[0].some(c => ES_ENCABEZADO.test(c))) {
+    filas.shift();
+  }
+
+  return filas.map(celdas => {
+    const fila: SlaFila = { id: crypto.randomUUID(), criticidad: '', descripcion: '', tiempoRespuesta: '', tiempoSolucion: '', canal: '' };
+    const n = Math.min(celdas.length, 5);
+    ORDEN_POR_CANTIDAD[n].forEach((campo, i) => { fila[campo] = celdas[i]; });
+    // Columnas sobrantes se agregan a la descripción para no perder texto
+    if (celdas.length > 5) fila.descripcion = [fila.descripcion, ...celdas.slice(5)].filter(Boolean).join(' · ');
+    return fila;
+  });
+};
+
 const inputCls = 'w-full bg-white border border-[#D6E3F3] rounded px-2 py-1 text-xs text-slate-800';
 
 const SlaEditor: React.FC<Props> = ({ value, onChange }) => {
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [importando, setImportando] = useState(false);
-  const [mensaje, setMensaje] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null);
+  const [pegando, setPegando] = useState(false);
+  const [textoPegado, setTextoPegado] = useState('');
 
   // Sin SLA propios se muestran (y se editan a partir de) los estándar
   const estandar = useMemo(() => slaEstandar(), []);
@@ -31,26 +65,16 @@ const SlaEditor: React.FC<Props> = ({ value, onChange }) => {
   const esEstandar = !slas;
 
   const editar = (cambio: Partial<PropuestaSlas>) => onChange({ ...vista, ...cambio });
-  const editarFila = (id: string, key: keyof SlaFila, val: string) =>
+  const editarFila = (id: string, key: Campo, val: string) =>
     editar({ filas: vista.filas.map(f => (f.id === id ? { ...f, [key]: val } : f)) });
 
-  const importar = async (file: File) => {
-    setImportando(true);
-    setMensaje(null);
-    try {
-      const resultado = await extraerSlasDeRfp(file);
-      if (resultado.filas.length === 0) {
-        setMensaje({ tipo: 'error', texto: `No se encontraron SLA en "${file.name}". ${resultado.notas[0] || ''}`.trim() });
-      } else {
-        onChange(resultado);
-        setMensaje({ tipo: 'ok', texto: `Se importaron ${resultado.filas.length} niveles de servicio de "${file.name}". Revíselos antes de guardar.` });
-      }
-    } catch (e) {
-      setMensaje({ tipo: 'error', texto: e instanceof Error ? e.message : 'No se pudo importar el documento.' });
-    } finally {
-      setImportando(false);
-      if (fileRef.current) fileRef.current.value = '';
-    }
+  const previa = useMemo(() => parsearTablaPegada(textoPegado), [textoPegado]);
+
+  const aplicarPegado = () => {
+    if (previa.length === 0) return;
+    editar({ filas: previa });
+    setTextoPegado('');
+    setPegando(false);
   };
 
   return (
@@ -62,15 +86,15 @@ const SlaEditor: React.FC<Props> = ({ value, onChange }) => {
           </label>
           <p className="text-xs text-slate-500 mt-0.5">
             {esEstandar
-              ? 'Usando los SLA estándar de Help Soluciones. Importe el RFP del cliente para usar los suyos.'
-              : vista.fuente ? `SLA del cliente · ${vista.fuente}` : 'SLA personalizados para esta propuesta.'}
+              ? 'SLA estándar de Help Soluciones. Edítelos o pegue la tabla que pide el cliente.'
+              : 'SLA personalizados para esta propuesta.'}
           </p>
         </div>
         <div className="flex gap-2">
           {!esEstandar && (
             <button
               type="button"
-              onClick={() => { onChange(null); setMensaje(null); }}
+              onClick={() => { onChange(null); setPegando(false); }}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs bg-white border border-[#D6E3F3] text-slate-600 hover:bg-slate-50 rounded-lg"
             >
               <RotateCcw size={13} /> Usar estándar
@@ -78,26 +102,43 @@ const SlaEditor: React.FC<Props> = ({ value, onChange }) => {
           )}
           <button
             type="button"
-            disabled={importando}
-            onClick={() => fileRef.current?.click()}
+            onClick={() => setPegando(v => !v)}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs bg-[#004A99] hover:bg-[#003366] text-white rounded-lg"
           >
-            {importando ? <Loader2 size={13} className="spin" /> : <FileUp size={13} />}
-            {importando ? 'Analizando documento…' : 'Importar desde RFP'}
+            <ClipboardPaste size={13} /> Pegar tabla
           </button>
-          <input
-            ref={fileRef}
-            type="file"
-            accept={RFP_ACCEPT}
-            className="hidden"
-            onChange={e => { const f = e.target.files?.[0]; if (f) importar(f); }}
-          />
         </div>
       </div>
 
-      {mensaje && (
-        <div className={`text-xs rounded-lg px-3 py-2 mb-3 ${mensaje.tipo === 'ok' ? 'bg-emerald-50 text-emerald-800' : 'bg-red-50 text-red-700'}`}>
-          {mensaje.texto}
+      {pegando && (
+        <div className="mb-3 rounded-lg border border-[#BFD5F2] bg-[#F5F9FF] p-3">
+          <p className="text-xs text-slate-600 mb-2">
+            Copie la tabla de SLA del documento del cliente (Word, Excel o PDF) y péguela aquí.
+            Una fila por línea; columnas en este orden: <b>criticidad, descripción, t. respuesta, t. solución, canal</b>.
+          </p>
+          <textarea
+            autoFocus
+            rows={5}
+            value={textoPegado}
+            onChange={e => setTextoPegado(e.target.value)}
+            placeholder={'Crítica\tCaída total del servicio\t15 min\t2 horas\tSitio\nAlta\tUsuario sin acceso a la aplicación\t30 min\t4 horas\tRemoto'}
+            className="w-full bg-white border border-[#D6E3F3] rounded-lg px-3 py-2 text-xs text-slate-700 font-mono"
+          />
+          <div className="flex flex-wrap items-center justify-between gap-2 mt-2">
+            <span className="text-xs text-slate-500">
+              {textoPegado.trim() ? `${previa.length} nivel(es) detectado(s). Reemplazarán la tabla actual.` : ''}
+            </span>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => { setPegando(false); setTextoPegado(''); }}
+                className="px-3 py-1.5 text-xs bg-white border border-[#D6E3F3] text-slate-600 hover:bg-slate-50 rounded-lg">
+                Cancelar
+              </button>
+              <button type="button" onClick={aplicarPegado} disabled={previa.length === 0}
+                className="px-3 py-1.5 text-xs bg-[#004A99] hover:bg-[#003366] text-white rounded-lg">
+                Usar estos SLA
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -142,15 +183,30 @@ const SlaEditor: React.FC<Props> = ({ value, onChange }) => {
         <Plus size={13} /> Agregar nivel
       </button>
 
-      <label className="block text-xs uppercase tracking-wider text-slate-500 font-semibold mt-4 mb-1.5">
-        Notas de los acuerdos (una por línea)
-      </label>
-      <textarea
-        rows={Math.max(3, vista.notas.length + 1)}
-        value={vista.notas.join('\n')}
-        onChange={e => editar({ notas: e.target.value.split('\n') })}
-        className="w-full bg-white border border-[#D6E3F3] rounded-lg px-3 py-2 text-xs text-slate-700"
-      />
+      <div className="grid gap-3 mt-4" style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}>
+        <div>
+          <label className="block text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1.5">
+            Documento de referencia del cliente (opcional)
+          </label>
+          <input
+            className="w-full bg-white border border-[#D6E3F3] rounded-lg px-3 py-2 text-xs text-slate-700"
+            placeholder="Ej.: Pliego de condiciones, numeral 4.3"
+            value={vista.fuente || ''}
+            onChange={e => editar({ fuente: e.target.value })}
+          />
+        </div>
+        <div>
+          <label className="block text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1.5">
+            Notas de los acuerdos (una por línea)
+          </label>
+          <textarea
+            rows={Math.max(3, vista.notas.length + 1)}
+            value={vista.notas.join('\n')}
+            onChange={e => editar({ notas: e.target.value.split('\n') })}
+            className="w-full bg-white border border-[#D6E3F3] rounded-lg px-3 py-2 text-xs text-slate-700"
+          />
+        </div>
+      </div>
     </div>
   );
 };
