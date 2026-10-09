@@ -717,66 +717,66 @@ const InformesModule: React.FC<IProps> = ({
                         currentUser.cargo?.toLowerCase().includes('logistica') || 
                         currentUser.cargo?.toLowerCase().includes('gerente comercial')
                     ) : true) && (
-                        <div className="stat-card budget-card" style={{ background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)' }}>
-                            <div className="stat-label" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.75rem' }}>Presupuesto Mensual {appliedFilters.asesorId ? 'Personal' : 'Empresa'}</div>
-                            <div className="stat-value" style={{ fontSize: '1.2rem', color: '#fff' }}>${activeBudget.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
-                            <div className="stat-trend" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff' }}>Meta asignada</div>
+                        <div className="stat-card budget-card" style={{ '--stripe': '#334155' } as React.CSSProperties}>
+                            <div className="stat-label">Presupuesto Mensual {appliedFilters.asesorId ? 'Personal' : 'Empresa'}</div>
+                            <div className="stat-value">${activeBudget.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
+                            <div className="stat-trend" >Meta asignada</div>
                         </div>
                     )}
-                    <div className="stat-card sales-card">
-                        <div className="stat-label" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.75rem' }}>Ventas Facturadas (Total)</div>
-                        <div className="stat-value" style={{ fontSize: '1.2rem', color: '#fff' }}>${monthlySales.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
-                        <div className="stat-trend" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff' }}>{despachosFacturadosEnRango.length} despacho(s) facturado(s)</div>
+                    <div className="stat-card sales-card" style={{ '--stripe': '#4f46e5' } as React.CSSProperties}>
+                        <div className="stat-label">Ventas Facturadas (Total)</div>
+                        <div className="stat-value">${monthlySales.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
+                        <div className="stat-trend" >{despachosFacturadosEnRango.length} despacho(s) facturado(s)</div>
                     </div>
-                    <div className="stat-card percent-card">
-                        <div className="stat-label" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.75rem' }}>% Ejecución</div>
-                        <div className="stat-value" style={{ fontSize: '1.2rem', color: '#fff' }}>{executionPercent.toFixed(1)}%</div>
-                        <div className="stat-trend" style={{ background: difference >= 0 ? 'rgba(255,255,255,0.2)' : 'rgba(255,0,0,0.3)', color: '#fff' }}>
+                    <div className="stat-card percent-card" style={{ '--stripe': '#059669' } as React.CSSProperties}>
+                        <div className="stat-label">% Ejecución</div>
+                        <div className="stat-value">{executionPercent.toFixed(1)}%</div>
+                        <div className="stat-trend" style={{ background: difference >= 0 ? '#D1FAE5' : '#FEE2E2', color: difference >= 0 ? '#065F46' : '#B91C1C' }}>
                             {difference >= 0 ? `+ $${difference.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}` : `- $${Math.abs(difference).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`}
                         </div>
                     </div>
-                    <div className="card" style={{ background: '#059669', color: 'white', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', padding: '1rem' }}>
-                        <div style={{ fontSize: '0.8rem', opacity: 0.9, marginBottom: '0.3rem' }}>Utilidad en el Rango</div>
-                        <div style={{ fontSize: '1.5rem', fontWeight: 800, whiteSpace: 'nowrap' }}>${combinedProfit.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
-                        <div style={{ fontSize: '0.65rem', marginTop: '0.6rem', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.4rem', width: '100%', opacity: 0.9, borderTop: '1px solid rgba(255,255,255,0.2)', paddingTop: '0.6rem' }}>
+                    <div className="stat-card" style={{ '--stripe': '#059669' } as React.CSSProperties}>
+                        <div className="stat-label">Utilidad en el Rango</div>
+                        <div className="stat-value" style={{ whiteSpace: 'nowrap' }}>${combinedProfit.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+                        <div style={{ fontSize: '0.65rem', marginTop: '0.6rem', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.4rem', width: '100%', color: 'var(--text-secondary)', borderTop: '1px solid var(--border-soft)', paddingTop: '0.6rem' }}>
                             <div style={{ display: 'flex', flexDirection: 'column' }}><span>CRM</span><strong>${totalUtilidad.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</strong></div>
                             <div style={{ display: 'flex', flexDirection: 'column' }}><span>Manual</span><strong>${totalManualProfit.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</strong></div>
                             <div style={{ display: 'flex', flexDirection: 'column' }}><span>Alq</span><strong>${revenueByRental.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</strong></div>
                         </div>
                     </div>
-                    <div className="stat-card margin-percent-card" style={{ background: 'linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)' }}>
-                        <div className="stat-label" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.75rem' }}>Porcentaje de Utilidad</div>
-                        <div className="stat-value" style={{ fontSize: '1.2rem', color: '#fff' }}>{profitMarginPercent.toFixed(1)}%</div>
-                        <div className="stat-trend" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff' }}>Sobre Ventas Totales</div>
+                    <div className="stat-card margin-percent-card" style={{ '--stripe': '#2563eb' } as React.CSSProperties}>
+                        <div className="stat-label">Porcentaje de Utilidad</div>
+                        <div className="stat-value">{profitMarginPercent.toFixed(1)}%</div>
+                        <div className="stat-trend" >Sobre Ventas Totales</div>
                     </div>
                     {currentUser.rol === 'Admin' && (
                         <>
-                            <div className="stat-card" style={{ background: 'linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)' }}>
-                                <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.9)', fontWeight: 600, marginBottom: '0.2rem' }}>Ingresos por Contratos</div>
-                                <div style={{ fontSize: '0.95rem', color: '#fff', fontWeight: 700, margin: '0.15rem 0' }}>${revenueByContract.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
-                                <div className="stat-trend" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', fontSize: '0.68rem' }}>En el periodo</div>
+                            <div className="stat-card" style={{ '--stripe': '#0284c7' } as React.CSSProperties}>
+                                <div className="stat-label">Ingresos por Contratos</div>
+                                <div className="stat-value">${revenueByContract.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
+                                <div className="stat-trend" >En el periodo</div>
                             </div>
-                            <div className="stat-card" style={{ background: 'linear-gradient(135deg, #34d399 0%, #059669 100%)' }}>
-                                <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.9)', fontWeight: 600, marginBottom: '0.2rem' }}>Ingresos por Alquileres</div>
-                                <div style={{ fontSize: '0.95rem', color: '#fff', fontWeight: 700, margin: '0.15rem 0' }}>${revenueByRental.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
-                                <div className="stat-trend" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', fontSize: '0.68rem' }}>
+                            <div className="stat-card" style={{ '--stripe': '#059669' } as React.CSSProperties}>
+                                <div className="stat-label">Ingresos por Alquileres</div>
+                                <div className="stat-value">${revenueByRental.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
+                                <div className="stat-trend" >
                                     {alquileres.filter((a: any) => a.estado === 'Alquilado').length} equipo(s) alquilado(s)
                                 </div>
                             </div>
-                            <div className="stat-card" style={{ background: 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)' }}>
-                                <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.9)', fontWeight: 600, marginBottom: '0.2rem' }}>Ventas Estándar</div>
-                                <div style={{ fontSize: '0.95rem', color: '#fff', fontWeight: 700, margin: '0.15rem 0' }}>${revenueByStandard.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
-                                <div className="stat-trend" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', fontSize: '0.68rem' }}>En el periodo</div>
+                            <div className="stat-card" style={{ '--stripe': '#d97706' } as React.CSSProperties}>
+                                <div className="stat-label">Ventas Estándar</div>
+                                <div className="stat-value">${revenueByStandard.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
+                                <div className="stat-trend" >En el periodo</div>
                             </div>
-                            <div className="stat-card" style={{ background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)' }}>
-                                <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.9)', fontWeight: 600, marginBottom: '0.2rem' }}>Licitaciones</div>
-                                <div style={{ fontSize: '0.95rem', color: '#fff', fontWeight: 700, margin: '0.15rem 0' }}>${revenueByTenders.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
-                                <div className="stat-trend" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', fontSize: '0.68rem' }}>En el periodo</div>
+                            <div className="stat-card" style={{ '--stripe': '#ea580c' } as React.CSSProperties}>
+                                <div className="stat-label">Licitaciones</div>
+                                <div className="stat-value">${revenueByTenders.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
+                                <div className="stat-trend" >En el periodo</div>
                             </div>
-                            <div className="stat-card" style={{ background: 'linear-gradient(135deg, #c084fc 0%, #9333ea 100%)' }}>
-                                <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.9)', fontWeight: 600, marginBottom: '0.2rem' }}>Licenciamiento</div>
-                                <div style={{ fontSize: '0.95rem', color: '#fff', fontWeight: 700, margin: '0.15rem 0' }}>${revenueByLicense.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
-                                <div className="stat-trend" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', fontSize: '0.68rem' }}>En el periodo</div>
+                            <div className="stat-card" style={{ '--stripe': '#9333ea' } as React.CSSProperties}>
+                                <div className="stat-label">Licenciamiento</div>
+                                <div className="stat-value">${revenueByLicense.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
+                                <div className="stat-trend" >En el periodo</div>
                             </div>
                         </>
                     )}
@@ -973,10 +973,10 @@ const InformesModule: React.FC<IProps> = ({
                         {appliedFilters.inicio} al {appliedFilters.fin} • {despachosFacturadosEnRango.length} facturas CRM
                     </span>
                 </div>
-                <div className="card stat-card" style={{ background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', color: 'white' }}>
+                <div className="card stat-card" style={{ '--stripe': '#047857' } as React.CSSProperties}>
                     <h4>Utilidad en el Rango</h4>
-                    <p className="stat-value" style={{ color: 'white' }}>${combinedProfit.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</p>
-                    <span className="stat-label" style={{ color: 'rgba(255,255,255,0.8)' }}>
+                    <p className="stat-value">${combinedProfit.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</p>
+                    <span className="stat-label">
                         Margen de ganancia acumulado
                     </span>
                 </div>
@@ -1019,7 +1019,7 @@ const InformesModule: React.FC<IProps> = ({
                         </div>
 
                         <div className="stats-grid" style={{ marginBottom: '1.5rem' }}>
-                            <div className="stat-card" style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' }}>
+                            <div className="stat-card" style={{ '--stripe': '#d97706' } as React.CSSProperties}>
                                 <div className="stat-label">Total Entregas (Despachos)</div>
                                 <div className="stat-value">
                                     {despachos.filter(d =>
@@ -1031,7 +1031,7 @@ const InformesModule: React.FC<IProps> = ({
                                 </div>
                                 <div className="stat-trend">En el periodo</div>
                             </div>
-                            <div className="stat-card" style={{ background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)' }}>
+                            <div className="stat-card" style={{ '--stripe': '#6d28d9' } as React.CSSProperties}>
                                 <div className="stat-label">Total Recogidas (Logística)</div>
                                 <div className="stat-value">
                                     {ordenesCompra.filter(oc =>

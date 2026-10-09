@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Eye, EyeOff, AlertCircle } from 'lucide-react';
 import type { AppUser } from '../App';
 import { logoBase64 } from '../assets/logoBase64';
 
@@ -7,9 +8,12 @@ interface IProps {
     onLogin: (u: AppUser) => void;
 }
 
+const MODULOS = ['Cotizaciones', 'Logística', 'Facturación', 'Cartera', 'Informes'];
+
 const Login: React.FC<IProps> = ({ users, onLogin }) => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
+    const [showPass, setShowPass] = useState(false);
     const [error, setError] = useState('');
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -28,149 +32,113 @@ const Login: React.FC<IProps> = ({ users, onLogin }) => {
 
     return (
         <div className="login-wrapper">
-            <div className="login-card animate-scale-in">
-                <div className="login-logo">
-                    <img src={logoBase64} alt="CRM HELP SOLUCIONES" className="logo-image" />
-                    <h1>CRM HELP SOLUCIONES</h1>
-                    <p>Gestión de Logística y Ventas</p>
+            <div className="login-brand">
+                <div className="login-brand-top">
+                    <div className="login-plate"><img src={logoBase64} alt="Help Soluciones" /></div>
+                    <div>
+                        <div className="login-brand-name">HelpiCRM</div>
+                        <div className="login-brand-sub">Help Soluciones Informáticas</div>
+                    </div>
                 </div>
-
-                <form className="login-form" onSubmit={handleSubmit}>
-                    <div className="form-group">
-                        <label>Usuario</label>
-                        <input
-                            type="text"
-                            className="input-field"
-                            placeholder="Ingrese su usuario"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                            required
-                        />
+                <div>
+                    <blockquote>"Cada cotización, despacho y factura en un solo lugar."</blockquote>
+                    <div className="login-chips">
+                        {MODULOS.map(m => <span key={m}>{m}</span>)}
                     </div>
+                </div>
+                <p className="login-copy">&copy; {new Date().getFullYear()} Help Soluciones Informáticas HSI SAS</p>
+            </div>
 
-                    <div className="form-group">
-                        <label>Contraseña</label>
-                        <input
-                            type="password"
-                            className="input-field"
-                            placeholder="Ingrese su contraseña"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            required
-                        />
-                    </div>
+            <div className="login-panel">
+                <div className="login-card animate-fade-in">
+                    <div className="login-mobile-logo"><img src={logoBase64} alt="Help Soluciones" /></div>
+                    <h1>Iniciar sesión</h1>
+                    <p className="login-lead">Ingresa tus credenciales para continuar</p>
 
-                    {error && <div className="login-error">{error}</div>}
+                    <form className="login-form" onSubmit={handleSubmit}>
+                        <label className="login-field">
+                            <span>Usuario</span>
+                            <input
+                                type="text"
+                                className="input-field"
+                                placeholder="Tu usuario"
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
+                                autoComplete="username"
+                                required
+                            />
+                        </label>
 
-                    <button type="submit" className="btn-login">
-                        Iniciar Sesión
-                    </button>
-                </form>
+                        <label className="login-field">
+                            <span>Contraseña</span>
+                            <div style={{ position: 'relative' }}>
+                                <input
+                                    type={showPass ? 'text' : 'password'}
+                                    className="input-field"
+                                    placeholder="••••••••"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    autoComplete="current-password"
+                                    style={{ paddingRight: '2.5rem' }}
+                                    required
+                                />
+                                <button
+                                    type="button"
+                                    className="login-eye"
+                                    onClick={() => setShowPass(!showPass)}
+                                    aria-label={showPass ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                                >
+                                    {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                                </button>
+                            </div>
+                        </label>
 
-                <div className="login-footer">
-                    <p>&copy; {new Date().getFullYear()} Help Soluciones Informáticas</p>
+                        {error && <div className="login-error"><AlertCircle size={15} />{error}</div>}
+
+                        <button type="submit" className="btn-login">Ingresar</button>
+                        <p className="login-hint">¿No tienes cuenta? Solicítala al administrador.</p>
+                    </form>
                 </div>
             </div>
 
             <style>{`
-                .login-wrapper {
-                    height: 100vh;
-                    width: 100vw;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
-                    font-family: 'Inter', sans-serif;
-                }
+                .login-wrapper { min-height: 100vh; display: flex; background: var(--background-light); }
 
-                .login-card {
-                    background: white;
-                    padding: 3rem;
-                    border-radius: 20px;
-                    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-                    width: 100%;
-                    max-width: 450px;
+                .login-brand {
+                    width: 50%; padding: 3rem;
+                    display: flex; flex-direction: column; justify-content: space-between;
+                    background: var(--navy-900); color: white;
                 }
+                .login-brand-top { display: flex; align-items: center; gap: 0.85rem; }
+                .login-plate { width: 52px; height: 52px; background: white; border-radius: 12px; overflow: hidden; display: grid; place-items: center; }
+                .login-plate img { width: 50px; height: 50px; object-fit: cover; object-position: top; }
+                .login-brand-name { font-family: var(--font-display); font-weight: 700; font-size: 1.15rem; }
+                .login-brand-sub { font-size: 0.8rem; color: rgba(255,255,255,0.5); }
+                .login-brand blockquote { font-size: 1.6rem; font-weight: 300; line-height: 1.45; color: rgba(255,255,255,0.88); margin-bottom: 1.5rem; max-width: 30rem; }
+                .login-chips { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+                .login-chips span { padding: 0.35rem 0.8rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.72); }
+                .login-copy { font-size: 0.75rem; color: rgba(255,255,255,0.4); }
 
-                .login-logo {
-                    text-align: center;
-                    margin-bottom: 2.5rem;
-                }
+                .login-panel { flex: 1; display: flex; align-items: center; justify-content: center; padding: 2rem; }
+                .login-card { width: 100%; max-width: 360px; }
+                .login-card h1 { font-size: 1.5rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.35rem; }
+                .login-lead { font-size: 0.875rem; color: var(--text-muted); margin-bottom: 2rem; }
+                .login-mobile-logo { display: none; }
 
-                .logo-image {
-                    width: 120px;
-                    height: auto;
-                    margin-bottom: 1rem;
-                    border-radius: 12px;
-                    padding: 8px;
-                    background: white;
-                }
+                .login-form { display: flex; flex-direction: column; gap: 1rem; }
+                .login-field { display: flex; flex-direction: column; gap: 0.4rem; }
+                .login-field > span { font-size: 0.85rem; font-weight: 500; color: var(--text-main); }
+                .login-eye { position: absolute; right: 0.6rem; top: 50%; transform: translateY(-50%); background: none; color: var(--text-muted); padding: 4px; }
+                .login-eye:hover { background: none; color: var(--primary-blue); }
 
-                .login-logo h1 {
-                    color: #1e3a8a;
-                    font-size: 1.75rem;
-                    font-weight: 800;
-                    margin-bottom: 0.5rem;
-                }
+                .login-error { display: flex; align-items: center; gap: 0.5rem; padding: 0.65rem 0.8rem; border-radius: var(--radius-sm); font-size: 0.85rem; background: #FFF5F5; color: #B91C1C; }
+                .btn-login { width: 100%; padding: 0.7rem; margin-top: 0.5rem; font-size: 0.9rem; }
+                .login-hint { text-align: center; font-size: 0.75rem; color: var(--text-muted); margin-top: 0.75rem; }
 
-                .login-logo p {
-                    color: #64748b;
-                    font-size: 0.9rem;
-                }
-
-                .login-form {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 1.5rem;
-                }
-
-                .login-error {
-                    background: #fee2e2;
-                    color: #991b1b;
-                    padding: 0.75rem;
-                    border-radius: 8px;
-                    font-size: 0.85rem;
-                    text-align: center;
-                    border: 1px solid #fecaca;
-                }
-
-                .btn-login {
-                    background: #2563eb;
-                    color: white;
-                    padding: 1rem;
-                    border-radius: 12px;
-                    border: none;
-                    font-size: 1rem;
-                    font-weight: 600;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                    box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3);
-                }
-
-                .btn-login:hover {
-                    background: #1d4ed8;
-                    transform: translateY(-2px);
-                    box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.4);
-                }
-
-                .btn-login:active {
-                    transform: translateY(0);
-                }
-
-                .login-footer {
-                    margin-top: 2.5rem;
-                    text-align: center;
-                    color: #94a3b8;
-                    font-size: 0.8rem;
-                }
-
-                @keyframes scale-in {
-                    from { opacity: 0; transform: scale(0.95); }
-                    to { opacity: 1; transform: scale(1); }
-                }
-
-                .animate-scale-in {
-                    animation: scale-in 0.3s ease-out;
+                @media (max-width: 900px) {
+                    .login-brand { display: none; }
+                    .login-mobile-logo { display: block; margin-bottom: 1.5rem; }
+                    .login-mobile-logo img { width: 96px; border-radius: 12px; }
                 }
             `}</style>
         </div>

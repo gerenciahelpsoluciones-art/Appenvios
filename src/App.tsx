@@ -28,6 +28,14 @@ import RegistrationForm from './modules/RegistrationForm';
 import { logoBase64 } from './assets/logoBase64'
 import AIAssistant from './components/AIAssistant'
 import {
+  LayoutDashboard, Sparkles, ClipboardList, FileText, FilePenLine, Users, Package, UserCheck,
+  ShoppingCart, Factory, Truck, IdCard, FileStack, Wrench, Laptop, Receipt, Banknote, Wallet,
+  Percent, ChartColumn, Bot, Settings, LogOut, CircleQuestionMark, Menu, X, ArrowRight, type LucideIcon,
+} from 'lucide-react'
+
+type MenuItem = { id: string; label: string; icon: LucideIcon; section: string; subtitle: string }
+const MENU_SECTIONS = ['General', 'Comercial', 'Operaciones', 'Finanzas', 'Informes', 'Administración']
+import {
   DEMO_USER, DEMO_USERS, DEMO_CLIENTES, DEMO_PROVEEDORES, DEMO_PRODUCTOS,
   DEMO_COTIZACIONES, DEMO_CONDUCTORES, DEMO_DESPACHOS, DEMO_VENTAS, DEMO_BUDGETS
 } from './data/crmDemoData'
@@ -1956,29 +1964,29 @@ function App() {
     if (!error) setPropuestas(prev => prev.filter(p => p.id !== id));
   };
 
-  const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-    { id: 'leads-web', label: 'Leads Web', icon: '✨' },
-    { id: 'registros-web', label: 'Registros Web', icon: '📝' },
-    { id: 'cotizaciones', label: 'Cotizaciones', icon: '📄' },
-    { id: 'ordenes-compra', label: 'Ordenes de Compra', icon: '🛒' },
-    { id: 'clientes', label: 'Clientes', icon: '👥' },
-    { id: 'productos', label: 'Productos', icon: '📦' },
-    { id: 'proveedores', label: 'Proveedores', icon: '🏭' },
-    { id: 'conductores', label: 'Conductores', icon: '🆔' },
-    { id: 'logistica', label: 'Logística', icon: '🚚' },
-    { id: 'reparaciones', label: 'Reparaciones', icon: '🛠️' },
-    { id: 'informes', label: 'Informes', icon: '📈' },
-    { id: 'admin', label: 'Administración', icon: '⚙️' },
-    { id: 'vendedores', label: 'Vendedores', icon: '👨‍💼' },
-    { id: 'alquileres', label: 'Alquileres', icon: '💻' },
-    { id: 'facturacion', label: 'Facturación', icon: '💲' },
-    { id: 'ventas-manuales', label: 'Ventas Manuales', icon: '💰' },
-    { id: 'remisiones', label: 'Remisiones', icon: '📄' },
-    { id: 'comisiones', label: 'Comisiones', icon: '💸' },
-    { id: 'cartera', label: 'Cartera', icon: '??' },
-      { id: 'propuestas', label: 'Propuestas', icon: '📋' },
-    { id: 'agente-informes', label: 'Agente de Informes', icon: '🤖' },
+  const menuItems: MenuItem[] = [
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, section: 'General', subtitle: 'Resumen del mes' },
+    { id: 'leads-web', label: 'Leads Web', icon: Sparkles, section: 'Comercial', subtitle: 'Prospectos que llegan desde la web' },
+    { id: 'registros-web', label: 'Registros Web', icon: ClipboardList, section: 'Comercial', subtitle: 'Solicitudes de registro pendientes' },
+    { id: 'cotizaciones', label: 'Cotizaciones', icon: FileText, section: 'Comercial', subtitle: 'Crear y enviar cotizaciones' },
+    { id: 'propuestas', label: 'Propuestas', icon: FilePenLine, section: 'Comercial', subtitle: 'Propuestas de servicio' },
+    { id: 'clientes', label: 'Clientes', icon: Users, section: 'Comercial', subtitle: 'Directorio de clientes, sedes y contactos' },
+    { id: 'productos', label: 'Productos', icon: Package, section: 'Comercial', subtitle: 'Catálogo local e inventario Siigo' },
+    { id: 'vendedores', label: 'Vendedores', icon: UserCheck, section: 'Comercial', subtitle: 'Metas y cumplimiento por asesor' },
+    { id: 'ordenes-compra', label: 'Órdenes de Compra', icon: ShoppingCart, section: 'Operaciones', subtitle: 'Compras a proveedores' },
+    { id: 'proveedores', label: 'Proveedores', icon: Factory, section: 'Operaciones', subtitle: 'Directorio de proveedores' },
+    { id: 'logistica', label: 'Logística', icon: Truck, section: 'Operaciones', subtitle: 'Despachos, recogidas y devoluciones' },
+    { id: 'conductores', label: 'Conductores', icon: IdCard, section: 'Operaciones', subtitle: 'Conductores y vehículos' },
+    { id: 'remisiones', label: 'Remisiones', icon: FileStack, section: 'Operaciones', subtitle: 'Remisiones de entrega' },
+    { id: 'reparaciones', label: 'Reparaciones', icon: Wrench, section: 'Operaciones', subtitle: 'Equipos en servicio técnico' },
+    { id: 'alquileres', label: 'Alquileres', icon: Laptop, section: 'Operaciones', subtitle: 'Equipos en alquiler' },
+    { id: 'facturacion', label: 'Facturación', icon: Receipt, section: 'Finanzas', subtitle: 'Despachos por facturar' },
+    { id: 'ventas-manuales', label: 'Ventas Manuales', icon: Banknote, section: 'Finanzas', subtitle: 'Ventas registradas fuera de cotización' },
+    { id: 'cartera', label: 'Cartera', icon: Wallet, section: 'Finanzas', subtitle: 'Facturas con saldo pendiente (Siigo)' },
+    { id: 'comisiones', label: 'Comisiones', icon: Percent, section: 'Finanzas', subtitle: 'Utilidad y comisiones por vendedor' },
+    { id: 'informes', label: 'Informes', icon: ChartColumn, section: 'Informes', subtitle: 'Rendimiento comercial del periodo' },
+    { id: 'agente-informes', label: 'Agente de Informes', icon: Bot, section: 'Informes', subtitle: 'Informes generados con IA' },
+    { id: 'admin', label: 'Administración', icon: Settings, section: 'Administración', subtitle: 'Usuarios, permisos y presupuestos' },
   ].filter(item => {
     if (item.id === 'productos') return true; // Everyone can see/edit products
     if (item.id === 'cartera' && (currentUser?.rol === 'Admin' || currentUser?.rol === 'Comercial')) return true;
@@ -2308,194 +2316,111 @@ function App() {
         const completedTotal = dashDespachos.filter(d => d.estado === 'Entregado').length;
         const activeLogistics = dashDespachos.filter(d => d.estado !== 'Entregado').length;
 
+        const monthLabel = now.toLocaleDateString('es-CO', { month: 'long', year: 'numeric' });
+        const ingresosMes = wonQuotesMonth.reduce((acc, c) => acc + c.total, 0);
+        const fmtCOP = (n: number) => `$${Math.round(n).toLocaleString('es-CO')}`;
+
+        const activities: { id: string; date: string; tipo: 'Cotización' | 'Venta' | 'Factura' | 'Envío'; titulo: string; detalle: string; valor?: number }[] = [];
+        curMonthQuotes.forEach(c => {
+          if (c.fecha) activities.push({
+            id: 'q-' + c.id, date: c.fecha,
+            tipo: c.estado === 'Ganado' ? 'Venta' : 'Cotización',
+            titulo: `${c.estado === 'Ganado' ? 'Venta cerrada' : 'Cotización'} ${c.consecutivo}`,
+            detalle: c.clienteNombre, valor: c.total,
+          });
+        });
+        dashDespachos.forEach(d => {
+          if (d.facturado && d.fechaFacturado) {
+            const [y, m] = d.fechaFacturado.split('-').map(Number);
+            if (y === curYear && (m - 1) === curMonth) activities.push({ id: 'f-' + d.id, date: d.fechaFacturado, tipo: 'Factura', titulo: `Factura ${d.consecutivoCotizacion}`, detalle: d.clienteNombre, valor: d.total });
+          }
+          if (d.fechaSolicitud) {
+            const [y, m] = d.fechaSolicitud.split('-').map(Number);
+            if (y === curYear && (m - 1) === curMonth) activities.push({ id: 's-' + d.id, date: d.fechaSolicitud, tipo: 'Envío', titulo: `Envío ${d.consecutivoCotizacion}`, detalle: `${d.clienteNombre} · ${d.estado}` });
+          }
+        });
+        activities.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+        const TIPO_PILL: Record<string, string> = { 'Venta': 'pill pill-success', 'Factura': 'pill pill-success', 'Cotización': 'pill pill-info', 'Envío': 'pill pill-warning' };
+
+        const kpis = [
+          { label: 'Cotizaciones del mes', value: String(curMonthQuotes.length), trend: `${growth >= 0 ? '↑' : '↓'} ${Math.abs(growth).toFixed(0)}% vs mes anterior`, color: growth >= 0 ? 'var(--success)' : 'var(--error)' },
+          { label: 'Ventas cerradas', value: fmtCOP(ingresosMes), trend: `${wonQuotesMonth.length} cotizaci${wonQuotesMonth.length === 1 ? 'ón ganada' : 'ones ganadas'}`, color: 'var(--success)' },
+          { label: 'Envíos entregados', value: String(completedTotal), trend: 'Histórico', color: 'var(--primary-blue)' },
+          { label: 'Envíos en curso', value: String(activeLogistics), trend: activeLogistics ? 'Pendientes de entrega' : 'Todo entregado', color: activeLogistics ? 'var(--warning)' : 'var(--success)' },
+        ];
+
+        const shortcuts = [
+          { id: 'cotizaciones', icon: FileText, label: 'Cotizaciones', value: `${curMonthQuotes.length} este mes`, cta: 'Nueva cotización' },
+          { id: 'logistica', icon: Truck, label: 'Logística', value: `${activeLogistics} envío${activeLogistics === 1 ? '' : 's'} en curso`, cta: 'Ver despachos' },
+        ].filter(s => menuItems.some(m => m.id === s.id));
+
         return (
-          <div className="dashboard-container" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-
-            {/* Header Section */}
-            <div className="dashboard-header" style={{ marginBottom: '1rem' }}>
-              <h2 style={{ margin: 0, fontSize: '2rem', color: '#1e293b' }}>
-                ¡Bienvenido, {currentUser.nombre.split(' ')[0]}!
-              </h2>
-              <p style={{ margin: 0, color: '#64748b', fontSize: '1.1rem' }}>
-                Aquí está el resumen de tu negocio para {now.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}.
-              </p>
+          <div className="dashboard-container animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <div>
+              <h2 style={{ fontSize: '1.35rem', color: 'var(--text-main)' }}>Hola, {currentUser.nombre.split(' ')[0]}</h2>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: 2 }}>Este es el resumen de {monthLabel}.</p>
             </div>
 
-            {/* KPI Cards Grid */}
-            <div className="kpi-grid" style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-              gap: '1.5rem'
-            }}>
-
-              {/* KPIs */}
-              <div className="kpi-card" style={{ background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)', padding: '1.5rem', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <h4 style={{ margin: 0, color: '#475569', fontSize: '1rem', fontWeight: '600' }}>Cotizaciones</h4>
-                  <span style={{ fontSize: '1.5rem' }}>📄</span>
+            <div className="stats-grid">
+              {kpis.map(k => (
+                <div key={k.label} className="kpi-tile">
+                  <span className="kpi-stripe" style={{ background: k.color }} />
+                  <p className="kpi-label">{k.label}</p>
+                  <p className="kpi-value">{k.value}</p>
+                  <p className="kpi-trend" style={{ color: k.color }}>{k.trend}</p>
                 </div>
-                <p style={{ margin: 0, fontSize: '2.5rem', fontWeight: 'bold', color: '#0f172a' }}>{curMonthQuotes.length}</p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: 'auto' }}>
-                  <span style={{
-                    padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.85rem', fontWeight: 'bold',
-                    background: growth >= 0 ? '#dcfce7' : '#fee2e2', color: growth >= 0 ? '#166534' : '#ef4444'
-                  }}>
-                    {growth >= 0 ? '↗' : '↘'} {Math.abs(growth).toFixed(0)}%
-                  </span>
-                  <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>vs mes anterior</span>
-                </div>
-              </div>
-
-              <div className="kpi-card" style={{ background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)', padding: '1.5rem', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <h4 style={{ margin: 0, color: '#475569', fontSize: '1rem', fontWeight: '600' }}>Ingresos Esperados</h4>
-                  <span style={{ fontSize: '1.5rem' }}>💰</span>
-                </div>
-                <p style={{ margin: 0, fontSize: '2rem', fontWeight: 'bold', color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  ${wonQuotesMonth.reduce((acc, c) => acc + c.total, 0).toLocaleString()}
-                </p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: 'auto' }}>
-                  <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '500' }}>
-                    De {wonQuotesMonth.length} cotizacion{wonQuotesMonth.length !== 1 && 'es'} ganada{wonQuotesMonth.length !== 1 && 's'}
-                  </span>
-                </div>
-              </div>
-
-              <div className="kpi-card" style={{ background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)', padding: '1.5rem', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <h4 style={{ margin: 0, color: '#475569', fontSize: '1rem', fontWeight: '600' }}>Logística y Envíos</h4>
-                  <span style={{ fontSize: '1.5rem' }}>🚚</span>
-                </div>
-                <p style={{ margin: 0, fontSize: '2.5rem', fontWeight: 'bold', color: '#0f172a' }}>{completedTotal}</p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: 'auto' }}>
-                  <span style={{ fontSize: '0.85rem', color: '#1d4ed8', background: '#dbeafe', padding: '0.25rem 0.5rem', borderRadius: '4px', fontWeight: 'bold' }}>
-                    {activeLogistics} en tránsito
-                  </span>
-                  <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Actualmente</span>
-                </div>
-              </div>
-
+              ))}
             </div>
 
-            {/* Main Content Split */}
-            <div className="dashboard-main-split" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '2rem' }}>
+            {shortcuts.length > 0 && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
+                {shortcuts.map(s => {
+                  const Icon = s.icon;
+                  return (
+                    <div key={s.id} className="shortcut-card">
+                      <div className="shortcut-icon"><Icon size={22} /></div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <span className="kpi-label">{s.label}</span>
+                        <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '1.1rem', color: 'var(--text-main)' }}>{s.value}</div>
+                      </div>
+                      <button className="shortcut-link" onClick={() => setActiveTab(s.id)}>{s.cta} <ArrowRight size={14} /></button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
 
-              {/* Timeline (Left) */}
-              <div className="card" style={{ padding: '1.5rem', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.05)' }}>
-                <h3 style={{ margin: '0 0 1.5rem 0', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  ⏱️ Actividad Reciente
-                </h3>
-
-                <div className="timeline-container" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  {(() => {
-                    const activities: any[] = [];
-                    
-                    curMonthQuotes.forEach(c => {
-                      if (c.fecha) {
-                        activities.push({ id: 'q-' + c.id, date: c.fecha, type: 'quote', data: c });
-                      }
-                    });
-
-                    dashDespachos.forEach(d => {
-                      if (d.facturado && d.fechaFacturado) {
-                        const [y, m] = d.fechaFacturado.split('-').map(Number);
-                        if (y === curYear && (m - 1) === curMonth) {
-                          activities.push({ id: 'f-' + d.id, date: d.fechaFacturado, type: 'invoice', data: d });
-                        }
-                      }
-                      if (d.fechaSolicitud) {
-                        const [y, m] = d.fechaSolicitud.split('-').map(Number);
-                        if (y === curYear && (m - 1) === curMonth) {
-                          activities.push({ id: 's-' + d.id, date: d.fechaSolicitud, type: 'shipping', data: d });
-                        }
-                      }
-                    });
-
-                    activities.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-                    if (activities.length === 0) {
-                      return (
-                        <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
-                          No hay actividad reciente este mes.
-                        </div>
-                      );
-                    }
-
-                    return activities.slice(0, 8).map(activity => {
-                      if (activity.type === 'quote') {
-                        const c = activity.data;
-                        return (
-                          <div key={activity.id} className="timeline-item" style={{ display: 'flex', gap: '1rem', padding: '1rem', background: '#f8fafc', borderRadius: '8px', borderLeft: `4px solid ${c.estado === 'Ganado' ? '#22c55e' : '#3b82f6'}` }}>
-                            <div style={{ minWidth: '80px', fontSize: '0.85rem', color: '#64748b', fontWeight: '600' }}>
-                              {activity.date}
-                            </div>
-                            <div>
-                              <div style={{ fontWeight: 'bold', color: '#0f172a', marginBottom: '0.25rem' }}>
-                                {c.estado === 'Ganado' ? '✅ Venta Cerrada' : '📄 Nueva Cotización'} ({c.consecutivo})
-                              </div>
-                              <div style={{ fontSize: '0.9rem', color: '#475569' }}>
-                                Para: <strong>{c.clienteNombre}</strong> por ${c.total.toLocaleString()}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      }
-                      if (activity.type === 'invoice') {
-                        const d = activity.data;
-                        return (
-                          <div key={activity.id} className="timeline-item" style={{ display: 'flex', gap: '1rem', padding: '1rem', background: '#f0fdf4', borderRadius: '8px', borderLeft: `4px solid #22c55e` }}>
-                            <div style={{ minWidth: '80px', fontSize: '0.85rem', color: '#166534', fontWeight: '600' }}>
-                              {activity.date}
-                            </div>
-                            <div>
-                              <div style={{ fontWeight: 'bold', color: '#14532d', marginBottom: '0.25rem' }}>
-                                💰 Factura Realizada ({d.consecutivoCotizacion})
-                              </div>
-                              <div style={{ fontSize: '0.9rem', color: '#166534' }}>
-                                Para: <strong>{d.clienteNombre}</strong>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      }
-                      if (activity.type === 'shipping') {
-                        const d = activity.data;
-                        return (
-                          <div key={activity.id} className="timeline-item" style={{ display: 'flex', gap: '1rem', padding: '1rem', background: '#f8fafc', borderRadius: '8px', borderLeft: `4px solid #f59e0b` }}>
-                            <div style={{ minWidth: '80px', fontSize: '0.85rem', color: '#64748b', fontWeight: '600' }}>
-                              {activity.date}
-                            </div>
-                            <div>
-                              <div style={{ fontWeight: 'bold', color: '#0f172a', marginBottom: '0.25rem' }}>
-                                🚚 Envío {d.consecutivoCotizacion}
-                              </div>
-                              <div style={{ fontSize: '0.9rem', color: '#475569' }}>
-                                Estado: <span style={{ fontWeight: '600' }}>{d.estado}</span>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      }
-                      return null;
-                    });
-                  })()}
+            <div className="card table-card">
+              <div className="panel-head">
+                <div>
+                  <h3>Movimientos recientes</h3>
+                  <p>Cotizaciones, facturas y envíos de {monthLabel}</p>
                 </div>
               </div>
-
+              {activities.length === 0 ? (
+                <div style={{ padding: '3rem 1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                  No hay movimientos registrados este mes.
+                </div>
+              ) : (
+                <table className="data-table">
+                  <thead>
+                    <tr><th>Fecha</th><th>Movimiento</th><th>Cliente</th><th>Tipo</th><th className="num">Valor</th></tr>
+                  </thead>
+                  <tbody>
+                    {activities.slice(0, 10).map(a => (
+                      <tr key={a.id}>
+                        <td style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{a.date}</td>
+                        <td style={{ fontWeight: 600 }}>{a.titulo}</td>
+                        <td style={{ color: 'var(--text-secondary)' }}>{a.detalle}</td>
+                        <td><span className={TIPO_PILL[a.tipo]}>{a.tipo}</span></td>
+                        <td className="num" style={{ fontWeight: 700 }}>{a.valor !== undefined ? fmtCOP(a.valor) : '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
-
-            <style>{`
-              .kpi-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
-              .kpi-card:hover { transform: translateY(-4px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important; }
-              .timeline-item { transition: background 0.2s ease; }
-              .timeline-item:hover { background: #f1f5f9 !important; }
-              
-              @media (min-width: 1024px) {
-                .dashboard-main-split {
-                  grid-template-columns: 2fr 1fr !important;
-                }
-              }
-            `}</style>
           </div>
         );
       default:
@@ -2511,6 +2436,7 @@ function App() {
   }
 
   const [showHelpModal, setShowHelpModal] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   function HelpModal() {
     if (!showHelpModal) return null;
@@ -2559,8 +2485,8 @@ function App() {
       <div className="modal-overlay" onClick={() => setShowHelpModal(false)}>
         <div className="modal-content animate-fade-in" onClick={e => e.stopPropagation()} style={{ maxWidth: '500px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
-            <h2 style={{ margin: 0, color: 'var(--primary-blue)' }}>{content.title} ❓</h2>
-            <button onClick={() => setShowHelpModal(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
+            <h2 style={{ margin: 0, color: 'var(--text-main)', fontSize: '1.2rem' }}>{content.title}</h2>
+            <button onClick={() => setShowHelpModal(false)} className="btn-action" aria-label="Cerrar"><X size={18} /></button>
           </div>
           <ul style={{ paddingLeft: '1.2rem', lineHeight: '1.6' }}>
             {content.steps.map((s, i) => <li key={i} style={{ marginBottom: '0.8rem' }}>{s}</li>)}
@@ -2585,316 +2511,114 @@ function App() {
     );
   }
 
+  const activeItem = menuItems.find(i => i.id === activeTab) || menuItems[0];
+  const ROL_LABEL: Record<string, string> = { Admin: 'Administrador', Comercial: 'Comercial', Logistica: 'Logística', Tecnico: 'Técnico' };
+  const initials = (currentUser?.nombre || '?').split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+  const isOnline = IS_DEMO || realtimeStatus === 'En Línea';
+
+  const goTo = (id: string) => {
+    setActiveTab(id);
+    setMenuOpen(false);
+  };
+
   return isLoggedIn ? (
-    <div className="app-container">
-      {IS_DEMO && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 9999, background: 'linear-gradient(90deg,#f59e0b,#d97706)', color: '#000', textAlign: 'center', fontSize: '12px', fontWeight: 800, padding: '5px', letterSpacing: '0.05em' }}>
-          MODO DEMO — Datos de ejemplo con fines comerciales. Help Soluciones Informáticas HSI SAS · licitacioneshsi@helpsoluciones.com.co · 304 335 8650
-        </div>
-      )}
+    <div className="app-container hs">
       <HelpModal />
-      <aside className="sidebar">
-        <div className="logo-container">
-          <div className="brand-box">
-            <img src={logoBase64} alt="HelpiCRM Logo" style={{ width: '80%', maxWidth: '160px', borderRadius: '8px', objectFit: 'contain', background: 'white', padding: '10px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }} />
-            <span className="logo-text" style={{ marginTop: '0.75rem', fontWeight: '800', letterSpacing: '0.05em' }}>HelpiCRM v2.0</span>
-            <div
+
+      {menuOpen && <div className="sb-backdrop" onClick={() => setMenuOpen(false)} aria-hidden="true" />}
+
+      <aside className={`sidebar ${menuOpen ? 'open' : ''}`} aria-label="Menú principal">
+        <div className="sb-brand">
+          <div className="sb-plate"><img src={logoBase64} alt="Help Soluciones" /></div>
+          <div style={{ minWidth: 0 }}>
+            <div className="sb-name">HelpiCRM</div>
+            <button
+              className="sb-status"
               title="Click para reconectar"
               onClick={() => window.location.reload()}
-              style={{
-                fontSize: '0.65rem',
-                color: realtimeStatus === 'En Línea' ? '#4ade80' : '#fb7185',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                marginTop: '4px',
-                background: 'rgba(0,0,0,0.2)',
-                padding: '2px 8px',
-                borderRadius: '10px',
-                cursor: 'pointer'
-              }}
             >
-              <span style={{
-                width: '6px',
-                height: '6px',
-                background: realtimeStatus === 'En Línea' ? '#4ade80' : '#fb7185',
-                borderRadius: '50%'
-              }}></span>
-              {IS_DEMO ? 'MODO DEMO ✨' : `DB: ${realtimeStatus} 🔄`}
+              <span className="sb-dot" style={{ background: isOnline ? '#4ade80' : '#fb7185' }} />
+              {IS_DEMO ? 'Modo demo' : (isOnline ? 'En línea' : `DB: ${realtimeStatus}`)} · v2.1
+            </button>
+          </div>
+          <button className="sb-close" onClick={() => setMenuOpen(false)} aria-label="Cerrar menú"><X size={18} /></button>
+        </div>
+
+        <nav className="nav-menu">
+          {MENU_SECTIONS.map(section => {
+            const items = menuItems.filter(i => i.section === section);
+            if (items.length === 0) return null;
+            return (
+              <div key={section}>
+                {section !== 'General' && <div className="sb-title">{section}</div>}
+                <div className="sb-items">
+                  {items.map(item => {
+                    const Icon = item.icon;
+                    return (
+                      <button
+                        key={item.id}
+                        className={`nav-item ${activeTab === item.id ? 'active' : ''}`}
+                        onClick={() => goTo(item.id)}
+                      >
+                        <Icon size={16} />
+                        <span>{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </nav>
+
+        <div className="sb-footer">
+          <div className="sb-user">
+            <div className="sb-avatar">{initials}</div>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div className="sb-user-name">{currentUser?.nombre}</div>
+              <div className="sb-user-role">{ROL_LABEL[currentUser?.rol || ''] || currentUser?.rol}</div>
             </div>
           </div>
-        </div>
-        <nav className="nav-menu">
-          {menuItems.map((item) => (
-            <button
-              key={item.id}
-              className={`nav-item ${activeTab === item.id ? 'active' : ''}`}
-              onClick={() => setActiveTab(item.id)}
-            >
-              <span className="nav-icon">{item.icon}</span>
-              {item.label}
-            </button>
-          ))}
-        </nav>
-        <div style={{ marginTop: 'auto', padding: '1.5rem', opacity: 0.5, fontSize: '0.8rem', textAlign: 'center' }}>
-          By Help Soluciones
+          <div className="sb-actions">
+            <button onClick={() => setShowHelpModal(true)}><CircleQuestionMark size={14} /> Ayuda</button>
+            <button onClick={handleLogout}><LogOut size={14} /> Salir</button>
+          </div>
         </div>
       </aside>
 
       <main className="main-content">
+        {IS_DEMO && (
+          <div className="demo-banner">
+            Modo demo — datos de ejemplo. Help Soluciones Informáticas HSI SAS · licitacioneshsi@helpsoluciones.com.co · 304 335 8650
+          </div>
+        )}
+        <div className="mobile-bar">
+          <button className="mb-menu" onClick={() => setMenuOpen(true)} aria-label="Abrir menú"><Menu size={20} /></button>
+          <div className="sb-plate"><img src={logoBase64} alt="" /></div>
+          <div className="mb-app">
+            <span className="mb-name">HelpiCRM</span>
+            <span className="mb-ver">v2.1</span>
+          </div>
+          <div className="mb-company">
+            <span className="mb-company-name">Help Soluciones</span>
+            <span className="mb-company-sub">Informáticas</span>
+          </div>
+        </div>
         <header className="top-bar">
-          <div className="header-left">
-            <h1>{menuItems.find(i => i.id === activeTab)?.label || 'Dashboard'}</h1>
+          <div style={{ minWidth: 0 }}>
+            <h1>{activeItem?.label || 'Dashboard'}</h1>
+            {activeItem?.subtitle && <p className="page-sub">{activeItem.subtitle}</p>}
           </div>
           <div className="user-info">
-            <button
-              className="btn-help"
-              onClick={() => setShowHelpModal(true)}
-              title="Ayuda / Manual"
-            >
-              ❓
-            </button>
-            <span style={{ marginRight: '0.5rem' }}>{currentUser?.rol === 'Admin' ? '👑' : '👤'}</span>
-            <span className="user-role">{currentUser?.rol}</span>
-            <span className="user-name">{currentUser?.nombre}</span>
-            <button
-              onClick={handleLogout}
-              title="Cerrar Sesión"
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: '#ef4444',
-                fontSize: '1.5rem',
-                cursor: 'pointer',
-                marginLeft: '1rem',
-                lineHeight: 1,
-                padding: '0 0.25rem',
-                transition: 'transform 0.2s'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
-              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-            >
-              ×
-            </button>
+            <span className="user-role">{ROL_LABEL[currentUser?.rol || ''] || currentUser?.rol}</span>
+            <span className="user-name" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500 }}>{currentUser?.nombre}</span>
           </div>
         </header>
-      <div className="content-area">
+        <div className="content-area">
           {renderContent()}
         </div>
         <AIAssistant />
       </main>
-
-      <style>{`
-        .app-container {
-          display: flex;
-          height: 100vh;
-          width: 100vw;
-          overflow: hidden;
-        }
-
-        .sidebar {
-          width: 280px;
-          background: linear-gradient(180deg, #001f3f 0%, #003366 100%);
-          color: white;
-          display: flex;
-          flex-direction: column;
-          padding: 1.5rem 0;
-          box-shadow: 4px 0 10px rgba(0,0,0,0.05);
-          z-index: 20;
-        }
-
-        .brand-box {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 0.5rem;
-          padding-bottom: 1.5rem;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .logo-icon {
-          font-size: 2.5rem;
-          background: white;
-          width: 60px;
-          height: 60px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 12px;
-          box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2);
-        }
-
-        .logo-text {
-          color: white;
-          font-size: 1.25rem;
-          text-align: center;
-          line-height: 1.2;
-        }
-
-        .nav-menu {
-          display: flex;
-          flex-direction: column;
-          gap: 0.25rem;
-          padding: 1rem;
-          margin-top: 1rem;
-        }
-        
-        .nav-item {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          padding: 0.75rem 1rem;
-          background: transparent;
-          color: rgba(255, 255, 255, 0.7);
-          text-align: left;
-          width: 100%;
-          border: none;
-          border-radius: 8px;
-          cursor: pointer;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          font-weight: 500;
-        }
-
-        .nav-item:hover {
-          background: rgba(255, 255, 255, 0.08);
-          color: white;
-          transform: translateX(4px);
-        }
-
-        .nav-item.active {
-          background: rgba(255, 255, 255, 0.15);
-          color: white;
-          font-weight: 700;
-          box-shadow: inset 4px 0 0 0 #38bdf8;
-        }
-
-        .main-content {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          overflow-y: auto;
-          background-color: var(--background-light);
-        }
-
-        .top-bar {
-          background: white;
-          padding: 1rem 2rem;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          border-bottom: 1px solid var(--border-color);
-          position: sticky;
-          top: 0;
-          z-index: 10;
-        }
-
-        .user-info {
-           display: flex;
-           align-items: center;
-           gap: 0.5rem;
-        }
-
-        .user-role {
-          font-size: 0.75rem;
-          background: var(--secondary-blue);
-          color: var(--primary-blue);
-          padding: 0.2rem 0.6rem;
-          border-radius: 20px;
-          font-weight: 700;
-        }
-
-        .btn-help {
-          background: var(--secondary-blue);
-          border: 1px solid var(--primary-blue);
-          border-radius: 50%;
-          width: 36px;
-          height: 36px;
-          cursor: pointer;
-          margin-right: 1rem;
-          font-size: 1.2rem;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.2s;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-
-        .btn-help:hover {
-          background: white;
-          transform: scale(1.1);
-          box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-
-        .modal-overlay {
-          position: fixed;
-          top: 0; left: 0; right: 0; bottom: 0;
-          background: rgba(0,0,0,0.5);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 2000;
-          backdrop-filter: blur(4px);
-        }
-
-        .modal-content {
-          background: white;
-          padding: 2rem;
-          border-radius: 16px;
-          box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
-          position: relative;
-        }
-
-        .content-area {
-          padding: 2rem;
-          max-width: 1400px;
-          width: 100%;
-          margin: 0 auto;
-        }
-
-        .dashboard-grid {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 1.5rem;
-        }
-
-        .stat-card {
-          text-align: center;
-          padding: 2rem;
-        }
-
-        .stat-value {
-          font-size: 2.5rem;
-          font-weight: 700;
-          color: var(--primary-blue);
-          margin: 0.5rem 0;
-        }
-
-        .stat-label {
-          font-size: 0.85rem;
-          color: var(--success);
-          font-weight: 500;
-        }
-
-        .wide-card {
-          grid-column: span 3;
-          margin-top: 1rem;
-        }
-
-        .activity-list {
-          list-style: none;
-          margin-top: 1.5rem;
-        }
-
-        .activity-list li {
-          padding: 1rem 0;
-          border-bottom: 1px solid var(--border-color);
-          color: var(--text-muted);
-        }
-
-        .activity-list li:last-child {
-          border-bottom: none;
-        }
-      `}</style>
     </div>
   ) : (
     <Login users={users} onLogin={handleLogin} />
@@ -2902,6 +2626,3 @@ function App() {
 }
 
 export default App
-
-
-

@@ -17,9 +17,9 @@ type View = 'list' | 'form';
 type EstadoFilter = 'Todos' | 'Borrador' | 'Enviada' | 'Aceptada';
 
 const ESTADO_COLORS: Record<string, string> = {
-  Borrador: 'bg-indigo-900/30 text-indigo-300',
-  Enviada:  'bg-yellow-900/30 text-yellow-300',
-  Aceptada: 'bg-green-900/30 text-green-300',
+  Borrador: 'bg-[#E6F0FF] text-[#004A99]',
+  Enviada:  'bg-amber-100 text-amber-800',
+  Aceptada: 'bg-emerald-100 text-emerald-800',
 };
 
 const newItem = (): PropuestaItem => ({
@@ -223,20 +223,20 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
 
     return (
       <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-        <div className="bg-slate-900 rounded-xl border border-slate-700 max-w-lg w-full p-6">
+        <div className="bg-white rounded-xl border border-[#D6E3F3] max-w-lg w-full p-6">
           <h3 className="text-lg font-bold mb-1">
             Vista Previa — {previewPropuesta.consecutivo}
           </h3>
-          <p className="text-slate-400 text-sm mb-4">
+          <p className="text-slate-500 text-sm mb-4">
             {previewPropuesta.clienteNombre} · {previewPropuesta.tipoServicioNombre}
           </p>
-          <div className="bg-slate-800 rounded-lg p-4 text-sm text-slate-300 space-y-2 mb-4">
+          <div className="bg-white rounded-lg p-4 text-sm text-slate-700 space-y-2 mb-4">
             {visibleItems.length > 0 && (
-              <div className="space-y-1 pb-2 border-b border-slate-700">
+              <div className="space-y-1 pb-2 border-b border-[#D6E3F3]">
                 {visibleItems.slice(0, 3).map(it => (
                   <div key={it.id} className="flex justify-between text-xs">
-                    <span className="text-slate-400 truncate flex-1 mr-2">{it.descripcion || '—'}</span>
-                    <span className="text-slate-300 whitespace-nowrap">
+                    <span className="text-slate-500 truncate flex-1 mr-2">{it.descripcion || '—'}</span>
+                    <span className="text-slate-700 whitespace-nowrap">
                       {it.cantidad > 1 ? `${it.cantidad} × ` : ''}{fmtCOP(it.cantidad * it.valorUnitario)}
                     </span>
                   </div>
@@ -256,9 +256,9 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
                 <span>{fmtCOP(pvIva)}</span>
               </div>
             )}
-            <div className="flex justify-between border-t border-slate-700 pt-2">
+            <div className="flex justify-between border-t border-[#D6E3F3] pt-2">
               <span className="font-bold">Total:</span>
-              <span className="font-bold text-indigo-300">{fmtCOP(pvTotal)}</span>
+              <span className="font-bold text-[#004A99]">{fmtCOP(pvTotal)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">Vigencia:</span>
@@ -278,7 +278,7 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
           <div className="flex gap-2 justify-end">
             <button
               onClick={() => setPreviewPropuesta(null)}
-              className="px-4 py-2 text-sm bg-slate-700 hover:bg-slate-600 rounded-lg"
+              className="px-4 py-2 text-sm bg-slate-100 hover:bg-slate-200 rounded-lg"
             >
               Cerrar
             </button>
@@ -287,7 +287,7 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
                 generatePropuestaPDF(previewPropuesta, 'save');
                 setPreviewPropuesta(null);
               }}
-              className="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg"
+              className="px-4 py-2 text-sm bg-[#004A99] hover:bg-[#003366] text-white rounded-lg"
             >
               📥 Descargar PDF
             </button>
@@ -300,18 +300,18 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
   // ── LIST VIEW ──────────────────────────────────────────────────────────────
   if (view === 'list') {
     return (
-      <div className="p-4 text-slate-100">
+      <div className="p-4 text-slate-800">
         <PreviewModal />
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center gap-3">
             <h2 className="text-xl font-bold">Propuestas Comerciales</h2>
-            <span className="bg-indigo-900/40 text-indigo-300 text-xs px-3 py-0.5 rounded-full">
+            <span className="bg-[#E6F0FF] text-[#004A99] text-xs px-3 py-0.5 rounded-full">
               {propuestas.length} propuestas
             </span>
           </div>
           <button
             onClick={openNew}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
+            className="bg-[#004A99] hover:bg-[#003366] text-white px-4 py-2 rounded-lg text-sm font-medium"
           >
             + Nueva Propuesta
           </button>
@@ -322,12 +322,12 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="🔍 Buscar cliente..."
-            className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-200 w-52"
+            className="bg-white border border-[#D6E3F3] rounded-lg px-3 py-1.5 text-sm text-slate-800 w-52"
           />
           <select
             value={servicioFilter}
             onChange={e => setServicioFilter(e.target.value)}
-            className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-300"
+            className="bg-white border border-[#D6E3F3] rounded-lg px-3 py-1.5 text-sm text-slate-700"
           >
             <option value="Todos">Todos los servicios</option>
             {SERVICIO_TEMPLATES.map(t => (
@@ -337,7 +337,7 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
           <select
             value={estadoFilter}
             onChange={e => setEstadoFilter(e.target.value as EstadoFilter)}
-            className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-300"
+            className="bg-white border border-[#D6E3F3] rounded-lg px-3 py-1.5 text-sm text-slate-700"
           >
             {(['Todos', 'Borrador', 'Enviada', 'Aceptada'] as const).map(e => (
               <option key={e} value={e}>{e}</option>
@@ -345,10 +345,10 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
           </select>
         </div>
 
-        <div className="bg-slate-800/60 rounded-xl border border-slate-700 overflow-hidden">
+        <div className="bg-white rounded-xl border border-[#D6E3F3] overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-700 bg-slate-900/40">
+              <tr className="border-b border-[#D6E3F3] bg-[#EEF4FC]">
                 {['#', 'Cliente', 'Tipo de Servicio', 'Fecha', 'Valor', 'Estado', 'Acciones'].map(h => (
                   <th key={h} className={`text-slate-500 font-medium px-4 py-3 ${h === 'Valor' ? 'text-right' : h === 'Estado' || h === 'Acciones' ? 'text-center' : 'text-left'}`}>{h}</th>
                 ))}
@@ -365,18 +365,18 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
                 const t = SERVICIO_TEMPLATES.find(t => t.id === p.tipoServicioId);
                 const rowTotal = p.valor + (p.incluyeIva ? Math.round(p.valor * 0.19) : 0);
                 return (
-                  <tr key={p.id} className="border-b border-slate-700/50 hover:bg-slate-700/20">
+                  <tr key={p.id} className="border-b border-[#EDF3FA] hover:bg-[#F5F9FF]">
                     <td className="px-4 py-3 text-slate-500 font-mono text-xs">{p.consecutivo}</td>
                     <td className="px-4 py-3 font-medium">{p.clienteNombre}</td>
                     <td className="px-4 py-3">
                       <span
                         className="text-xs px-2 py-0.5 rounded"
-                        style={{ background: `${t?.color || '#6366f1'}22`, color: t?.color || '#a5b4fc' }}
+                        style={{ background: `${t?.color || '#004A99'}22`, color: t?.color || '#004A99' }}
                       >
                         {t?.icono} {t ? (t.nombre.split('de ')[1] || t.nombre) : p.tipoServicioNombre}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-slate-400 text-xs">{p.fecha}</td>
+                    <td className="px-4 py-3 text-slate-500 text-xs">{p.fecha}</td>
                     <td className="px-4 py-3 text-right font-semibold text-emerald-400">
                       {fmtCOP(rowTotal)}
                     </td>
@@ -409,10 +409,10 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
 
   // ── FORM VIEW ──────────────────────────────────────────────────────────────
   return (
-    <div className="p-4 text-slate-100">
+    <div className="p-4 text-slate-800">
       <PreviewModal />
       <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => setView('list')} className="text-slate-400 hover:text-white text-sm">
+        <button onClick={() => setView('list')} className="text-slate-500 hover:text-[#004A99] text-sm">
           ← Volver
         </button>
         <h2 className="text-xl font-bold">
@@ -429,7 +429,7 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
             <select
               value={form.clienteId}
               onChange={e => handleClienteChange(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-base text-slate-200"
+              className="w-full bg-white border border-[#D6E3F3] rounded-lg px-4 py-3 text-base text-slate-800"
             >
               <option value="">Seleccionar cliente...</option>
               {clientes.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
@@ -437,18 +437,18 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
             {form.clienteId && (() => {
               const c = clientes.find(cl => cl.id === form.clienteId);
               return (
-                <div className="mt-2 bg-slate-800/50 border border-slate-700/60 rounded-lg px-3 py-2 space-y-0.5">
+                <div className="mt-2 bg-white border border-[#D6E3F3] rounded-lg px-3 py-2 space-y-0.5">
                   {form.clienteNit && (
-                    <p className="text-xs text-slate-500">NIT: <span className="text-slate-300">{form.clienteNit}</span></p>
+                    <p className="text-xs text-slate-500">NIT: <span className="text-slate-700">{form.clienteNit}</span></p>
                   )}
                   {form.clienteContacto && (
-                    <p className="text-xs text-slate-500">Contacto: <span className="text-slate-300">{form.clienteContacto}</span></p>
+                    <p className="text-xs text-slate-500">Contacto: <span className="text-slate-700">{form.clienteContacto}</span></p>
                   )}
                   {c?.telefono && (
-                    <p className="text-xs text-slate-500">Tel: <span className="text-slate-300">{c.telefono}</span></p>
+                    <p className="text-xs text-slate-500">Tel: <span className="text-slate-700">{c.telefono}</span></p>
                   )}
                   {c?.correo && (
-                    <p className="text-xs text-slate-500">Email: <span className="text-slate-300">{c.correo}</span></p>
+                    <p className="text-xs text-slate-500">Email: <span className="text-slate-700">{c.correo}</span></p>
                   )}
                 </div>
               );
@@ -462,7 +462,7 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
               value={form.clienteCiudad || ''}
               onChange={e => setForm(f => ({ ...f, clienteCiudad: e.target.value }))}
               placeholder="Ciudad del servicio"
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200"
+              className="w-full bg-white border border-[#D6E3F3] rounded-lg px-3 py-2 text-sm text-slate-800"
             />
           </div>
 
@@ -478,8 +478,8 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
                   onClick={() => handleServicioChange(t.id)}
                   className={`border rounded-lg p-3 text-center transition-all ${
                     form.tipoServicioId === t.id
-                      ? 'border-indigo-500 bg-indigo-900/30'
-                      : 'border-slate-700 bg-slate-800/50 opacity-60 hover:opacity-80'
+                      ? 'border-[#004A99] bg-[#E6F0FF]'
+                      : 'border-[#D6E3F3] bg-white opacity-60 hover:opacity-80'
                   }`}
                 >
                   <div className="text-xl">{t.icono}</div>
@@ -495,7 +495,7 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
                 type="button"
                 disabled
                 title="Disponible en v2"
-                className="border border-dashed border-slate-600 rounded-lg p-3 text-center opacity-30 cursor-not-allowed"
+                className="border border-dashed border-slate-300 rounded-lg p-3 text-center opacity-30 cursor-not-allowed"
               >
                 <div className="text-xl">➕</div>
                 <div className="text-xs text-slate-500 mt-1">Nuevo tipo</div>
@@ -503,9 +503,9 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
             </div>
             
             {form.tipoServicioId === 'tecnico-inhouse' && (
-              <div className="mt-4 p-4 bg-indigo-900/20 border border-indigo-500/30 rounded-lg space-y-4">
+              <div className="mt-4 p-4 bg-[#F5F9FF] border border-[#BFD5F2] rounded-lg space-y-4">
                 <div>
-                  <label className="block text-xs uppercase tracking-wider text-indigo-300 mb-1.5">Nivel del Técnico *</label>
+                  <label className="block text-xs uppercase tracking-wider text-[#004A99] mb-1.5">Nivel del Técnico *</label>
                   <select
                     value={form.tipoServicioNombre.includes('Nivel 1') ? 'Nivel 1' : form.tipoServicioNombre.includes('Nivel 2') ? 'Nivel 2' : form.tipoServicioNombre.includes('Nivel 3') ? 'Nivel 3' : ''}
                     onChange={e => {
@@ -521,7 +521,7 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
                         objetivo: `Proveer un técnico en sitio perfil ${map[nivel] || nivel} de manera exclusiva, garantizando la continuidad operativa y atención inmediata a los incidentes reportados por los usuarios de la sede.`
                       }));
                     }}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200"
+                    className="w-full bg-white border border-[#D6E3F3] rounded-lg px-3 py-2 text-sm text-slate-800"
                   >
                     <option value="">Seleccione el nivel del técnico...</option>
                     <option value="Nivel 1">Nivel 1 (Soporte Técnico Básico y Help Desk)</option>
@@ -531,7 +531,7 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
                 </div>
                 
                 <div>
-                  <label className="block text-xs uppercase tracking-wider text-indigo-300 mb-1.5">Horario de Servicio *</label>
+                  <label className="block text-xs uppercase tracking-wider text-[#004A99] mb-1.5">Horario de Servicio *</label>
                   <input
                     type="text"
                     placeholder="Ej: Lunes a Viernes de 8:00 AM a 5:00 PM"
@@ -543,7 +543,7 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
                         visitas: [{ id: f.visitas[0]?.id || crypto.randomUUID(), sede: f.visitas[0]?.sede || 'Sede Principal (Inhouse)', horario: val }]
                       }));
                     }}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200"
+                    className="w-full bg-white border border-[#D6E3F3] rounded-lg px-3 py-2 text-sm text-slate-800"
                   />
                 </div>
               </div>
@@ -559,17 +559,17 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
               <select
                 value={form.moneda}
                 onChange={e => setForm(f => ({ ...f, moneda: e.target.value as 'COP' | 'USD' }))}
-                className="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-slate-300"
+                className="bg-white border border-[#D6E3F3] rounded px-2 py-1 text-xs text-slate-700"
               >
                 <option value="COP">COP</option>
                 <option value="USD">USD</option>
               </select>
             </div>
 
-            <div className="bg-slate-800/60 rounded-xl border border-slate-700 overflow-hidden">
+            <div className="bg-white rounded-xl border border-[#D6E3F3] overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-slate-700 bg-slate-900/40">
+                  <tr className="border-b border-[#D6E3F3] bg-[#EEF4FC]">
                     <th className="text-slate-500 font-medium px-3 py-2 text-left text-xs uppercase tracking-wider">
                       Descripción / Producto
                     </th>
@@ -587,7 +587,7 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
                 </thead>
                 <tbody>
                   {form.items.map(item => (
-                    <tr key={item.id} className="border-b border-slate-700/50 hover:bg-slate-700/10">
+                    <tr key={item.id} className="border-b border-[#EDF3FA] hover:bg-[#F5F9FF]">
                       <td className="px-3 py-2">
                         <div className="relative mb-1.5">
                           <input
@@ -595,7 +595,7 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
                             value={itemSearches[item.id] || ''}
                             onChange={e => setItemSearches(s => ({ ...s, [item.id]: e.target.value }))}
                             placeholder="Buscar en catálogo..."
-                            className="w-full bg-slate-700/50 border border-slate-600 rounded px-2 py-1 text-xs text-slate-300 placeholder-slate-500"
+                            className="w-full bg-white border border-slate-300 rounded px-2 py-1 text-xs text-slate-700 placeholder-slate-400"
                           />
                           {(itemSearches[item.id] || '').length > 1 && (() => {
                             const q = (itemSearches[item.id] || '').toLowerCase();
@@ -604,17 +604,17 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
                               (p.numPart || '').toLowerCase().includes(q)
                             );
                             return (
-                              <div className="absolute z-10 w-full mt-0.5 bg-slate-800 border border-slate-700 rounded shadow-xl max-h-40 overflow-y-auto">
+                              <div className="absolute z-10 w-full mt-0.5 bg-white border border-[#D6E3F3] rounded shadow-xl max-h-40 overflow-y-auto">
                                 {matches.slice(0, 6).map(p => (
                                   <button
                                     key={p.id}
                                     type="button"
                                     onClick={() => selectProductoForItem(item.id, p.id)}
-                                    className="w-full text-left px-2 py-1.5 hover:bg-slate-700 text-xs border-b border-slate-700/50 last:border-0"
+                                    className="w-full text-left px-2 py-1.5 hover:bg-[#E6F0FF] text-xs border-b border-[#EDF3FA] last:border-0"
                                   >
-                                    <span className="text-slate-200 font-medium">{p.nombre}</span>
+                                    <span className="text-slate-800 font-medium">{p.nombre}</span>
                                     {p.numPart && (
-                                      <span className="ml-1.5 font-mono text-indigo-400">{p.numPart}</span>
+                                      <span className="ml-1.5 font-mono text-[#004A99]">{p.numPart}</span>
                                     )}
                                     <span className="ml-1.5 text-slate-500">
                                       {p.moneda === 'USD'
@@ -635,10 +635,10 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
                           value={item.descripcion}
                           onChange={e => updateItem(item.id, { descripcion: e.target.value })}
                           placeholder="Descripción del ítem..."
-                          className="w-full bg-slate-900/50 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200"
+                          className="w-full bg-white border border-[#D6E3F3] rounded px-2 py-1 text-xs text-slate-800"
                         />
                         {item.numPart && (
-                          <span className="text-xs font-mono text-indigo-400 mt-0.5 inline-block">
+                          <span className="text-xs font-mono text-[#004A99] mt-0.5 inline-block">
                             Ref: {item.numPart}
                           </span>
                         )}
@@ -649,7 +649,7 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
                           min="1"
                           value={item.cantidad}
                           onChange={e => updateItem(item.id, { cantidad: parseInt(e.target.value, 10) || 1 })}
-                          className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200 text-center"
+                          className="w-full bg-white border border-[#D6E3F3] rounded px-2 py-1 text-xs text-slate-800 text-center"
                         />
                       </td>
                       <td className="px-3 py-2">
@@ -658,7 +658,7 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
                           value={item.valorUnitario || ''}
                           onChange={e => updateItem(item.id, { valorUnitario: parseFloat(e.target.value) || 0 })}
                           placeholder="0"
-                          className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200 text-right"
+                          className="w-full bg-white border border-[#D6E3F3] rounded px-2 py-1 text-xs text-slate-800 text-right"
                         />
                       </td>
                       <td className="px-3 py-2 text-right text-emerald-400 font-semibold text-xs">
@@ -682,12 +682,12 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
             <button
               type="button"
               onClick={addItemRow}
-              className="mt-2 w-full text-xs text-indigo-400 border border-dashed border-slate-600 rounded-lg py-2 hover:border-indigo-500 hover:bg-indigo-900/10 transition-colors"
+              className="mt-2 w-full text-xs text-[#004A99] border border-dashed border-slate-300 rounded-lg py-2 hover:border-[#004A99] hover:bg-[#E6F0FF] transition-colors"
             >
               + Agregar ítem
             </button>
 
-            <label className="flex items-center gap-2 mt-3 text-sm text-slate-400 cursor-pointer">
+            <label className="flex items-center gap-2 mt-3 text-sm text-slate-500 cursor-pointer">
               <input
                 type="checkbox"
                 checked={form.incluyeIva}
@@ -720,7 +720,7 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
             <input
               value={form.vigencia}
               onChange={e => setForm(f => ({ ...f, vigencia: e.target.value }))}
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200"
+              className="w-full bg-white border border-[#D6E3F3] rounded-lg px-3 py-2 text-sm text-slate-800"
             />
           </div>
 
@@ -731,15 +731,15 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
               value={form.observaciones}
               onChange={e => setForm(f => ({ ...f, observaciones: e.target.value }))}
               rows={3}
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-300 resize-none"
+              className="w-full bg-white border border-[#D6E3F3] rounded-lg px-3 py-2 text-sm text-slate-700 resize-none"
             />
           </div>
         </div>
 
         {/* RIGHT: Protocol preview */}
-        <div className="border border-indigo-900/40 bg-indigo-950/20 rounded-xl p-4 overflow-y-auto max-h-[520px]">
+        <div className="border border-[#D6E3F3] bg-[#F5F9FF] rounded-xl p-4 overflow-y-auto max-h-[520px]">
           <div className="flex justify-between items-center mb-3">
-            <span className="text-xs uppercase tracking-wider text-indigo-400 font-bold">
+            <span className="text-xs uppercase tracking-wider text-[#004A99] font-bold">
               Protocolo incluido automáticamente
             </span>
             {selectedTemplate && (
@@ -756,30 +756,30 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
             <p className="text-slate-500 text-sm">Selecciona un tipo de servicio para ver el protocolo.</p>
           ) : (
             <>
-              <p className="font-semibold text-slate-200 mb-2 text-sm">{selectedTemplate.nombre}</p>
-              <p className="text-xs text-slate-400 mb-4 leading-relaxed">{selectedTemplate.introProtocolo}</p>
+              <p className="font-semibold text-slate-800 mb-2 text-sm">{selectedTemplate.nombre}</p>
+              <p className="text-xs text-slate-500 mb-4 leading-relaxed">{selectedTemplate.introProtocolo}</p>
               <div className="space-y-2">
                 {selectedTemplate.pasosInfografia.map((paso, i) => (
-                  <div key={i} className="flex items-start gap-3 bg-slate-800/60 rounded-lg px-3 py-2">
-                    <span className="w-5 h-5 rounded-full bg-indigo-700 text-white text-xs flex items-center justify-center flex-shrink-0 mt-0.5 font-bold">
+                  <div key={i} className="flex items-start gap-3 bg-white rounded-lg px-3 py-2">
+                    <span className="w-5 h-5 rounded-full bg-[#004A99] text-white text-xs flex items-center justify-center flex-shrink-0 mt-0.5 font-bold">
                       {i + 1}
                     </span>
                     <div>
-                      <span className="text-xs font-semibold text-slate-200">{paso.titulo}</span>
-                      <p className="text-xs text-slate-400">{paso.descripcion}</p>
+                      <span className="text-xs font-semibold text-slate-800">{paso.titulo}</span>
+                      <p className="text-xs text-slate-500">{paso.descripcion}</p>
                     </div>
                   </div>
                 ))}
                 {selectedTemplate.pasosLista.map((paso, i) => (
-                  <div key={i} className="flex items-start gap-3 bg-slate-800/60 rounded-lg px-3 py-2">
-                    <span className="w-5 h-5 rounded-full bg-indigo-700 text-white text-xs flex items-center justify-center flex-shrink-0 mt-0.5 font-bold">
+                  <div key={i} className="flex items-start gap-3 bg-white rounded-lg px-3 py-2">
+                    <span className="w-5 h-5 rounded-full bg-[#004A99] text-white text-xs flex items-center justify-center flex-shrink-0 mt-0.5 font-bold">
                       {selectedTemplate.pasosInfografia.length + i + 1}
                     </span>
-                    <span className="text-xs text-slate-300">{paso}</span>
+                    <span className="text-xs text-slate-700">{paso}</span>
                   </div>
                 ))}
               </div>
-              <p className="text-xs text-slate-500 mt-3 pt-3 border-t border-slate-700">
+              <p className="text-xs text-slate-500 mt-3 pt-3 border-t border-[#D6E3F3]">
                 + Infografía visual del procedimiento incluida en el PDF
               </p>
             </>
@@ -789,12 +789,12 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
 
       {/* Secciones de Detalle del Servicio */}
       <div className="mt-6 space-y-4">
-        <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-700 pb-2">
+        <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider border-b border-[#D6E3F3] pb-2">
           Detalles del Servicio
         </h3>
 
         {/* Objetivo */}
-        <div className="border border-slate-700/50 rounded-xl p-4">
+        <div className="border border-[#EDF3FA] rounded-xl p-4">
           <label className="block text-xs uppercase tracking-wider text-slate-500 font-semibold mb-2">
             🎯 Objetivo de la Propuesta
           </label>
@@ -802,12 +802,12 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
             value={form.objetivo}
             onChange={e => setForm(f => ({ ...f, objetivo: e.target.value }))}
             rows={3}
-            className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 resize-none"
+            className="w-full bg-white border border-[#D6E3F3] rounded-lg px-3 py-2 text-sm text-slate-800 resize-none"
           />
         </div>
 
         {/* Personal a Cargo */}
-        <div className="border border-slate-700/50 rounded-xl p-4">
+        <div className="border border-[#EDF3FA] rounded-xl p-4">
           <label className="block text-xs uppercase tracking-wider text-slate-500 font-semibold mb-3">
             👥 Personal a Cargo
           </label>
@@ -822,7 +822,7 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
                     personal: f.personal.map((item, i) => i === idx ? { ...item, nombre: e.target.value } : item),
                   }))}
                   placeholder="Nombre"
-                  className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200"
+                  className="bg-white border border-[#D6E3F3] rounded-lg px-3 py-2 text-sm text-slate-800"
                 />
                 <div className="flex gap-2">
                   <input
@@ -833,7 +833,7 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
                       personal: f.personal.map((item, i) => i === idx ? { ...item, cargo: e.target.value } : item),
                     }))}
                     placeholder="Cargo / Rol"
-                    className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200"
+                    className="flex-1 bg-white border border-[#D6E3F3] rounded-lg px-3 py-2 text-sm text-slate-800"
                   />
                   <button
                     type="button"
@@ -850,14 +850,14 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
               ...f,
               personal: [...f.personal, { id: crypto.randomUUID(), nombre: '', cargo: '' }],
             }))}
-            className="mt-2 w-full text-xs text-indigo-400 border border-dashed border-slate-600 rounded-lg py-2 hover:border-indigo-500 hover:bg-indigo-900/10 transition-colors"
+            className="mt-2 w-full text-xs text-[#004A99] border border-dashed border-slate-300 rounded-lg py-2 hover:border-[#004A99] hover:bg-[#E6F0FF] transition-colors"
           >
             + Agregar persona
           </button>
         </div>
 
         {/* Visitas a Sedes y Horarios */}
-        <div className="border border-slate-700/50 rounded-xl p-4">
+        <div className="border border-[#EDF3FA] rounded-xl p-4">
           <label className="block text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1">
             📅 Visitas a Sedes y Horarios
           </label>
@@ -873,7 +873,7 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
                     visitas: f.visitas.map((item, i) => i === idx ? { ...item, sede: e.target.value } : item),
                   }))}
                   placeholder="Sede / Ciudad"
-                  className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200"
+                  className="bg-white border border-[#D6E3F3] rounded-lg px-3 py-2 text-sm text-slate-800"
                 />
                 <div className="flex gap-2">
                   <input
@@ -884,7 +884,7 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
                       visitas: f.visitas.map((item, i) => i === idx ? { ...item, horario: e.target.value } : item),
                     }))}
                     placeholder="Horario (ej: Lunes 8am–12pm)"
-                    className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200"
+                    className="flex-1 bg-white border border-[#D6E3F3] rounded-lg px-3 py-2 text-sm text-slate-800"
                   />
                   <button
                     type="button"
@@ -901,21 +901,21 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
               ...f,
               visitas: [...f.visitas, { id: crypto.randomUUID(), sede: '', horario: '' }],
             }))}
-            className="mt-2 w-full text-xs text-indigo-400 border border-dashed border-slate-600 rounded-lg py-2 hover:border-indigo-500 hover:bg-indigo-900/10 transition-colors"
+            className="mt-2 w-full text-xs text-[#004A99] border border-dashed border-slate-300 rounded-lg py-2 hover:border-[#004A99] hover:bg-[#E6F0FF] transition-colors"
           >
             + Agregar sede
           </button>
         </div>
 
         {/* Obligaciones del Cliente */}
-        <div className="border border-slate-700/50 rounded-xl p-4">
+        <div className="border border-[#EDF3FA] rounded-xl p-4">
           <label className="block text-xs uppercase tracking-wider text-slate-500 font-semibold mb-3">
             📋 Obligaciones del Cliente
           </label>
           <div className="space-y-2">
             {form.obligacionesCliente.map((oblig, idx) => (
               <div key={idx} className="flex items-center gap-2">
-                <span className="text-indigo-400 text-sm flex-shrink-0">●</span>
+                <span className="text-[#004A99] text-sm flex-shrink-0">●</span>
                 <input
                   type="text"
                   value={oblig}
@@ -923,7 +923,7 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
                     ...f,
                     obligacionesCliente: f.obligacionesCliente.map((v, i) => i === idx ? e.target.value : v),
                   }))}
-                  className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200"
+                  className="flex-1 bg-white border border-[#D6E3F3] rounded-lg px-3 py-2 text-sm text-slate-800"
                 />
                 <button
                   type="button"
@@ -942,7 +942,7 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
               ...f,
               obligacionesCliente: [...f.obligacionesCliente, ''],
             }))}
-            className="mt-2 w-full text-xs text-indigo-400 border border-dashed border-slate-600 rounded-lg py-2 hover:border-indigo-500 hover:bg-indigo-900/10 transition-colors"
+            className="mt-2 w-full text-xs text-[#004A99] border border-dashed border-slate-300 rounded-lg py-2 hover:border-[#004A99] hover:bg-[#E6F0FF] transition-colors"
           >
             + Agregar obligación
           </button>
@@ -950,32 +950,32 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
       </div>
 
       {/* Footer buttons */}
-      <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-700">
+      <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-[#D6E3F3]">
         <button
           onClick={() => setView('list')}
           disabled={saving}
-          className="px-4 py-2 text-sm bg-slate-700 hover:bg-slate-600 rounded-lg disabled:opacity-50"
+          className="px-4 py-2 text-sm bg-slate-100 hover:bg-slate-200 rounded-lg disabled:opacity-50"
         >
           Cancelar
         </button>
         <button
           onClick={handlePreview}
           disabled={saving}
-          className="px-4 py-2 text-sm border border-indigo-600/50 bg-indigo-900/30 text-indigo-300 hover:bg-indigo-900/50 rounded-lg disabled:opacity-50"
+          className="px-4 py-2 text-sm border border-indigo-600/50 bg-[#E6F0FF] text-[#004A99] hover:bg-indigo-900/50 rounded-lg disabled:opacity-50"
         >
           👁️ Vista Previa
         </button>
         <button
           onClick={handleSaveDraft}
           disabled={saving}
-          className="px-4 py-2 text-sm bg-slate-700 hover:bg-slate-600 rounded-lg disabled:opacity-50"
+          className="px-4 py-2 text-sm bg-slate-100 hover:bg-slate-200 rounded-lg disabled:opacity-50"
         >
           {saving ? 'Guardando...' : '💾 Guardar Borrador'}
         </button>
         <button
           onClick={handleGeneratePDF}
           disabled={saving}
-          className="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg disabled:opacity-50"
+          className="px-4 py-2 text-sm bg-[#004A99] hover:bg-[#003366] text-white rounded-lg disabled:opacity-50"
         >
           {saving ? 'Generando...' : '📥 Generar PDF'}
         </button>
