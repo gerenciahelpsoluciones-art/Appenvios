@@ -42,6 +42,10 @@ import {
 
 const IS_DEMO = import.meta.env.VITE_DEMO_MODE === 'true';
 
+// La columna password no se puede leer desde el navegador (ver supabase/seguridad_login_parte2.sql)
+const USER_COLS = 'id, nombre, usuario, cargo, email, telefono, rol, permisos, created_at';
+const sinPassword = <T extends { password?: string }>(u: T): T => { const { password: _pw, ...rest } = u; return rest as T; };
+
 // Types for shared data
 export interface AppUser {
   id: string;
@@ -409,7 +413,8 @@ function App() {
   const [currentUser, setCurrentUser] = useState<AppUser | null>(() => {
     if (IS_DEMO) return DEMO_USER;
     const saved = localStorage.getItem('hs_current_user');
-    return saved ? JSON.parse(saved) : null;
+    // Sesiones antiguas guardaban la contraseña en el navegador: se descarta
+    return saved && saved !== 'null' ? sinPassword(JSON.parse(saved)) : null;
   });
 
   useEffect(() => {
@@ -456,7 +461,7 @@ function App() {
     }
     try {
       console.log('Cargando datos iniciales de Supabase...');
-      const { data: userData, error: userError } = await supabase.from('app_users').select('*');
+      const { data: userData, error: userError } = await supabase.from('app_users').select(USER_COLS);
       if (userError) console.error('Error cargando usuarios:', userError);
       if (userData) setUsers(userData as AppUser[]);
 
@@ -1613,7 +1618,7 @@ function App() {
     if (IS_DEMO) { setUsers(prev => [...prev, { ...u, id: crypto.randomUUID() }]); return; }
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, ...newUser } = u;
-    const { data, error } = await supabase.from('app_users').insert([newUser]).select();
+    const { data, error } = await supabase.from('app_users').insert([newUser]).select(USER_COLS);
     if (error) {
       alert('Error al añadir usuario: ' + error.message);
     } else if (data) {
@@ -1622,10 +1627,15 @@ function App() {
   };
   const updateUser = async (u: AppUser) => {
     if (IS_DEMO) { setUsers(prev => prev.map(i => i.id === u.id ? u : i)); if (currentUser?.id === u.id) setCurrentUser(u); return; }
-    const { error } = await supabase.from('app_users').update(u).eq('id', u.id);
-    if (!error) {
-      setUsers(users.map(item => item.id === u.id ? u : item));
-      if (currentUser && currentUser.id === u.id) setCurrentUser(u);
+    // Contraseña vacía = no cambiarla
+    const payload = u.password ? u : sinPassword(u);
+    const { error } = await supabase.from('app_users').update(payload).eq('id', u.id);
+    if (error) {
+      alert('Error al actualizar usuario: ' + error.message);
+    } else {
+      const limpio = sinPassword(u);
+      setUsers(users.map(item => item.id === u.id ? limpio : item));
+      if (currentUser && currentUser.id === u.id) setCurrentUser(limpio);
     }
   };
   const deleteUser = async (id: string) => {

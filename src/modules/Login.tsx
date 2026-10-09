@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { Eye, EyeOff, AlertCircle } from 'lucide-react';
 import type { AppUser } from '../App';
 import { logoBase64 } from '../assets/logoBase64';
+import { supabase } from '../lib/supabaseClient';
 
 interface IProps {
-    users: AppUser[];
+    users: AppUser[]; // solo se usa en modo demo
     onLogin: (u: AppUser) => void;
 }
 
@@ -15,16 +16,28 @@ const Login: React.FC<IProps> = ({ users, onLogin }) => {
     const [password, setPassword] = useState('');
     const [showPass, setShowPass] = useState(false);
     const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        const user = users.find(u =>
-            u.usuario.toLowerCase() === username.toLowerCase() &&
-            (u.password === password || !u.password) // Allow old users without pass for now, or enforce it
-        );
+        setError('');
 
-        if (user) {
-            onLogin(user);
+        if (import.meta.env.VITE_DEMO_MODE === 'true') {
+            const demoUser = users.find(u => u.usuario.toLowerCase() === username.trim().toLowerCase());
+            if (demoUser) onLogin(demoUser); else setError('Usuario o contraseña incorrectos.');
+            return;
+        }
+
+        // La contraseña se valida en el servidor (función hs_login); el navegador nunca la recibe
+        setLoading(true);
+        const { data, error: rpcError } = await supabase.rpc('hs_login', { p_usuario: username.trim(), p_password: password });
+        setLoading(false);
+
+        if (rpcError) {
+            setError('No se pudo conectar con el servidor. Intente de nuevo.');
+            console.error('hs_login:', rpcError);
+        } else if (data) {
+            onLogin(data as AppUser);
         } else {
             setError('Usuario o contraseña incorrectos.');
         }
@@ -95,7 +108,7 @@ const Login: React.FC<IProps> = ({ users, onLogin }) => {
 
                         {error && <div className="login-error"><AlertCircle size={15} />{error}</div>}
 
-                        <button type="submit" className="btn-login">Ingresar</button>
+                        <button type="submit" className="btn-login" disabled={loading}>{loading ? 'Verificando...' : 'Ingresar'}</button>
                         <p className="login-hint">¿No tienes cuenta? Solicítala al administrador.</p>
                     </form>
                 </div>

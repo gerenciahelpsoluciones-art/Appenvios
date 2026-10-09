@@ -66,6 +66,10 @@ const AdminModule: React.FC<IProps> = ({
     });
 
     const handleSave = () => {
+        if (!editingId && !formData.password) {
+            alert('Asigne una contraseña inicial al nuevo usuario');
+            return;
+        }
         if (formData.nombre && formData.usuario) {
             const userData = {
                 ...formData,
@@ -204,6 +208,9 @@ const AdminModule: React.FC<IProps> = ({
                                         type="password"
                                         className="input-field"
                                         value={formData.password || ''}
+                                        placeholder={editingId ? 'Dejar en blanco para no cambiarla' : 'Contraseña inicial'}
+                                        required={!editingId}
+                                        autoComplete="new-password"
                                         onChange={e => setFormData({ ...formData, password: e.target.value })}
                                     />
                                 </div>
