@@ -1,4 +1,5 @@
 // src/data/servicioTemplates.ts
+import type { SlaFila, PropuestaSlas } from '../App';
 
 export interface PasoInfografia {
   icono: string;
@@ -162,3 +163,23 @@ export const SERVICIO_TEMPLATES: ServicioTemplate[] = [
     ],
   },
 ];
+
+// SLA estándar de Mesa de Ayuda (Nivel 1). Se usan cuando la propuesta no trae
+// SLA propios importados del RFP del cliente.
+export const SLA_ESTANDAR_FILAS: Omit<SlaFila, 'id'>[] = [
+  { criticidad: 'Crítica', descripcion: 'Equipo no enciende o pantalla azul (bloqueo total de labores)', tiempoRespuesta: '<= 15 min', tiempoSolucion: '<= 2 horas', canal: 'Remoto / Sitio' },
+  { criticidad: 'Alta', descripcion: 'Cuentas bloqueadas, sin internet o falla en app principal del usuario', tiempoRespuesta: '<= 30 min', tiempoSolucion: '<= 4 horas', canal: 'Remoto / Sitio' },
+  { criticidad: 'Media', descripcion: 'Lentitud del equipo, impresoras, software secundario o periféricos', tiempoRespuesta: '<= 1 hora', tiempoSolucion: '<= 12 horas', canal: 'Remoto' },
+  { criticidad: 'Baja', descripcion: 'Dudas de software, consultas generales o cambios estéticos', tiempoRespuesta: '<= 2 horas', tiempoSolucion: '<= 48 horas', canal: 'Portal / Remoto' },
+];
+
+export const SLA_ESTANDAR_NOTAS: string[] = [
+  'Horario de Cobertura: El cumplimiento de los ANS se calcula dentro del horario de atención hábil (Lunes a Viernes de 8:00 AM a 5:00 PM).',
+  'Inicio del Tiempo: Los tiempos corren desde el registro formal del ticket en el portal de Mesa de Ayuda.',
+  'Excepcionalidad: No cubre soporte de infraestructura física de red corporativa, servidores, bases de datos o servicios de Nivel 2 y 3.',
+];
+
+export const slaEstandar = (): PropuestaSlas => ({
+  filas: SLA_ESTANDAR_FILAS.map(f => ({ ...f, id: crypto.randomUUID() })),
+  notas: [...SLA_ESTANDAR_NOTAS],
+});

@@ -358,6 +358,21 @@ export interface VisitaItem {
   horario: string;
 }
 
+export interface SlaFila {
+  id: string;
+  criticidad: string;
+  descripcion: string;
+  tiempoRespuesta: string;
+  tiempoSolucion: string;
+  canal: string;
+}
+
+export interface PropuestaSlas {
+  filas: SlaFila[];
+  notas: string[];
+  fuente?: string;        // nombre del RFP / sección de donde se importaron
+}
+
 export interface Propuesta {
   id: string;
   consecutivo: string;
@@ -379,6 +394,7 @@ export interface Propuesta {
   personal: PersonalItem[];
   visitas: VisitaItem[];
   obligacionesCliente: string[];
+  slas?: PropuestaSlas | null;  // solo Mesa de Ayuda; null = SLA estándar
   estado: 'Borrador' | 'Enviada' | 'Aceptada';
   comercialNombre: string;
   comercialTelefono: string;
@@ -704,6 +720,7 @@ function App() {
           personal: p.personal || [],
           visitas: p.visitas || [],
           obligacionesCliente: p.obligaciones_cliente || [],
+          slas: p.slas || null,
         } as Propuesta)));
       }
 
@@ -1915,6 +1932,7 @@ function App() {
       personal: p.personal || [],
       visitas: p.visitas || [],
       obligaciones_cliente: p.obligacionesCliente || [],
+      slas: p.slas || null,
     }]).select();
 
     if (error) {
@@ -1939,6 +1957,7 @@ function App() {
         personal: dbP.personal || [],
         visitas: dbP.visitas || [],
         obligacionesCliente: dbP.obligaciones_cliente || [],
+        slas: dbP.slas || null,
       } as Propuesta, ...prev]);
       alert(`Propuesta ${dbP.consecutivo} guardada correctamente.`);
     }
@@ -1962,6 +1981,7 @@ function App() {
       personal: p.personal || [],
       visitas: p.visitas || [],
       obligaciones_cliente: p.obligacionesCliente || [],
+      slas: p.slas || null,
     }).eq('id', p.id);
 
     if (error) { alert('Error al actualizar propuesta: ' + error.message); return; }

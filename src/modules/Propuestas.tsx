@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { Cliente, Propuesta, PropuestaItem, AppUser, Producto } from '../App';
+import SlaEditor from '../components/SlaEditor';
 import { SERVICIO_TEMPLATES } from '../data/servicioTemplates';
 import { generatePropuestaPDF } from '../services/propuestaPdf';
 
@@ -386,13 +387,13 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
                       </span>
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <button title="Vista previa" onClick={() => setPreviewPropuesta(p)} className="mx-1 opacity-60 hover:opacity-100">👁️</button>
-                      <button title="Descargar PDF" onClick={() => generatePropuestaPDF(p, 'save')} className="mx-1 opacity-60 hover:opacity-100">📥</button>
-                      <button title="Editar" onClick={() => openEdit(p)} className="mx-1 opacity-60 hover:opacity-100">✏️</button>
+                      <button title="Vista previa" onClick={() => setPreviewPropuesta(p)} className="bg-transparent mx-1 opacity-60 hover:opacity-100">👁️</button>
+                      <button title="Descargar PDF" onClick={() => generatePropuestaPDF(p, 'save')} className="bg-transparent mx-1 opacity-60 hover:opacity-100">📥</button>
+                      <button title="Editar" onClick={() => openEdit(p)} className="bg-transparent mx-1 opacity-60 hover:opacity-100">✏️</button>
                       <button
                         title="Eliminar"
                         onClick={() => { if (window.confirm(`¿Eliminar ${p.consecutivo}?`)) onDelete(p.id); }}
-                        className="mx-1 opacity-60 hover:opacity-100 text-red-400"
+                        className="bg-transparent mx-1 opacity-60 hover:opacity-100 text-red-400"
                       >
                         🗑️
                       </button>
@@ -412,7 +413,7 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
     <div className="p-4 text-slate-800">
       <PreviewModal />
       <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => setView('list')} className="text-slate-500 hover:text-[#004A99] text-sm">
+        <button onClick={() => setView('list')} className="bg-transparent text-slate-500 hover:text-[#004A99] text-sm">
           ← Volver
         </button>
         <h2 className="text-xl font-bold">
@@ -495,7 +496,7 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
                 type="button"
                 disabled
                 title="Disponible en v2"
-                className="border border-dashed border-slate-300 rounded-lg p-3 text-center opacity-30 cursor-not-allowed"
+                className="bg-white border border-dashed border-slate-300 rounded-lg p-3 text-center opacity-30 cursor-not-allowed"
               >
                 <div className="text-xl">➕</div>
                 <div className="text-xs text-slate-500 mt-1">Nuevo tipo</div>
@@ -610,7 +611,7 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
                                     key={p.id}
                                     type="button"
                                     onClick={() => selectProductoForItem(item.id, p.id)}
-                                    className="w-full text-left px-2 py-1.5 hover:bg-[#E6F0FF] text-xs border-b border-[#EDF3FA] last:border-0"
+                                    className="bg-white w-full text-left px-2 py-1.5 hover:bg-[#E6F0FF] text-xs border-b border-[#EDF3FA] last:border-0"
                                   >
                                     <span className="text-slate-800 font-medium">{p.nombre}</span>
                                     {p.numPart && (
@@ -668,7 +669,7 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
                         <button
                           type="button"
                           onClick={() => removeItem(item.id)}
-                          className="text-slate-500 hover:text-red-400 text-base font-bold leading-none"
+                          className="bg-transparent text-slate-500 hover:text-red-400 text-base font-bold leading-none"
                         >
                           ×
                         </button>
@@ -682,7 +683,7 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
             <button
               type="button"
               onClick={addItemRow}
-              className="mt-2 w-full text-xs text-[#004A99] border border-dashed border-slate-300 rounded-lg py-2 hover:border-[#004A99] hover:bg-[#E6F0FF] transition-colors"
+              className="bg-transparent mt-2 w-full text-xs text-[#004A99] border border-dashed border-slate-300 rounded-lg py-2 hover:border-[#004A99] hover:bg-[#E6F0FF] transition-colors"
             >
               + Agregar ítem
             </button>
@@ -806,6 +807,11 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
           />
         </div>
 
+        {/* SLA (solo Mesa de Ayuda): estándar o importados del RFP del cliente */}
+        {form.tipoServicioId === 'mesa-de-ayuda' && (
+          <SlaEditor value={form.slas} onChange={slas => setForm(f => ({ ...f, slas }))} />
+        )}
+
         {/* Personal a Cargo */}
         <div className="border border-[#EDF3FA] rounded-xl p-4">
           <label className="block text-xs uppercase tracking-wider text-slate-500 font-semibold mb-3">
@@ -838,7 +844,7 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
                   <button
                     type="button"
                     onClick={() => setForm(f => ({ ...f, personal: f.personal.filter((_, i) => i !== idx) }))}
-                    className="text-slate-500 hover:text-red-400 font-bold text-base leading-none"
+                    className="bg-transparent text-slate-500 hover:text-red-400 font-bold text-base leading-none"
                   >×</button>
                 </div>
               </div>
@@ -850,7 +856,7 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
               ...f,
               personal: [...f.personal, { id: crypto.randomUUID(), nombre: '', cargo: '' }],
             }))}
-            className="mt-2 w-full text-xs text-[#004A99] border border-dashed border-slate-300 rounded-lg py-2 hover:border-[#004A99] hover:bg-[#E6F0FF] transition-colors"
+            className="bg-transparent mt-2 w-full text-xs text-[#004A99] border border-dashed border-slate-300 rounded-lg py-2 hover:border-[#004A99] hover:bg-[#E6F0FF] transition-colors"
           >
             + Agregar persona
           </button>
@@ -889,7 +895,7 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
                   <button
                     type="button"
                     onClick={() => setForm(f => ({ ...f, visitas: f.visitas.filter((_, i) => i !== idx) }))}
-                    className="text-slate-500 hover:text-red-400 font-bold text-base leading-none"
+                    className="bg-transparent text-slate-500 hover:text-red-400 font-bold text-base leading-none"
                   >×</button>
                 </div>
               </div>
@@ -901,7 +907,7 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
               ...f,
               visitas: [...f.visitas, { id: crypto.randomUUID(), sede: '', horario: '' }],
             }))}
-            className="mt-2 w-full text-xs text-[#004A99] border border-dashed border-slate-300 rounded-lg py-2 hover:border-[#004A99] hover:bg-[#E6F0FF] transition-colors"
+            className="bg-transparent mt-2 w-full text-xs text-[#004A99] border border-dashed border-slate-300 rounded-lg py-2 hover:border-[#004A99] hover:bg-[#E6F0FF] transition-colors"
           >
             + Agregar sede
           </button>
@@ -931,7 +937,7 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
                     ...f,
                     obligacionesCliente: f.obligacionesCliente.filter((_, i) => i !== idx),
                   }))}
-                  className="text-slate-500 hover:text-red-400 font-bold text-base leading-none"
+                  className="bg-transparent text-slate-500 hover:text-red-400 font-bold text-base leading-none"
                 >×</button>
               </div>
             ))}
@@ -942,7 +948,7 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
               ...f,
               obligacionesCliente: [...f.obligacionesCliente, ''],
             }))}
-            className="mt-2 w-full text-xs text-[#004A99] border border-dashed border-slate-300 rounded-lg py-2 hover:border-[#004A99] hover:bg-[#E6F0FF] transition-colors"
+            className="bg-transparent mt-2 w-full text-xs text-[#004A99] border border-dashed border-slate-300 rounded-lg py-2 hover:border-[#004A99] hover:bg-[#E6F0FF] transition-colors"
           >
             + Agregar obligación
           </button>

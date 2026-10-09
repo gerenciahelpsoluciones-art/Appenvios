@@ -3,6 +3,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { logoBase64 } from '../assets/logoBase64';
 import type { Propuesta } from '../App';
+import { SLA_ESTANDAR_FILAS, SLA_ESTANDAR_NOTAS } from '../data/servicioTemplates';
 import { SERVICIO_TEMPLATES } from '../data/servicioTemplates';
 
 const DARK_BLUE: [number, number, number] = [15, 32, 39];
@@ -352,6 +353,11 @@ export const generatePropuestaPDF = (propuesta: Propuesta, action: 'save' | 'vie
 
   let pageNum = 4;
   if (propuesta.tipoServicioId === 'mesa-de-ayuda') {
+    // SLA importados del RFP del cliente, o los estándar de Help Soluciones
+    const slaPropios = !!propuesta.slas && propuesta.slas.filas.length > 0;
+    const slaFilas = slaPropios ? propuesta.slas!.filas : SLA_ESTANDAR_FILAS;
+    const slaNotasBase = slaPropios ? propuesta.slas!.notas : SLA_ESTANDAR_NOTAS;
+
     doc.addPage();
     addPageHeader(doc, propuesta, pageNum);
     pageNum++;
@@ -366,7 +372,7 @@ export const generatePropuestaPDF = (propuesta: Propuesta, action: 'save' | 'vie
     doc.setFontSize(14);
     doc.setTextColor(...TEXT_DARK);
     doc.setFont('helvetica', 'bold');
-    doc.text('Acuerdos de Niveles de Servicio (SLA) - Nivel 1', 14, ySla);
+    doc.text(slaPropios ? 'Acuerdos de Niveles de Servicio (SLA)' : 'Acuerdos de Niveles de Servicio (SLA) - Nivel 1', 14, ySla);
     ySla += 8;
 
     doc.setFillColor(...LIGHT_GRAY);
@@ -376,7 +382,9 @@ export const generatePropuestaPDF = (propuesta: Propuesta, action: 'save' | 'vie
     doc.setFontSize(8);
     doc.setTextColor(...TEXT_MUTED);
     doc.setFont('helvetica', 'normal');
-    const slaIntro = 'Los compromisos descritos a continuación aplican exclusivamente para la atención primaria de incidentes y requerimientos de soporte técnico (Nivel 1) sobre los equipos de cómputo de los usuarios finales.';
+    const slaIntro = slaPropios
+      ? `Los compromisos descritos a continuación responden a los niveles de servicio requeridos por ${propuesta.clienteNombre} en su solicitud${propuesta.slas!.fuente ? ` (${propuesta.slas!.fuente})` : ''}.`
+      : 'Los compromisos descritos a continuación aplican exclusivamente para la atención primaria de incidentes y requerimientos de soporte técnico (Nivel 1) sobre los equipos de cómputo de los usuarios finales.';
     const slaIntroLines = doc.splitTextToSize(slaIntro, W - 34);
     doc.text(slaIntroLines, 18, ySla + 5.5);
     ySla += 20;
@@ -384,13 +392,8 @@ export const generatePropuestaPDF = (propuesta: Propuesta, action: 'save' | 'vie
     autoTable(doc, {
       startY: ySla,
       margin: { left: 14, right: 14 },
-      head: [['Criticidad', 'Descripción / Tipo de Incidente (Nivel 1)', 'T. Respuesta', 'T. Solución', 'Canal']],
-      body: [
-        ['Crítica', 'Equipo no enciende o pantalla azul (bloqueo total de labores)', '<= 15 min', '<= 2 horas', 'Remoto / Sitio'],
-        ['Alta', 'Cuentas bloqueadas, sin internet o falla en app principal del usuario', '<= 30 min', '<= 4 horas', 'Remoto / Sitio'],
-        ['Media', 'Lentitud del equipo, impresoras, software secundario o periféricos', '<= 1 hora', '<= 12 horas', 'Remoto'],
-        ['Baja', 'Dudas de software, consultas generales o cambios estéticos', '<= 2 horas', '<= 48 horas', 'Portal / Remoto']
-      ],
+      head: [['Criticidad', slaPropios ? 'Descripción / Tipo de Incidente' : 'Descripción / Tipo de Incidente (Nivel 1)', 'T. Respuesta', 'T. Solución', 'Canal']],
+      body: slaFilas.map(f => [f.criticidad, f.descripcion, f.tiempoRespuesta, f.tiempoSolucion, f.canal]),
       headStyles: { fillColor: DARK_BLUE, textColor: WHITE, fontSize: 8 },
       bodyStyles: { fontSize: 8 },
       columnStyles: {
@@ -402,26 +405,30 @@ export const generatePropuestaPDF = (propuesta: Propuesta, action: 'save' | 'vie
 
     ySla = (doc as any).lastAutoTable.finalY + 8;
 
-    doc.setFontSize(8.5);
-    doc.setTextColor(...TEXT_DARK);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Notas de los Acuerdos (ANS):', 14, ySla);
-    ySla += 5;
+    const slaNotes = slaNotasBase.filter(n => n.trim()).map(n => `• ${n.trim()}`);
+    const PAGE_BOTTOM = doc.internal.pageSize.getHeight() - 18;
 
-    const slaNotes = [
-      '• Horario de Cobertura: El cumplimiento de los ANS se calcula dentro del horario de atención hábil (Lunes a Viernes de 8:00 AM a 5:00 PM).',
-      '• Inicio del Tiempo: Los tiempos corren desde el registro formal del ticket en el portal de Mesa de Ayuda.',
-      '• Excepcionalidad: No cubre soporte de infraestructura física de red corporativa, servidores, bases de datos o servicios de Nivel 2 y 3.'
-    ];
+    if (slaNotes.length > 0) {
+      if (ySla > PAGE_BOTTOM - 10) { doc.addPage(); ySla = 22; }
+      doc.setFontSize(8.5);
+      doc.setTextColor(...TEXT_DARK);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Notas de los Acuerdos (ANS):', 14, ySla);
+      ySla += 5;
 
-    doc.setFontSize(7.5);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(...TEXT_MUTED);
-    slaNotes.forEach(note => {
-      const noteLines = doc.splitTextToSize(note, W - 28);
-      doc.text(noteLines, 14, ySla);
-      ySla += noteLines.length * 4 + 1;
-    });
+      doc.setFontSize(7.5);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(...TEXT_MUTED);
+      slaNotes.forEach(note => {
+        const noteLines = doc.splitTextToSize(note, W - 28);
+        if (ySla + noteLines.length * 4 > PAGE_BOTTOM) { doc.addPage(); ySla = 22; }
+        doc.text(noteLines, 14, ySla);
+        ySla += noteLines.length * 4 + 1;
+      });
+    }
+
+    // Los SLA importados pueden ocupar más de una página
+    pageNum = doc.getNumberOfPages() + 1;
   }
 
   doc.addPage();

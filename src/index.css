@@ -58,7 +58,9 @@ a:hover { color: var(--primary-hover); }
 /* Controles nativos heredan la tipografía (antes salían en Arial/monospace) */
 button, input, select, textarea { font-family: inherit; }
 
-button {
+/* :where() deja estos estilos con especificidad 0: cualquier clase del botón
+   (Tailwind o propia) los reemplaza, también en :hover */
+:where(button) {
   background-color: var(--primary-blue);
   color: white;
   border: none;
@@ -69,9 +71,9 @@ button {
   cursor: pointer;
   transition: background-color 0.15s, opacity 0.15s, box-shadow 0.15s;
 }
-button:hover { background-color: var(--primary-hover); }
-button:active { transform: translateY(1px); }
-button:disabled { opacity: 0.55; cursor: not-allowed; }
+:where(button:hover) { background-color: var(--primary-hover); }
+:where(button:active) { transform: translateY(1px); }
+:where(button:disabled) { opacity: 0.55; cursor: not-allowed; }
 
 :where(button, a, input, select, textarea):focus-visible {
   outline: 2px solid var(--primary-blue);
