@@ -25,6 +25,7 @@ import CarteraModule from './modules/Cartera'
 import PropuestasModule from './modules/Propuestas'
 import { supabase } from './lib/supabaseClient'
 import RegistrationForm from './modules/RegistrationForm';
+import PublicPropuestaView from './components/PublicPropuestaView';
 import { logoBase64 } from './assets/logoBase64'
 import AIAssistant from './components/AIAssistant'
 import {
@@ -2665,6 +2666,12 @@ function App() {
         <RegistrationForm />
       </div>
     );
+  }
+
+  // Detect Public Proposal Mode (?p=P-005 or ?propuesta=P-005)
+  const publicPropuestaFolio = urlParams.get('p') || urlParams.get('propuesta');
+  if (publicPropuestaFolio) {
+    return <PublicPropuestaView folio={publicPropuestaFolio} />;
   }
 
   const activeItem = menuItems.find(i => i.id === activeTab) || menuItems[0];

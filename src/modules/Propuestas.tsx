@@ -63,6 +63,7 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
   const [search, setSearch] = useState('');
   const [servicioFilter, setServicioFilter] = useState('Todos');
   const [estadoFilter, setEstadoFilter] = useState<EstadoFilter>('Todos');
+  const [categoriaFilter, setCategoriaFilter] = useState<'todos' | 'mantenimiento' | 'cloud'>('todos');
   const [previewPropuesta, setPreviewPropuesta] = useState<Propuesta | null>(null);
 
   const openNew = () => {
@@ -238,7 +239,13 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
   });
 
   const selectedTemplate = SERVICIO_TEMPLATES.find(t => t.id === form.tipoServicioId);
-  const fmtCOP = (n: number) => `$${Math.round(n).toLocaleString('es-CO')}`;
+  const fmtMoney = (n: number, moneda: string = 'COP') => {
+  if (moneda === 'USD' || (n < 5000 && n > 0)) {
+    return `USD $${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+  return `$${Math.round(n).toLocaleString('es-CO')}`;
+};
+const fmtCOP = (n: number) => fmtMoney(n, 'COP');
 
   // Protocolo activo: personalizado o del template estándar
   const activePasosInfografia: PasoInfografia[] = form.protocolo?.pasosInfografia
@@ -461,6 +468,34 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
           </button>
         </div>
 
+        {/* PESTAÑAS DE CATEGORIZACIÓN */}
+        <div className="flex gap-2 mb-4 border-b border-[#D6E3F3] pb-2">
+          <button
+            onClick={() => setCategoriaFilter('todos')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+              categoriaFilter === 'todos' ? 'bg-[#001f3f] text-white shadow-sm' : 'bg-white text-slate-600 hover:bg-slate-100 border border-[#D6E3F3]'
+            }`}
+          >
+            📋 Todas ({propuestas.length})
+          </button>
+          <button
+            onClick={() => setCategoriaFilter('mantenimiento')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+              categoriaFilter === 'mantenimiento' ? 'bg-[#004A99] text-white shadow-sm' : 'bg-white text-slate-600 hover:bg-slate-100 border border-[#D6E3F3]'
+            }`}
+          >
+            🛠️ Mesa de Ayuda & Soporte ({propuestas.filter(p => p.tipoServicioId !== 'cloud-backup' && p.tipoServicioId !== 'cloud_backup').length})
+          </button>
+          <button
+            onClick={() => setCategoriaFilter('cloud')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+              categoriaFilter === 'cloud' ? 'bg-[#0d9488] text-white shadow-sm' : 'bg-white text-slate-600 hover:bg-slate-100 border border-[#D6E3F3]'
+            }`}
+          >
+            ☁️ Propuestas Comerciales & Cloud ({propuestas.filter(p => p.tipoServicioId === 'cloud-backup' || p.tipoServicioId === 'cloud_backup').length})
+          </button>
+        </div>
+
         <div className="flex gap-3 mb-4 flex-wrap">
           <input
             value={search}
@@ -532,7 +567,7 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
                     </td>
                     <td className="px-4 py-3 text-slate-500 text-xs">{p.fecha}</td>
                     <td className="px-4 py-3 text-right font-semibold text-emerald-400">
-                      {fmtCOP(rowTotal)}
+                      {fmtMoney(rowTotal, p.moneda)}
                     </td>
                     <td className="px-4 py-3 text-center">
                       <span className={`text-xs px-2.5 py-0.5 rounded-full ${ESTADO_COLORS[p.estado] || ''}`}>
@@ -541,6 +576,26 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
                     </td>
                     <td className="px-4 py-3 text-center">
                       <button title="Vista previa" onClick={() => setPreviewPropuesta(p)} className="bg-transparent mx-1 opacity-60 hover:opacity-100">👁️</button>
+                      <button
+                        title="Copiar enlace para el cliente"
+                        onClick={() => {
+                          const url = `${window.location.origin}/?p=${encodeURIComponent(p.consecutivo)}`;
+                          navigator.clipboard.writeText(url);
+                          alert(`Enlace copiado para compartir:\n${url}`);
+                        }}
+                        className="bg-transparent mx-1 opacity-60 hover:opacity-100"
+                      >
+                        🔗
+                      </button>
+                      <a
+                        title="Abrir enlace público en pestaña nueva"
+                        href={`/?p=${encodeURIComponent(p.consecutivo)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="bg-transparent mx-1 opacity-60 hover:opacity-100 inline-block no-underline"
+                      >
+                        ↗️
+                      </a>
                       <button title="Descargar PDF" onClick={() => generatePropuestaPDF(p, 'save')} className="bg-transparent mx-1 opacity-60 hover:opacity-100">📥</button>
                       <button title="Editar" onClick={() => openEdit(p)} className="bg-transparent mx-1 opacity-60 hover:opacity-100">✏️</button>
                       <button

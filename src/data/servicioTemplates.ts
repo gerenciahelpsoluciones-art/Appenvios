@@ -162,6 +162,29 @@ export const SERVICIO_TEMPLATES: ServicioTemplate[] = [
       'Responsabilidad laboral y administrativa asumida al 100% por Help Soluciones.',
     ],
   },
+  {
+    id: 'cloud-backup',
+    nombre: 'Solución de Respaldo Cloud y Ciberprotección (Acronis)',
+    icono: '☁️',
+    color: '#0d9488',
+    descripcion: 'Respaldo automatizado en la nube con protección activa contra ransomware y recuperación granular.',
+    introProtocolo:
+      'Garantizamos la continuidad operativa de su infraestructura mediante copias de seguridad continuas y cifradas en la nube empresarial de Acronis Cyber Protect, con monitoreo proactivo 24/7 y tiempos de recuperación garantizados.',
+    pasosInfografia: [
+      { icono: '🛡️', titulo: 'Despliegue Agentes', descripcion: 'Instalación de agentes en servidores y puestos críticos' },
+      { icono: '🔐', titulo: 'Cifrado AES-256', descripcion: 'Protección de datos en tránsito y en reposo en la nube' },
+      { icono: '🔄', titulo: 'Respaldo Continuo', descripcion: 'Políticas automáticas de backup incremental y diferencial' },
+      { icono: '⚡', titulo: 'Protección Ransomware', descripcion: 'Detección activa y restauración instantánea ante ataques' },
+      { icono: '🧪', titulo: 'Pruebas Semestrales', descripcion: 'Simulacros de recuperación y validación de RPO/RTO' },
+      { icono: '📊', titulo: 'Monitoreo 24/7', descripcion: 'Supervisión constante de integridad y alertas tempranas' },
+    ],
+    pasosLista: [
+      'Respaldo de servidores físicos y virtuales (Windows / Linux)',
+      'Respaldo de estaciones de trabajo críticas de directivos y áreas clave',
+      'Almacenamiento seguro en nube con retención y versionado automático',
+      'Soporte técnico Nivel 2 y atención inmediata ante contingencias',
+    ],
+  },
 ];
 
 // SLA estándar de Mesa de Ayuda (Nivel 1). Se usan cuando la propuesta no trae
