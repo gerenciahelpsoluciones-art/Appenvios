@@ -23,6 +23,7 @@ import RemisionesModule from './modules/Remisiones'
 import ComisionesModule from './modules/Comisiones'
 import CarteraModule from './modules/Cartera'
 import PropuestasModule from './modules/Propuestas'
+import DashboardEjecutivo from './modules/DashboardEjecutivo'
 import { supabase } from './lib/supabaseClient'
 import RegistrationForm from './modules/RegistrationForm';
 import PublicPropuestaView from './components/PublicPropuestaView';
@@ -864,8 +865,8 @@ function App() {
     let { data: insertData, error: insertError } = await supabase.from('clientes').insert([dbClient]).select();
     if (insertError && (insertError.message?.includes('categoria') || insertError.code === '42703')) {
       console.warn('Columna categoria no existe aún en Supabase. Reintentando sin categoria...');
-      const fallbackClient = { ...dbClient };
-      delete fallbackClient.categoria;
+      const fallbackClient: any = { ...dbClient };
+delete fallbackClient.categoria;
       const retry = await supabase.from('clientes').insert([fallbackClient]).select();
       insertData = retry.data;
       insertError = retry.error;
@@ -928,8 +929,8 @@ function App() {
     let { error: updateError } = await supabase.from('clientes').update(payload).eq('id', c.id);
     if (updateError && (updateError.message?.includes('categoria') || updateError.code === '42703')) {
       console.warn('Columna categoria no existe aún en Supabase. Reintentando update sin categoria...');
-      const fallbackPayload = { ...payload };
-      delete fallbackPayload.categoria;
+      const fallbackPayload: any = { ...payload };
+delete fallbackPayload.categoria;
       const retry = await supabase.from('clientes').update(fallbackPayload).eq('id', c.id);
       updateError = retry.error;
     }
@@ -2435,151 +2436,19 @@ function App() {
           currentUser={currentUser}
         />;
       case 'dashboard':
-        const dashQuotes = currentUser.rol === 'Admin'
-          ? cotizaciones
-          : cotizaciones.filter(c => c.usuarioId === currentUser.id);
-
-        const dashDespachos = currentUser.rol === 'Admin'
-          ? despachos
-          : despachos.filter(d => {
-              const isOwner = d.usuarioId === currentUser.id;
-              const cot = cotizaciones.find(c => c.id === d.cotizacionId);
-              const isQuoteOwner = cot?.usuarioId === currentUser.id;
-              return isOwner || isQuoteOwner;
-          });
-
-        const now = new Date();
-        const curMonth = now.getMonth();
-        const curYear = now.getFullYear();
-
-        const prevMonthDate = new Date(curYear, curMonth - 1, 1);
-        const prevMonth = prevMonthDate.getMonth();
-        const prevYear = prevMonthDate.getFullYear();
-
-        const getMonthQuotes = (m: number, y: number) => dashQuotes.filter(c => {
-          if (!c.fecha) return false;
-          const [quoteY, quoteM] = c.fecha.split('-').map(Number);
-          return quoteY === y && (quoteM - 1) === m;
-        });
-
-        const curMonthQuotes = getMonthQuotes(curMonth, curYear);
-        const prevMonthQuotes = getMonthQuotes(prevMonth, prevYear);
-
-        const growth = prevMonthQuotes.length > 0
-          ? ((curMonthQuotes.length - prevMonthQuotes.length) / prevMonthQuotes.length) * 100
-          : (curMonthQuotes.length > 0 ? 100 : 0);
-
-        const wonQuotesMonth = curMonthQuotes.filter(c => c.estado === 'Ganado');
-        const completedTotal = dashDespachos.filter(d => d.estado === 'Entregado').length;
-        const activeLogistics = dashDespachos.filter(d => d.estado !== 'Entregado').length;
-
-        const monthLabel = now.toLocaleDateString('es-CO', { month: 'long', year: 'numeric' });
-        const ingresosMes = wonQuotesMonth.reduce((acc, c) => acc + c.total, 0);
-        const fmtCOP = (n: number) => `$${Math.round(n).toLocaleString('es-CO')}`;
-
-        const activities: { id: string; date: string; tipo: 'Cotización' | 'Venta' | 'Factura' | 'Envío'; titulo: string; detalle: string; valor?: number }[] = [];
-        curMonthQuotes.forEach(c => {
-          if (c.fecha) activities.push({
-            id: 'q-' + c.id, date: c.fecha,
-            tipo: c.estado === 'Ganado' ? 'Venta' : 'Cotización',
-            titulo: `${c.estado === 'Ganado' ? 'Venta cerrada' : 'Cotización'} ${c.consecutivo}`,
-            detalle: c.clienteNombre, valor: c.total,
-          });
-        });
-        dashDespachos.forEach(d => {
-          if (d.facturado && d.fechaFacturado) {
-            const [y, m] = d.fechaFacturado.split('-').map(Number);
-            if (y === curYear && (m - 1) === curMonth) activities.push({ id: 'f-' + d.id, date: d.fechaFacturado, tipo: 'Factura', titulo: `Factura ${d.consecutivoCotizacion}`, detalle: d.clienteNombre, valor: d.total });
-          }
-          if (d.fechaSolicitud) {
-            const [y, m] = d.fechaSolicitud.split('-').map(Number);
-            if (y === curYear && (m - 1) === curMonth) activities.push({ id: 's-' + d.id, date: d.fechaSolicitud, tipo: 'Envío', titulo: `Envío ${d.consecutivoCotizacion}`, detalle: `${d.clienteNombre} · ${d.estado}` });
-          }
-        });
-        activities.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-        const TIPO_PILL: Record<string, string> = { 'Venta': 'pill pill-success', 'Factura': 'pill pill-success', 'Cotización': 'pill pill-info', 'Envío': 'pill pill-warning' };
-
-        const kpis = [
-          { label: 'Cotizaciones del mes', value: String(curMonthQuotes.length), trend: `${growth >= 0 ? '↑' : '↓'} ${Math.abs(growth).toFixed(0)}% vs mes anterior`, color: growth >= 0 ? 'var(--success)' : 'var(--error)' },
-          { label: 'Ventas cerradas', value: fmtCOP(ingresosMes), trend: `${wonQuotesMonth.length} cotizaci${wonQuotesMonth.length === 1 ? 'ón ganada' : 'ones ganadas'}`, color: 'var(--success)' },
-          { label: 'Envíos entregados', value: String(completedTotal), trend: 'Histórico', color: 'var(--primary-blue)' },
-          { label: 'Envíos en curso', value: String(activeLogistics), trend: activeLogistics ? 'Pendientes de entrega' : 'Todo entregado', color: activeLogistics ? 'var(--warning)' : 'var(--success)' },
-        ];
-
-        const shortcuts = [
-          { id: 'cotizaciones', icon: FileText, label: 'Cotizaciones', value: `${curMonthQuotes.length} este mes`, cta: 'Nueva cotización' },
-          { id: 'logistica', icon: Truck, label: 'Logística', value: `${activeLogistics} envío${activeLogistics === 1 ? '' : 's'} en curso`, cta: 'Ver despachos' },
-        ].filter(s => menuItems.some(m => m.id === s.id));
-
-        return (
-          <div className="dashboard-container animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <div>
-              <h2 style={{ fontSize: '1.35rem', color: 'var(--text-main)' }}>Hola, {currentUser.nombre.split(' ')[0]}</h2>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: 2 }}>Este es el resumen de {monthLabel}.</p>
-            </div>
-
-            <div className="stats-grid">
-              {kpis.map(k => (
-                <div key={k.label} className="kpi-tile">
-                  <span className="kpi-stripe" style={{ background: k.color }} />
-                  <p className="kpi-label">{k.label}</p>
-                  <p className="kpi-value">{k.value}</p>
-                  <p className="kpi-trend" style={{ color: k.color }}>{k.trend}</p>
-                </div>
-              ))}
-            </div>
-
-            {shortcuts.length > 0 && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
-                {shortcuts.map(s => {
-                  const Icon = s.icon;
-                  return (
-                    <div key={s.id} className="shortcut-card">
-                      <div className="shortcut-icon"><Icon size={22} /></div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <span className="kpi-label">{s.label}</span>
-                        <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '1.1rem', color: 'var(--text-main)' }}>{s.value}</div>
-                      </div>
-                      <button className="shortcut-link" onClick={() => setActiveTab(s.id)}>{s.cta} <ArrowRight size={14} /></button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            <div className="card table-card">
-              <div className="panel-head">
-                <div>
-                  <h3>Movimientos recientes</h3>
-                  <p>Cotizaciones, facturas y envíos de {monthLabel}</p>
-                </div>
-              </div>
-              {activities.length === 0 ? (
-                <div style={{ padding: '3rem 1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                  No hay movimientos registrados este mes.
-                </div>
-              ) : (
-                <table className="data-table">
-                  <thead>
-                    <tr><th>Fecha</th><th>Movimiento</th><th>Cliente</th><th>Tipo</th><th className="num">Valor</th></tr>
-                  </thead>
-                  <tbody>
-                    {activities.slice(0, 10).map(a => (
-                      <tr key={a.id}>
-                        <td style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{a.date}</td>
-                        <td style={{ fontWeight: 600 }}>{a.titulo}</td>
-                        <td style={{ color: 'var(--text-secondary)' }}>{a.detalle}</td>
-                        <td><span className={TIPO_PILL[a.tipo]}>{a.tipo}</span></td>
-                        <td className="num" style={{ fontWeight: 700 }}>{a.valor !== undefined ? fmtCOP(a.valor) : '—'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </div>
-        );
+        return <DashboardEjecutivo
+          cotizaciones={cotizaciones}
+          despachos={despachos}
+          ventasManuales={ventasManuales}
+          clientes={clientes}
+          productos={productos}
+          proveedores={proveedores}
+          ordenesCompra={ordenesCompra}
+          alquileres={alquileres}
+          budgets={budgets}
+          users={users}
+          currentUser={currentUser}
+        />;
       default:
         return (
           <div className="card">
