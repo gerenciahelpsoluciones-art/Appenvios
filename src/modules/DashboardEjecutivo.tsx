@@ -295,7 +295,7 @@ export default function DashboardEjecutivo({
     }, [currentUser]);
 
     // ── ESTADOS PRINCIPALES ──
-    const [activeTab, setActiveTab] = useState<'360_general' | 'comercial' | 'hardware_servicios' | 'top_productos' | 'mesa_ayuda' | 'despachos' | 'tesoreria'>('360_general');
+    const [activeTab, setActiveTab] = useState<'360_general' | 'comercial' | 'hardware_servicios' | 'top_productos' | 'alquileres' | 'mesa_ayuda' | 'despachos' | 'tesoreria'>('360_general');
     const [dataSource, setDataSource] = useState<'siigo' | 'crm' | 'comparativa'>('siigo'); // Control clave para no mezclar CRM con Siigo
     const [selectedYear, setSelectedYear] = useState<number>(now.getFullYear());
     const [selectedMonth, setSelectedMonth] = useState<number>(now.getMonth() + 1); // 1-12
@@ -303,6 +303,10 @@ export default function DashboardEjecutivo({
     const [currency, setCurrency] = useState<'COP' | 'USD'>('COP');
     const [chartMode, setChartMode] = useState<'barras' | 'lineas'>('barras');
     const [filterCategory, setFilterCategory] = useState<'all' | 'hardware' | 'servicio'>('all');
+    const [hwPeriodView, setHwPeriodView] = useState<'mes' | 'anual'>('mes'); // Selector Mes vs Consolidado Anual
+    const [alquilerSearch, setAlquilerSearch] = useState<string>('');
+    const [alquilerFilterStatus, setAlquilerFilterStatus] = useState<'todos' | 'alquilado' | 'bodega'>('todos');
+    const [selectedClientForModal, setSelectedClientForModal] = useState<any | null>(null);
 
     // Sincronización Siigo
     const [loadingSiigo, setLoadingSiigo] = useState<boolean>(false);
@@ -625,48 +629,87 @@ export default function DashboardEjecutivo({
         return matrizAnual[selectedMonth - 1] || matrizAnual[0];
     }, [matrizAnual, selectedMonth]);
 
-    // ── ANÁLISIS DE HARDWARE VS SERVICIOS ──
+    // ── ANÁLISIS DE HARDWARE VS SERVICIOS (CONMUTABLE: MES SELECCIONADO vs CONSOLIDADO ANUAL) ──
     const hardwareServiciosData = useMemo(() => {
-        // En base oficial Siigo Nube 2026:
-        // Hardware representa ~69.4% ($208.37M) con margen ~22.8%
-        // Servicios representa ~30.6% ($91.87M) con margen ~50.4%
-        const isAnnual = true;
         let totalHW = 0;
         let totalSVC = 0;
 
-        if (dataSource === 'siigo') {
-            for (let m = 1; m <= 10; m++) {
-                const base = SIIGO_FACTURACION_REAL_2026[m];
-                if (base) {
-                    totalHW += base.hardwareVentas;
-                    totalSVC += base.serviciosVentas;
+        if (hwPeriodView === 'mes') {
+            const baseM = selectedYear === 2026 ? SIIGO_FACTURACION_REAL_2026[selectedMonth] : null;
+            if (dataSource === 'siigo') {
+                if (baseM && selectedMonthData.ventas === baseM.ventasNetas) {
+                    totalHW = baseM.hardwareVentas;
+                    totalSVC = baseM.serviciosVentas;
+                } else if (selectedMonthData.ventas > 0) {
+                    totalHW = Math.round(selectedMonthData.ventas * 0.694);
+                    totalSVC = selectedMonthData.ventas - totalHW;
+                } else {
+                    totalHW = 0;
+                    totalSVC = 0;
                 }
+            } else {
+                // CRM mes
+                const prefix = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`;
+                const ganadas = cotizacionesVisibles.filter(c => c.estado === 'Ganado' && c.fecha && c.fecha.startsWith(prefix));
+                ganadas.forEach(c => {
+                    (c.items || []).forEach(item => {
+                        const prod = productos.find(p => p.id === item.productoId);
+                        const pName = (prod?.nombre || '').toLowerCase();
+                        const isSvc = (prod?.tipo === 'Servicio') || 
+                                      pName.includes('mantenimiento') || 
+                                      pName.includes('servicio') || 
+                                      pName.includes('alquiler') || 
+                                      pName.includes('licencia') || 
+                                      pName.includes('acronis') || 
+                                      pName.includes('cloud') || 
+                                      pName.includes('soporte');
+                        const monto = (Number(item.cantidad) || 1) * (Number(item.precioVenta) || (Number(item.costoUnitario) * 1.25) || 50000);
+                        if (isSvc) totalSVC += monto;
+                        else totalHW += monto;
+                    });
+                });
             }
         } else {
-            // Desde cotizaciones ganadas
-            const ganadas = cotizacionesVisibles.filter(c => c.estado === 'Ganado');
-            ganadas.forEach(c => {
-                (c.items || []).forEach(item => {
-                    const prod = productos.find(p => p.id === item.productoId);
-                    const pName = (prod?.nombre || '').toLowerCase();
-                    const isSvc = (prod?.tipo === 'Servicio') || 
-                                  pName.includes('mantenimiento') || 
-                                  pName.includes('servicio') || 
-                                  pName.includes('alquiler') || 
-                                  pName.includes('licencia') || 
-                                  pName.includes('acronis') || 
-                                  pName.includes('cloud') || 
-                                  pName.includes('soporte');
-                    const monto = (Number(item.cantidad) || 1) * (Number(item.precioVenta) || (Number(item.costoUnitario) * 1.25) || 50000);
-                    if (isSvc) totalSVC += monto;
-                    else totalHW += monto;
+            // Consolidado Anual
+            if (dataSource === 'siigo') {
+                if (totalVentasAnual > 0) {
+                    totalHW = Math.round(totalVentasAnual * 0.694);
+                    totalSVC = totalVentasAnual - totalHW;
+                } else {
+                    for (let m = 1; m <= 10; m++) {
+                        const base = SIIGO_FACTURACION_REAL_2026[m];
+                        if (base) {
+                            totalHW += base.hardwareVentas;
+                            totalSVC += base.serviciosVentas;
+                        }
+                    }
+                }
+            } else {
+                // CRM anual
+                const ganadas = cotizacionesVisibles.filter(c => c.estado === 'Ganado');
+                ganadas.forEach(c => {
+                    (c.items || []).forEach(item => {
+                        const prod = productos.find(p => p.id === item.productoId);
+                        const pName = (prod?.nombre || '').toLowerCase();
+                        const isSvc = (prod?.tipo === 'Servicio') || 
+                                      pName.includes('mantenimiento') || 
+                                      pName.includes('servicio') || 
+                                      pName.includes('alquiler') || 
+                                      pName.includes('licencia') || 
+                                      pName.includes('acronis') || 
+                                      pName.includes('cloud') || 
+                                      pName.includes('soporte');
+                        const monto = (Number(item.cantidad) || 1) * (Number(item.precioVenta) || (Number(item.costoUnitario) * 1.25) || 50000);
+                        if (isSvc) totalSVC += monto;
+                        else totalHW += monto;
+                    });
                 });
-            });
+            }
         }
 
-        const grandTotal = totalHW + totalSVC || 300243488;
-        const hwPct = (totalHW / grandTotal) * 100;
-        const svcPct = (totalSVC / grandTotal) * 100;
+        const grandTotal = totalHW + totalSVC || (hwPeriodView === 'mes' ? selectedMonthData.ventas : totalVentasAnual) || 1;
+        const hwPct = grandTotal > 0 ? (totalHW / grandTotal) * 100 : 69.4;
+        const svcPct = grandTotal > 0 ? (totalSVC / grandTotal) * 100 : 30.6;
 
         const hwUtil = totalHW * 0.228;
         const svcUtil = totalSVC * 0.504;
@@ -683,18 +726,104 @@ export default function DashboardEjecutivo({
             svcMargin: 50.4,
             subcategories: {
                 hardware: [
-                    { name: 'Equipos de Cómputo & POS', monto: totalHW * 0.58, pct: 58, facturas: 112 },
-                    { name: 'Repuestos, Discos SSD & RAM', monto: totalHW * 0.28, pct: 28, facturas: 54 },
-                    { name: 'Suministros, Toners & Consumibles', monto: totalHW * 0.14, pct: 14, facturas: 26 }
+                    { name: 'Equipos de Cómputo & POS', monto: totalHW * 0.58, pct: 58 },
+                    { name: 'Repuestos, Discos SSD & RAM', monto: totalHW * 0.28, pct: 28 },
+                    { name: 'Suministros, Toners & Consumibles', monto: totalHW * 0.14, pct: 14 }
                 ],
                 servicios: [
-                    { name: 'Mantenimiento & Soporte HelpDesk', monto: totalSVC * 0.46, pct: 46, facturas: 48 },
-                    { name: 'Licenciamiento Cloud & Acronis Cyber', monto: totalSVC * 0.36, pct: 36, facturas: 37 },
-                    { name: 'Alquiler de Equipos & Terminales', monto: totalSVC * 0.18, pct: 18, facturas: 19 }
+                    { name: 'Mantenimiento & Soporte HelpDesk', monto: totalSVC * 0.46, pct: 46 },
+                    { name: 'Licenciamiento Cloud & Acronis Cyber', monto: totalSVC * 0.36, pct: 36 },
+                    { name: 'Alquiler de Equipos & Terminales', monto: totalSVC * 0.18, pct: 18 }
                 ]
             }
         };
-    }, [dataSource, cotizacionesVisibles, productos]);
+    }, [hwPeriodView, dataSource, selectedMonth, selectedYear, selectedMonthData, totalVentasAnual, cotizacionesVisibles, productos]);
+
+    // ── ANÁLISIS EXCLUSIVO DE ALQUILERES (CANTIDAD, CLIENTE Y VALOR) ──
+    const alquileresAnalysis = useMemo(() => {
+        const clientMap: Record<string, {
+            clienteId: string;
+            clienteNombre: string;
+            nit: string;
+            contacto?: string;
+            cantidad: number;
+            valorMensualTotal: number;
+            equipos: Alquiler[];
+        }> = {};
+
+        let totalEquipos = (alquileres || []).length;
+        let totalAlquilados = 0;
+        let totalEnBodega = 0;
+        let canonMensualTotal = 0;
+
+        (alquileres || []).forEach(alq => {
+            const isAlquilado = (alq.estado || '').toLowerCase() === 'alquilado';
+            const val = Number(alq.valorMensual) || 0;
+
+            if (isAlquilado) {
+                totalAlquilados++;
+                canonMensualTotal += val;
+
+                // Resolver nombre de cliente
+                const matchedClient = (clientes || []).find(c => c.id === alq.clienteId || (c.nombre && alq.clienteNombre && c.nombre.toLowerCase().trim() === alq.clienteNombre.toLowerCase().trim()));
+                const cName = matchedClient?.nombre || alq.clienteNombre || (alq.clienteId ? `Cliente ID ${alq.clienteId.slice(0, 8)}` : 'Cliente no especificado');
+                const nit = matchedClient?.nit || '—';
+                const contacto = matchedClient?.contacto || '';
+
+                const key = alq.clienteId || cName;
+                if (!clientMap[key]) {
+                    clientMap[key] = {
+                        clienteId: alq.clienteId || '',
+                        clienteNombre: cName,
+                        nit,
+                        contacto,
+                        cantidad: 0,
+                        valorMensualTotal: 0,
+                        equipos: []
+                    };
+                }
+                clientMap[key].cantidad += 1;
+                clientMap[key].valorMensualTotal += val;
+                clientMap[key].equipos.push(alq);
+            } else {
+                totalEnBodega++;
+            }
+        });
+
+        // Convertir a lista y ordenar por canon mensual descendente
+        const clientesList = Object.values(clientMap).sort((a, b) => b.valorMensualTotal - a.valorMensualTotal);
+        const totalClientesActivos = clientesList.length;
+
+        // Filtrado de la lista detallada de equipos
+        const filteredEquipos = (alquileres || []).filter(alq => {
+            const st = (alq.estado || '').toLowerCase();
+            if (alquilerFilterStatus === 'alquilado' && st !== 'alquilado') return false;
+            if (alquilerFilterStatus === 'bodega' && st !== 'bodega') return false;
+
+            if (alquilerSearch.trim()) {
+                const q = alquilerSearch.toLowerCase().trim();
+                const matchedClient = (clientes || []).find(c => c.id === alq.clienteId);
+                const cName = (matchedClient?.nombre || alq.clienteNombre || '').toLowerCase();
+                const desc = (alq.descripcion || '').toLowerCase();
+                const serial = (alq.serial || '').toLowerCase();
+                const proc = (alq.procesador || '').toLowerCase();
+                const disco = (alq.discoDuro || '').toLowerCase();
+                const ram = (alq.memoriaRam || '').toLowerCase();
+                return cName.includes(q) || desc.includes(q) || serial.includes(q) || proc.includes(q) || disco.includes(q) || ram.includes(q);
+            }
+            return true;
+        });
+
+        return {
+            totalEquipos,
+            totalAlquilados,
+            totalEnBodega,
+            canonMensualTotal,
+            totalClientesActivos,
+            clientesList,
+            filteredEquipos
+        };
+    }, [alquileres, clientes, alquilerSearch, alquilerFilterStatus]);
 
     // ── TOP PRODUCTOS Y SOLUCIONES MÁS VENDIDOS ──
     const topProductosData = useMemo(() => {
@@ -1394,6 +1523,28 @@ export default function DashboardEjecutivo({
 
                 <button
                     type="button"
+                    onClick={() => setActiveTab('alquileres')}
+                    style={{
+                        padding: '0.65rem 1.1rem',
+                        border: 'none',
+                        background: 'transparent',
+                        borderBottom: activeTab === 'alquileres' ? '3px solid #0284c7' : '3px solid transparent',
+                        color: activeTab === 'alquileres' ? '#0284c7' : '#64748b',
+                        fontWeight: activeTab === 'alquileres' ? 700 : 500,
+                        fontSize: '0.88rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.45rem',
+                        whiteSpace: 'nowrap'
+                    }}
+                >
+                    <Laptop size={17} />
+                    Alquiler de Equipos
+                </button>
+
+                <button
+                    type="button"
                     onClick={() => setActiveTab('comercial')}
                     style={{
                         padding: '0.65rem 1.1rem',
@@ -1795,8 +1946,57 @@ export default function DashboardEjecutivo({
                                     Desglose de facturación, volumen de venta, costos y margen de rentabilidad por línea de negocio.
                                 </p>
                             </div>
-                            <div style={{ fontSize: '0.82rem', color: '#0f172a', fontWeight: 600, background: '#f1f5f9', padding: '0.4rem 0.8rem', borderRadius: '8px' }}>
-                                Facturación Total Analizada: <strong>{fmt(hardwareServiciosData.grandTotal)}</strong>
+
+                            {/* SELECTOR DE PERÍODO: MES SELECCIONADO vs CONSOLIDADO DEL AÑO */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                                <div style={{ display: 'flex', background: '#f1f5f9', padding: '3px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                                    <button
+                                        type="button"
+                                        onClick={() => setHwPeriodView('mes')}
+                                        style={{
+                                            padding: '0.45rem 0.9rem',
+                                            borderRadius: '8px',
+                                            border: 'none',
+                                            fontSize: '0.82rem',
+                                            fontWeight: hwPeriodView === 'mes' ? 700 : 500,
+                                            cursor: 'pointer',
+                                            background: hwPeriodView === 'mes' ? '#0284c7' : 'transparent',
+                                            color: hwPeriodView === 'mes' ? '#ffffff' : '#64748b',
+                                            transition: 'all 0.2s',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '0.35rem'
+                                        }}
+                                    >
+                                        <Calendar size={14} />
+                                        Mes: {MONTH_NAMES[selectedMonth - 1]} ({fmt(selectedMonthData.ventas, true)})
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setHwPeriodView('anual')}
+                                        style={{
+                                            padding: '0.45rem 0.9rem',
+                                            borderRadius: '8px',
+                                            border: 'none',
+                                            fontSize: '0.82rem',
+                                            fontWeight: hwPeriodView === 'anual' ? 700 : 500,
+                                            cursor: 'pointer',
+                                            background: hwPeriodView === 'anual' ? '#0284c7' : 'transparent',
+                                            color: hwPeriodView === 'anual' ? '#ffffff' : '#64748b',
+                                            transition: 'all 0.2s',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '0.35rem'
+                                        }}
+                                    >
+                                        <BarChart3 size={14} />
+                                        Consolidado Año {selectedYear} ({fmt(totalVentasAnual, true)})
+                                    </button>
+                                </div>
+
+                                <div style={{ fontSize: '0.82rem', color: '#0f172a', fontWeight: 600, background: '#f8fafc', padding: '0.45rem 0.85rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                    Facturación Total Analizada: <strong style={{ color: '#0284c7' }}>{fmt(hardwareServiciosData.grandTotal)}</strong>
+                                </div>
                             </div>
                         </div>
 
@@ -1914,10 +2114,14 @@ export default function DashboardEjecutivo({
                         <div style={{ marginTop: '1.5rem', padding: '1.25rem', background: '#eff6ff', borderRadius: '12px', border: '1px solid #bfdbfe' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700, color: '#1e40af', marginBottom: '0.35rem' }}>
                                 <Sparkles size={18} />
-                                Conclusión Estratégica para Gerencia (Help Soluciones)
+                                Conclusión Estratégica para Gerencia (Help Soluciones) · {hwPeriodView === 'mes' ? `Mes de ${MONTH_NAMES[selectedMonth - 1]} ${selectedYear}` : `Consolidado Año ${selectedYear}`}
                             </div>
                             <p style={{ margin: 0, fontSize: '0.85rem', color: '#1e3a8a', lineHeight: 1.5 }}>
-                                Aunque el <strong>Hardware</strong> genera el mayor volumen de ventas brutos (<strong>{hardwareServiciosData.hwPct.toFixed(1)}%</strong> con $208.37M), los <strong>Servicios y Licenciamiento Cloud</strong> aportan una rentabilidad bruta neta significativamente superior (<strong>{hardwareServiciosData.svcMargin}% de margen</strong> frente al {hardwareServiciosData.hwMargin}% de Hardware). Por cada millón facturado en Servicios, Help Soluciones genera más del doble de utilidad neta en caja.
+                                {hwPeriodView === 'mes' ? (
+                                    <>En <strong>{MONTH_NAMES[selectedMonth - 1]}</strong>, el <strong>Hardware</strong> generó el <strong>{hardwareServiciosData.hwPct.toFixed(1)}%</strong> ({fmt(hardwareServiciosData.totalHW)}), mientras los <strong>Servicios y Soluciones</strong> aportaron el <strong>{hardwareServiciosData.svcPct.toFixed(1)}%</strong> ({fmt(hardwareServiciosData.totalSVC)}) con un margen de rentabilidad bruto significativamente mayor (<strong>{hardwareServiciosData.svcMargin}%</strong> frente al {hardwareServiciosData.hwMargin}% de Hardware). Por cada peso facturado en Servicios, Help Soluciones genera más del doble de utilidad neta en caja.</>
+                                ) : (
+                                    <>En el consolidado anual de <strong>{selectedYear}</strong>, el <strong>Hardware</strong> genera el mayor volumen de ventas brutos (<strong>{hardwareServiciosData.hwPct.toFixed(1)}%</strong> con {fmt(hardwareServiciosData.totalHW)}), mientras los <strong>Servicios y Licenciamiento Cloud</strong> aportan una rentabilidad bruta neta significativamente superior (<strong>{hardwareServiciosData.svcMargin}% de margen</strong> frente al {hardwareServiciosData.hwMargin}% de Hardware con {fmt(hardwareServiciosData.totalSVC)} de ventas). Por cada millón facturado en Servicios, Help Soluciones genera más del doble de margen en caja.</>
+                                )}
                             </p>
                         </div>
                     </div>
@@ -2068,6 +2272,474 @@ export default function DashboardEjecutivo({
                             </table>
                         </div>
                     </div>
+                </div>
+            )}
+
+            {/* ════════════════════════════════════════════════════════════════════
+                TAB: ALQUILER DE EQUIPOS (CANTIDAD, CLIENTE Y VALOR)
+            ════════════════════════════════════════════════════════════════════ */}
+            {activeTab === 'alquileres' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                    
+                    {/* ENCABEZADO Y KPIS PRINCIPALES */}
+                    <div style={{ background: '#ffffff', borderRadius: '16px', padding: '1.5rem', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem' }}>
+                            <div>
+                                <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <Laptop size={22} color="#0284c7" />
+                                    Gestión & Facturación de Alquiler de Equipos
+                                </h2>
+                                <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748b' }}>
+                                    Monitoreo de parque computacional en arrendamiento operativo · Cantidad de máquinas, clientes y canon mensual.
+                                </p>
+                            </div>
+                            <div style={{ fontSize: '0.82rem', fontWeight: 600, background: '#f0fdf4', color: '#15803d', padding: '0.4rem 0.85rem', borderRadius: '8px', border: '1px solid #bbf7d0', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                <CheckCircle2 size={16} />
+                                Canon Total Mensual: <strong>{fmt(alquileresAnalysis.canonMensualTotal)} / mes</strong>
+                            </div>
+                        </div>
+
+                        {/* TARJETAS KPI DE ALQUILERES */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+                            <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '1.25rem', border: '1px solid #e2e8f0' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                    <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>CANON MENSUAL RECURRENTE</span>
+                                    <div style={{ padding: '0.4rem', background: '#dcfce7', borderRadius: '8px', color: '#16a34a' }}>
+                                        <DollarSign size={18} />
+                                    </div>
+                                </div>
+                                <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#15803d' }}>
+                                    {fmt(alquileresAnalysis.canonMensualTotal)}
+                                </div>
+                                <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                                    Facturación mensual proyectada
+                                </span>
+                            </div>
+
+                            <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '1.25rem', border: '1px solid #e2e8f0' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                    <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>EQUIPOS ALQUILADOS</span>
+                                    <div style={{ padding: '0.4rem', background: '#e0f2fe', borderRadius: '8px', color: '#0284c7' }}>
+                                        <Laptop size={18} />
+                                    </div>
+                                </div>
+                                <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#0284c7' }}>
+                                    {alquileresAnalysis.totalAlquilados} <span style={{ fontSize: '1rem', fontWeight: 600, color: '#64748b' }}>/ {alquileresAnalysis.totalEquipos}</span>
+                                </div>
+                                <span style={{ fontSize: '0.78rem', color: '#0369a1', fontWeight: 600 }}>
+                                    {alquileresAnalysis.totalEquipos > 0 ? ((alquileresAnalysis.totalAlquilados / alquileresAnalysis.totalEquipos) * 100).toFixed(1) : 0}% en renta activa
+                                </span>
+                            </div>
+
+                            <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '1.25rem', border: '1px solid #e2e8f0' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                    <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>CLIENTES CON ARRENDAMIENTO</span>
+                                    <div style={{ padding: '0.4rem', background: '#ede9fe', borderRadius: '8px', color: '#7c3aed' }}>
+                                        <Building2 size={18} />
+                                    </div>
+                                </div>
+                                <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#7c3aed' }}>
+                                    {alquileresAnalysis.totalClientesActivos} <span style={{ fontSize: '1rem', fontWeight: 600, color: '#64748b' }}>Empresas</span>
+                                </div>
+                                <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                                    Contratos corporativos vigentes
+                                </span>
+                            </div>
+
+                            <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '1.25rem', border: '1px solid #e2e8f0' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                    <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>DISPONIBLES EN BODEGA</span>
+                                    <div style={{ padding: '0.4rem', background: '#fef3c7', borderRadius: '8px', color: '#d97706' }}>
+                                        <Boxes size={18} />
+                                    </div>
+                                </div>
+                                <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#d97706' }}>
+                                    {alquileresAnalysis.totalEnBodega} <span style={{ fontSize: '1rem', fontWeight: 600, color: '#64748b' }}>Equipos</span>
+                                </div>
+                                <span style={{ fontSize: '0.78rem', color: '#b45309' }}>
+                                    Listos para asignación inmediata
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* ── TABLA PRINCIPAL: RESUMEN POR CLIENTE (CANTIDAD, CLIENTE Y VALOR) ── */}
+                    <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+                        <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+                            <div>
+                                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <Building2 size={20} color="#0284c7" />
+                                    Consolidado por Cliente: Cantidad de Máquinas y Valor Mensual
+                                </h3>
+                                <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>
+                                    Desglose de contratos de alquiler por empresa, volumen de equipos arrendados y valor mensual facturado.
+                                </p>
+                            </div>
+                            <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                                Mostrando <strong>{alquileresAnalysis.clientesList.length}</strong> clientes activos
+                            </div>
+                        </div>
+
+                        <div style={{ overflowX: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                                <thead>
+                                    <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'left' }}>
+                                        <th style={{ padding: '0.75rem 1rem', width: '50px' }}>#</th>
+                                        <th style={{ padding: '0.75rem 1rem' }}>Cliente / Razón Social</th>
+                                        <th style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>Cantidad de Equipos</th>
+                                        <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Valor Mensual (Canon)</th>
+                                        <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Promedio / Equipo</th>
+                                        <th style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>Participación %</th>
+                                        <th style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>Detalle</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {alquileresAnalysis.clientesList.map((cli, idx) => {
+                                        const pct = alquileresAnalysis.canonMensualTotal > 0 ? (cli.valorMensualTotal / alquileresAnalysis.canonMensualTotal) * 100 : 0;
+                                        const prom = cli.cantidad > 0 ? cli.valorMensualTotal / cli.cantidad : 0;
+                                        return (
+                                            <tr key={cli.clienteId || idx} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.15s' }}>
+                                                <td style={{ padding: '0.85rem 1rem', fontWeight: 800, color: idx < 3 ? '#0284c7' : '#94a3b8' }}>
+                                                    #{idx + 1}
+                                                </td>
+                                                <td style={{ padding: '0.85rem 1rem' }}>
+                                                    <div style={{ fontWeight: 700, color: '#0f172a' }}>{cli.clienteNombre}</div>
+                                                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>NIT: {cli.nit}</div>
+                                                </td>
+                                                <td style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>
+                                                    <span style={{
+                                                        background: '#e0f2fe',
+                                                        color: '#0369a1',
+                                                        padding: '4px 10px',
+                                                        borderRadius: '8px',
+                                                        fontSize: '0.82rem',
+                                                        fontWeight: 700
+                                                    }}>
+                                                        {cli.cantidad} {cli.cantidad === 1 ? 'Equipo' : 'Equipos'}
+                                                    </span>
+                                                </td>
+                                                <td style={{ padding: '0.85rem 1rem', textAlign: 'right', fontWeight: 800, color: '#16a34a', fontSize: '0.95rem' }}>
+                                                    {fmt(cli.valorMensualTotal)}
+                                                </td>
+                                                <td style={{ padding: '0.85rem 1rem', textAlign: 'right', color: '#475569', fontWeight: 600 }}>
+                                                    {fmt(prom)}
+                                                </td>
+                                                <td style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
+                                                        <div style={{ width: '60px', height: '6px', background: '#e2e8f0', borderRadius: '999px', overflow: 'hidden' }}>
+                                                            <div style={{ width: `${Math.min(100, pct)}%`, height: '100%', background: '#0284c7' }} />
+                                                        </div>
+                                                        <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>
+                                                            {pct.toFixed(1)}%
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setSelectedClientForModal(cli)}
+                                                        style={{
+                                                            padding: '0.35rem 0.75rem',
+                                                            borderRadius: '6px',
+                                                            border: '1px solid #cbd5e1',
+                                                            background: '#ffffff',
+                                                            color: '#0284c7',
+                                                            fontSize: '0.75rem',
+                                                            fontWeight: 600,
+                                                            cursor: 'pointer',
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            gap: '0.3rem'
+                                                        }}
+                                                    >
+                                                        <Eye size={13} />
+                                                        Ver Máquinas
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                                <tfoot>
+                                    <tr style={{ background: '#f8fafc', borderTop: '2px solid #cbd5e1', fontWeight: 700 }}>
+                                        <td style={{ padding: '0.9rem 1rem' }}></td>
+                                        <td style={{ padding: '0.9rem 1rem', color: '#0f172a' }}>TOTAL CONSOLIDADO ALQUILERES</td>
+                                        <td style={{ padding: '0.9rem 1rem', textAlign: 'center', color: '#0284c7', fontSize: '0.95rem' }}>
+                                            {alquileresAnalysis.totalAlquilados} Equipos
+                                        </td>
+                                        <td style={{ padding: '0.9rem 1rem', textAlign: 'right', color: '#16a34a', fontSize: '1.05rem' }}>
+                                            {fmt(alquileresAnalysis.canonMensualTotal)}
+                                        </td>
+                                        <td style={{ padding: '0.9rem 1rem', textAlign: 'right', color: '#475569' }}>
+                                            {fmt(alquileresAnalysis.totalAlquilados > 0 ? alquileresAnalysis.canonMensualTotal / alquileresAnalysis.totalAlquilados : 0)}
+                                        </td>
+                                        <td style={{ padding: '0.9rem 1rem', textAlign: 'center', color: '#0f172a' }}>100.0%</td>
+                                        <td style={{ padding: '0.9rem 1rem', textAlign: 'center' }}>—</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+
+                    {/* ── TABLA SECUNDARIA: INVENTARIO DETALLADO DE MÁQUINAS EN ALQUILER ── */}
+                    <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+                        <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+                            <div>
+                                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <Boxes size={20} color="#0284c7" />
+                                    Inventario Detallado de Máquinas ({alquileresAnalysis.filteredEquipos.length} de {alquileresAnalysis.totalEquipos})
+                                </h3>
+                                <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>
+                                    Ficha técnica, número de serial, cliente asignado y valor mensual individual de cada equipo.
+                                </p>
+                            </div>
+
+                            {/* CONTROLES DE FILTRADO Y BÚSQUEDA */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                                <div style={{ position: 'relative', minWidth: '240px' }}>
+                                    <Search size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                                    <input
+                                        type="text"
+                                        placeholder="Buscar por cliente, serial, modelo, CPU..."
+                                        value={alquilerSearch}
+                                        onChange={e => setAlquilerSearch(e.target.value)}
+                                        style={{
+                                            width: '100%',
+                                            padding: '0.45rem 0.75rem 0.45rem 2rem',
+                                            borderRadius: '8px',
+                                            border: '1px solid #cbd5e1',
+                                            fontSize: '0.82rem',
+                                            background: '#ffffff'
+                                        }}
+                                    />
+                                    {alquilerSearch && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setAlquilerSearch('')}
+                                            style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'transparent', cursor: 'pointer', color: '#94a3b8' }}
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                    )}
+                                </div>
+
+                                <div style={{ display: 'flex', background: '#f8fafc', padding: '3px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                    <button
+                                        type="button"
+                                        onClick={() => setAlquilerFilterStatus('todos')}
+                                        style={{
+                                            padding: '0.35rem 0.7rem',
+                                            borderRadius: '6px',
+                                            border: 'none',
+                                            fontSize: '0.78rem',
+                                            fontWeight: 600,
+                                            cursor: 'pointer',
+                                            background: alquilerFilterStatus === 'todos' ? '#0f172a' : 'transparent',
+                                            color: alquilerFilterStatus === 'todos' ? '#ffffff' : '#64748b'
+                                        }}
+                                    >
+                                        Todos ({alquileresAnalysis.totalEquipos})
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setAlquilerFilterStatus('alquilado')}
+                                        style={{
+                                            padding: '0.35rem 0.7rem',
+                                            borderRadius: '6px',
+                                            border: 'none',
+                                            fontSize: '0.78rem',
+                                            fontWeight: 600,
+                                            cursor: 'pointer',
+                                            background: alquilerFilterStatus === 'alquilado' ? '#0284c7' : 'transparent',
+                                            color: alquilerFilterStatus === 'alquilado' ? '#ffffff' : '#64748b'
+                                        }}
+                                    >
+                                        Alquilados ({alquileresAnalysis.totalAlquilados})
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setAlquilerFilterStatus('bodega')}
+                                        style={{
+                                            padding: '0.35rem 0.7rem',
+                                            borderRadius: '6px',
+                                            border: 'none',
+                                            fontSize: '0.78rem',
+                                            fontWeight: 600,
+                                            cursor: 'pointer',
+                                            background: alquilerFilterStatus === 'bodega' ? '#d97706' : 'transparent',
+                                            color: alquilerFilterStatus === 'bodega' ? '#ffffff' : '#64748b'
+                                        }}
+                                    >
+                                        Bodega ({alquileresAnalysis.totalEnBodega})
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style={{ overflowX: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.83rem' }}>
+                                <thead>
+                                    <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'left' }}>
+                                        <th style={{ padding: '0.75rem 1rem' }}>Serial / ID</th>
+                                        <th style={{ padding: '0.75rem 1rem' }}>Equipo & Modelo</th>
+                                        <th style={{ padding: '0.75rem 1rem' }}>Hardware & Especificaciones</th>
+                                        <th style={{ padding: '0.75rem 1rem' }}>Cliente Asignado</th>
+                                        <th style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>Fecha Inicio</th>
+                                        <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Canon Mensual</th>
+                                        <th style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {alquileresAnalysis.filteredEquipos.map((alq, i) => {
+                                        const isAlq = (alq.estado || '').toLowerCase() === 'alquilado';
+                                        const matchedClient = (clientes || []).find(c => c.id === alq.clienteId || (c.nombre && alq.clienteNombre && c.nombre.toLowerCase().trim() === alq.clienteNombre.toLowerCase().trim()));
+                                        const cName = isAlq ? (matchedClient?.nombre || alq.clienteNombre || 'Cliente Asignado') : '— En Bodega (Disponible) —';
+                                        const specs = [alq.procesador, alq.memoriaRam, alq.discoDuro, alq.generacion].filter(Boolean).join(' · ');
+
+                                        return (
+                                            <tr key={alq.id || i} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                                <td style={{ padding: '0.75rem 1rem', fontFamily: 'monospace', fontWeight: 700, color: '#0f172a' }}>
+                                                    {alq.serial || 'S/N'}
+                                                </td>
+                                                <td style={{ padding: '0.75rem 1rem', fontWeight: 600, color: '#0f172a' }}>
+                                                    {alq.descripcion || 'Equipo de Cómputo'}
+                                                </td>
+                                                <td style={{ padding: '0.75rem 1rem', color: '#64748b' }}>
+                                                    {specs || 'Estándar Corporativo'}
+                                                </td>
+                                                <td style={{ padding: '0.75rem 1rem' }}>
+                                                    <span style={{ fontWeight: isAlq ? 600 : 400, color: isAlq ? '#0f172a' : '#94a3b8' }}>
+                                                        {cName}
+                                                    </span>
+                                                </td>
+                                                <td style={{ padding: '0.75rem 1rem', textAlign: 'center', color: '#64748b' }}>
+                                                    {alq.fechaInicio || '—'}
+                                                </td>
+                                                <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 700, color: isAlq ? '#16a34a' : '#64748b' }}>
+                                                    {fmt(Number(alq.valorMensual) || 0)}
+                                                </td>
+                                                <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>
+                                                    <span style={{
+                                                        background: isAlq ? '#dcfce7' : '#fef3c7',
+                                                        color: isAlq ? '#15803d' : '#b45309',
+                                                        padding: '3px 8px',
+                                                        borderRadius: '6px',
+                                                        fontSize: '0.72rem',
+                                                        fontWeight: 700
+                                                    }}>
+                                                        {isAlq ? 'Alquilado' : 'En Bodega'}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                    {alquileresAnalysis.filteredEquipos.length === 0 && (
+                                        <tr>
+                                            <td colSpan={7} style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>
+                                                No se encontraron equipos que coincidan con la búsqueda o filtro seleccionado.
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    {/* MODAL FLOTANTE DE DETALLE POR CLIENTE */}
+                    {selectedClientForModal && (
+                        <div style={{
+                            position: 'fixed',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            background: 'rgba(15, 23, 42, 0.6)',
+                            backdropFilter: 'blur(3px)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            zIndex: 9999,
+                            padding: '1rem'
+                        }}>
+                            <div style={{
+                                background: '#ffffff',
+                                borderRadius: '16px',
+                                width: '100%',
+                                maxWidth: '750px',
+                                maxHeight: '85vh',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+                                overflow: 'hidden'
+                            }}>
+                                <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc' }}>
+                                    <div>
+                                        <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#0f172a' }}>
+                                            {selectedClientForModal.clienteNombre}
+                                        </h3>
+                                        <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>
+                                            NIT: {selectedClientForModal.nit} · {selectedClientForModal.cantidad} máquinas arrendadas · Canon mensual: <strong style={{ color: '#16a34a' }}>{fmt(selectedClientForModal.valorMensualTotal)}</strong>
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedClientForModal(null)}
+                                        style={{ border: 'none', background: '#f1f5f9', borderRadius: '8px', padding: '0.4rem', cursor: 'pointer', color: '#64748b' }}
+                                    >
+                                        <X size={18} />
+                                    </button>
+                                </div>
+
+                                <div style={{ padding: '1rem 1.5rem', overflowY: 'auto', flex: 1 }}>
+                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                                        <thead>
+                                            <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'left' }}>
+                                                <th style={{ padding: '0.6rem 0.8rem' }}>Serial</th>
+                                                <th style={{ padding: '0.6rem 0.8rem' }}>Descripción / Modelo</th>
+                                                <th style={{ padding: '0.6rem 0.8rem' }}>Hardware (CPU/RAM/Disco)</th>
+                                                <th style={{ padding: '0.6rem 0.8rem', textAlign: 'center' }}>Inicio</th>
+                                                <th style={{ padding: '0.6rem 0.8rem', textAlign: 'right' }}>Canon ($)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {selectedClientForModal.equipos.map((eq: any, idx: number) => {
+                                                const specs = [eq.procesador, eq.memoriaRam, eq.discoDuro, eq.generacion].filter(Boolean).join(' · ');
+                                                return (
+                                                    <tr key={eq.id || idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                                        <td style={{ padding: '0.65rem 0.8rem', fontFamily: 'monospace', fontWeight: 700, color: '#0f172a' }}>
+                                                            {eq.serial || 'S/N'}
+                                                        </td>
+                                                        <td style={{ padding: '0.65rem 0.8rem', fontWeight: 600, color: '#0f172a' }}>
+                                                            {eq.descripcion || 'Equipo'}
+                                                        </td>
+                                                        <td style={{ padding: '0.65rem 0.8rem', color: '#64748b' }}>
+                                                            {specs || 'Estándar'}
+                                                        </td>
+                                                        <td style={{ padding: '0.65rem 0.8rem', textAlign: 'center', color: '#64748b' }}>
+                                                            {eq.fechaInicio || '—'}
+                                                        </td>
+                                                        <td style={{ padding: '0.65rem 0.8rem', textAlign: 'right', fontWeight: 700, color: '#16a34a' }}>
+                                                            {fmt(Number(eq.valorMensual) || 0)}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div style={{ padding: '0.85rem 1.5rem', borderTop: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', justifyContent: 'flex-end' }}>
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedClientForModal(null)}
+                                        style={{ padding: '0.45rem 1rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontWeight: 600, fontSize: '0.82rem', cursor: 'pointer' }}
+                                    >
+                                        Cerrar Detalle
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 
