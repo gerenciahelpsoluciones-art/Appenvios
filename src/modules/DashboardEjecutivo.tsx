@@ -319,6 +319,14 @@ export default function DashboardEjecutivo({
         } catch { return []; }
     });
 
+    // Notas Crédito descargadas de Siigo
+    const [siigoCreditNotes, setSiigoCreditNotes] = useState<any[]>(() => {
+        try {
+            const saved = localStorage.getItem(`siigo_credit_notes_${now.getFullYear()}`);
+            return saved ? JSON.parse(saved) : [];
+        } catch { return []; }
+    });
+
     // Ajustes manuales por mes
     const [manualMonthAdjust, setManualMonthAdjust] = useState<Record<number, { ventas: number; costos: number; utilidad: number; facturas: number }>>(() => {
         try {
@@ -400,10 +408,21 @@ export default function DashboardEjecutivo({
                 if (parts[0] === String(selectedYear)) {
                     const m = parseInt(parts[1], 10);
                     if (m >= 1 && m <= 12) {
-                        // Venta neta contable SIN IVA (subtotal oficial de Siigo)
-                        const rawSubtotal = Number(inv.subtotal || 0);
-                        const rawTotal = Number(inv.total || inv.balance || 0);
-                        const val = rawSubtotal > 0 ? rawSubtotal : (rawTotal > 0 ? Math.round(rawTotal / 1.19) : 0);
+                        // Venta neta contable SIN IVA (calculada por ítems o subtotal oficial)
+                        let val = 0;
+                        if (Array.isArray(inv.items) && inv.items.length > 0) {
+                            val = inv.items.reduce((sum: number, it: any) => {
+                                const qty = Number(it.quantity) || 1;
+                                const price = Number(it.price) || 0;
+                                const discount = Number(it.discount) || 0;
+                                return sum + (qty * price - discount);
+                            }, 0);
+                        }
+                        if (val <= 0) {
+                            const rawSubtotal = Number(inv.subtotal || 0);
+                            const rawTotal = Number(inv.total || inv.balance || 0);
+                            val = rawSubtotal > 0 ? rawSubtotal : (rawTotal > 0 ? Math.round(rawTotal / 1.19) : 0);
+                        }
 
                         map[m].ventasNetas += val;
                         map[m].facturasCount += 1;
@@ -415,8 +434,41 @@ export default function DashboardEjecutivo({
                 }
             });
         }
+
+        // Descontar Notas Crédito del mes (Devoluciones y anulaciones)
+        if (siigoCreditNotes && siigoCreditNotes.length > 0) {
+            const seenCnIds = new Set<string>();
+            siigoCreditNotes.forEach(cn => {
+                const id = String(cn.id || cn.number || cn.name || '');
+                if (!id || seenCnIds.has(id)) return;
+                seenCnIds.add(id);
+
+                if (!cn.date) return;
+                const parts = String(cn.date).split('-');
+                if (parts[0] === String(selectedYear)) {
+                    const m = parseInt(parts[1], 10);
+                    if (m >= 1 && m <= 12) {
+                        let cnVal = 0;
+                        if (Array.isArray(cn.items) && cn.items.length > 0) {
+                            cnVal = cn.items.reduce((sum: number, it: any) => {
+                                const qty = Number(it.quantity) || 1;
+                                const price = Number(it.price) || 0;
+                                const discount = Number(it.discount) || 0;
+                                return sum + (qty * price - discount);
+                            }, 0);
+                        }
+                        if (cnVal <= 0) {
+                            const rawSubtotal = Number(cn.subtotal || 0);
+                            const rawTotal = Number(cn.total || cn.balance || 0);
+                            cnVal = rawSubtotal > 0 ? rawSubtotal : (rawTotal > 0 ? Math.round(rawTotal / 1.19) : 0);
+                        }
+                        map[m].ventasNetas = Math.max(0, map[m].ventasNetas - cnVal);
+                    }
+                }
+            });
+        }
         return map;
-    }, [siigoInvoices, selectedYear]);
+    }, [siigoInvoices, siigoCreditNotes, selectedYear]);
 
     // ── CÁLCULO DE COTIZACIONES VISIBLES (SEGÚN ROL) ──
     const cotizacionesVisibles = useMemo(() => {
@@ -889,6 +941,7 @@ export default function DashboardEjecutivo({
             // Descargar mes a mes por fecha contable de factura (date_start / date_end)
             setSyncLog(`⏳ Descargando facturación electrónica mensual de ${selectedYear}...`);
             let allInvoices: any[] = [];
+            let allCreditNotes: any[] = [];
             const currentM = 12; // Consultar los 12 meses de 2026
 
             for (let m = 1; m <= currentM; m++) {
@@ -955,12 +1008,32 @@ export default function DashboardEjecutivo({
                         }
                     }
                 }
+
+                // 3) Descargar Notas Crédito de este mes para restar devoluciones/anulaciones
+                try {
+                    const cnUrl = `${EDGE_FUNCTION_URL}?action=credit-notes&date_start=${startStr}&date_end=${endStr}&page=1&page_size=100`;
+                    const rCn = await fetch(cnUrl, {
+                        headers: { ...baseHeaders, 'x-siigo-token': access_token }
+                    });
+                    if (rCn.ok) {
+                        const jCn = await rCn.json();
+                        const cnItems = jCn.results || jCn.data || (Array.isArray(jCn) ? jCn : []);
+                        cnItems.forEach((cn: any) => {
+                            const id = String(cn.id || cn.number || cn.name || '');
+                            if (id && !allCreditNotes.some(x => String(x.id || x.number || x.name) === id)) {
+                                allCreditNotes.push(cn);
+                            }
+                        });
+                    }
+                } catch {}
             }
 
             if (allInvoices.length > 0) {
                 setSiigoInvoices(allInvoices);
+                setSiigoCreditNotes(allCreditNotes);
                 localStorage.setItem(`siigo_invoices_${selectedYear}`, JSON.stringify(allInvoices));
-                setSyncLog(`✅ Sincronización exitosa: ${allInvoices.length} facturas descargadas de Siigo Nube.`);
+                localStorage.setItem(`siigo_credit_notes_${selectedYear}`, JSON.stringify(allCreditNotes));
+                setSyncLog(`✅ Sincronización exitosa: ${allInvoices.length} facturas y ${allCreditNotes.length} notas crédito descargadas de Siigo Nube.`);
             } else {
                 setSyncLog(`✅ Conexión con Siigo verificada. Si no hay facturas devueltas por la API, se muestra el consolidado oficial.`);
             }
@@ -978,10 +1051,13 @@ export default function DashboardEjecutivo({
         try {
             localStorage.removeItem(`siigo_invoices_${selectedYear}`);
             localStorage.removeItem(`siigo_invoices_2026`);
+            localStorage.removeItem(`siigo_credit_notes_${selectedYear}`);
+            localStorage.removeItem(`siigo_credit_notes_2026`);
             localStorage.removeItem(`crm_manual_months_${selectedYear}`);
             localStorage.removeItem(`crm_manual_months_2026`);
         } catch {}
         setSiigoInvoices([]);
+        setSiigoCreditNotes([]);
         setManualMonthAdjust({});
         setSyncLog('✓ Valores restablecidos al consolidado oficial de Siigo Nube (Octubre: $112.259.066).');
     };
