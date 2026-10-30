@@ -81,6 +81,7 @@ export default function DashboardEjecutivo({
     const [siigoInvoices, setSiigoInvoices] = useState<any[]>([]);
     const [siigoCreditNotes, setSiigoCreditNotes] = useState<any[]>([]);
     const [costMap, setCostMap] = useState<Record<string, number>>({});
+    const [siigoSummaryMap, setSiigoSummaryMap] = useState<Record<string, any>>({});
     const [activeTabSection, setActiveTabSection] = useState<'comercial' | 'cartera' | 'flujo' | 'mesa'>('comercial');
     const [syncLog, setSyncLog] = useState<string>('');
 
@@ -94,10 +95,58 @@ export default function DashboardEjecutivo({
         technicians: { name: string; resolved: number; pending: number }[];
     } | null>(null);
 
-    // Cargar datos complementarios de Tesorería y Mesa de Ayuda al montar
+    // Cargar caché local y datos de Tesorería / Mesa de Ayuda al cambiar período
     useEffect(() => {
         fetchFlujoCajaData();
         fetchMesaAyudaData();
+
+        // 1. Cargar caché de Siigo si ya fue sincronizado antes
+        try {
+            const cached = localStorage.getItem(`comisiones_resumen_${selectedYear}_${selectedMonth}`);
+            if (cached) {
+                const parsed = JSON.parse(cached);
+                if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
+                    setSiigoSummaryMap(parsed);
+                    setSiigoDataLoaded(true);
+                }
+            }
+        } catch {}
+
+        // 2. Intentar leer de Postgres (victoria.siigo_cierre_comercial)
+        const fetchPgSiigo = async () => {
+            try {
+                const query = `SELECT * FROM victoria.siigo_cierre_comercial WHERE anio = ${selectedYear} AND mes = ${selectedMonth};`;
+                const res = await fetch('http://192.168.10.201:5678/webhook/victoria-sql', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ clave: 'victoria-2026-consulta-interna', sql: query })
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.filas && data.filas.length > 0) {
+                        const map: Record<string, any> = {};
+                        data.filas.forEach((f: any) => {
+                            map[f.vendedor_nombre] = {
+                                id: f.vendedor_id,
+                                name: f.vendedor_nombre,
+                                ventasBruto: Number(f.ventas_bruto || 0),
+                                devoluciones: Number(f.devoluciones || 0),
+                                ventasNetas: Number(f.ventas_netas || 0),
+                                costos: Number(f.costos || 0),
+                                utilidad: Number(f.utilidad || 0),
+                                comision: Number(f.comision || 0),
+                                countFacturas: Number(f.count_facturas || 0),
+                                countDevoluciones: Number(f.count_devoluciones || 0),
+                                ticketPromedio: Number(f.ticket_promedio || 0)
+                            };
+                        });
+                        setSiigoSummaryMap(prev => ({ ...prev, ...map }));
+                        setSiigoDataLoaded(true);
+                    }
+                }
+            } catch {}
+        };
+        fetchPgSiigo();
     }, [selectedYear, selectedMonth]);
 
     const fetchFlujoCajaData = async () => {
@@ -181,7 +230,7 @@ export default function DashboardEjecutivo({
         }
     };
 
-    // Función para sincronizar Siigo directamente en el navegador
+    // Función completa de sincronización de Siigo (idéntica a Comisiones.tsx)
     const syncSiigoData = async () => {
         const username = localStorage.getItem('siigo_username');
         const accessKey = localStorage.getItem('siigo_access_key');
@@ -191,7 +240,7 @@ export default function DashboardEjecutivo({
         }
 
         setLoadingSiigo(true);
-        setSyncLog('Autenticando con Siigo...');
+        setSyncLog('Autenticando con Siigo Nube...');
 
         try {
             const baseHeaders = {
@@ -207,35 +256,237 @@ export default function DashboardEjecutivo({
             });
 
             if (!authRes.ok) throw new Error('Falló autenticación con Siigo');
-            const { access_token } = await authRes.json();
+            const { access_token: tk } = await authRes.json();
 
-            setSyncLog('Descargando facturas y notas crédito del año...');
+            // Paginador seguro
+            const fetchPagesSafe = async (action: string, params: Record<string, string> = {}) => {
+                let all: any[] = [];
+                for (let p = 1; p <= 50; p++) {
+                    const qs = new URLSearchParams({ action, ...params, page: String(p), page_size: '100' }).toString();
+                    const res = await fetch(`${EDGE_FUNCTION_URL}?${qs}`, { headers: { ...baseHeaders, 'x-siigo-token': tk } });
+                    if (!res.ok) break;
+                    let data: any;
+                    try { data = await res.json(); } catch { break; }
+                    const rows = data.results ?? data.data ?? (Array.isArray(data) ? data : []);
+                    if (!rows.length) break;
+                    all = [...all, ...rows];
+                    if (rows.length < 100) break;
+                }
+                return all;
+            };
+
             const lastDay = new Date(selectedYear, selectedMonth, 0).getDate();
             const docStart = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-01`;
             const docEnd = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+            const endFilterDate = new Date(selectedYear, selectedMonth, 5);
+            const endYear = endFilterDate.getFullYear();
+            const endMonth = endFilterDate.getMonth() + 1;
+            const endDay = endFilterDate.getDate();
 
-            // Consultar facturas del mes
-            const invUrl = `${EDGE_FUNCTION_URL}?action=invoices&created_start=${docStart}&created_end=${docEnd}&page=1&page_size=100`;
-            const invRes = await fetch(invUrl, { headers: { ...baseHeaders, 'x-siigo-token': access_token } });
-            let invs: any[] = [];
-            if (invRes.ok) {
-                const j = await invRes.json();
-                invs = j.results || j.data || (Array.isArray(j) ? j : []);
+            setSyncLog('Cargando facturas de venta Siigo...');
+            let rawInv = await fetchPagesSafe('invoices', {
+                created_start: `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-01`,
+                created_end: `${endYear}-${String(endMonth).padStart(2, '0')}-${String(endDay).padStart(2, '0')}`
+            });
+            rawInv = rawInv.filter((inv: any) => inv.date >= docStart && inv.date <= docEnd);
+
+            setSyncLog(`Detallando ${rawInv.length} facturas de venta...`);
+            const detailedInv: any[] = [];
+            for (let i = 0; i < rawInv.length; i++) {
+                try {
+                    const r = await fetch(`${EDGE_FUNCTION_URL}?action=invoice-detail&id=${rawInv[i].id}`, {
+                        headers: { ...baseHeaders, 'x-siigo-token': tk }
+                    });
+                    detailedInv.push(r.ok ? await r.json() : rawInv[i]);
+                } catch { detailedInv.push(rawInv[i]); }
+                if (i % 6 === 0) await new Promise(r => setTimeout(r, 60));
             }
+            setSiigoInvoices(detailedInv);
 
-            // Consultar notas crédito del mes
-            const cnUrl = `${EDGE_FUNCTION_URL}?action=credit-notes&created_start=${docStart}&created_end=${docEnd}&page=1&page_size=100`;
-            const cnRes = await fetch(cnUrl, { headers: { ...baseHeaders, 'x-siigo-token': access_token } });
-            let cns: any[] = [];
-            if (cnRes.ok) {
-                const j = await cnRes.json();
-                cns = j.results || j.data || (Array.isArray(j) ? j : []);
+            // Notas crédito
+            setSyncLog('Cargando notas crédito Siigo...');
+            let rawCN = await fetchPagesSafe('credit-notes', {
+                created_start: `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-01`,
+                created_end: `${endYear}-${String(endMonth).padStart(2, '0')}-${String(endDay).padStart(2, '0')}`
+            });
+            rawCN = rawCN.filter((cn: any) => cn.date >= docStart && cn.date <= docEnd);
+            const detailedCN: any[] = [];
+            for (const cn of rawCN) {
+                if (cn.items?.length > 0) { detailedCN.push(cn); continue; }
+                try {
+                    const r = await fetch(`${EDGE_FUNCTION_URL}?action=credit-note-detail&id=${cn.id}`, {
+                        headers: { ...baseHeaders, 'x-siigo-token': tk }
+                    });
+                    detailedCN.push(r.ok ? await r.json() : cn);
+                } catch { detailedCN.push(cn); }
             }
+            setSiigoCreditNotes(detailedCN);
 
-            setSiigoInvoices(invs);
-            setSiigoCreditNotes(cns);
+            // Costos de compra de productos del último año
+            setSyncLog('Calculando costos reales con historial de compras Siigo...');
+            const dateRef = new Date(selectedYear, selectedMonth - 1, lastDay);
+            const dateStart = new Date(dateRef);
+            dateStart.setDate(dateStart.getDate() - 365);
+            const pStart = dateStart.toISOString().split('T')[0];
+            const pEnd = dateRef.toISOString().split('T')[0];
+
+            const [purchases, bills, supportDocs] = await Promise.all([
+                fetchPagesSafe('purchases', { date_start: pStart, date_end: pEnd }),
+                fetchPagesSafe('bills', { date_start: pStart, date_end: pEnd }),
+                fetchPagesSafe('purchase-support-documents', { date_start: pStart, date_end: pEnd })
+            ]);
+
+            const allPurchases = [...purchases, ...bills, ...supportDocs];
+            const costs: Record<string, number> = {};
+            const costsByDesc: Record<string, number> = {};
+
+            const registerCost = (item: any) => {
+                const c = String(item.code || item.product_code || '').trim();
+                const rawDesc = String(item.description || '').trim().toLowerCase();
+                const d = rawDesc.replace(/[áàäâ]/g, 'a').replace(/[éèëê]/g, 'e').replace(/[íìïî]/g, 'i').replace(/[óòöô]/g, 'o').replace(/[úùüû]/g, 'u');
+                let price = Number(item.price ?? item.unit_price ?? item.value ?? 0);
+                const isExcluded = ['6035', '9289'].includes(c) || ['flete', 'envio', 'visita tecnica', 'mensajer'].some(k => d.includes(k));
+                if (isExcluded) {
+                    if (c) costs[c] = 0;
+                    if (d) costsByDesc[d] = 0;
+                    return;
+                }
+                if (price <= 0) return;
+                if (c && costs[c] === undefined) costs[c] = price;
+                if (d && costsByDesc[d] === undefined) costsByDesc[d] = price;
+            };
+
+            allPurchases.forEach((p: any) => (p.items ?? []).forEach(registerCost));
+            setCostMap(costs);
+
+            // Helpers para calcular líneas de venta con descuento
+            const lineTotal = (item: any): number => {
+                const qty = Number(item.quantity ?? 1);
+                const price = Number(item.price ?? item.unit_price ?? 0);
+                let disc = 0;
+                if (typeof item.discount === 'object' && item.discount !== null) {
+                    disc = Number(item.discount.percentage ?? 0);
+                    if (disc === 0 && Number(item.discount.value ?? 0) > 0) {
+                        disc = (Number(item.discount.value) / (price * qty)) * 100;
+                    }
+                } else {
+                    disc = Number(item.discount ?? 0);
+                }
+                if (isNaN(disc)) disc = 0;
+                return Math.round(price * qty * (1 - disc / 100) * 100) / 100;
+            };
+
+            const getSeller = (doc: any): { id: string; name: string } => {
+                const cc = doc.cost_center;
+                if (cc != null) {
+                    const id = String(typeof cc === 'object' ? (cc.id ?? cc.code ?? '') : cc);
+                    const name = DEFAULT_CC_MAP[id] ?? `CC-${id}`;
+                    return { id, name };
+                }
+                const raw = doc.seller ?? doc.user ?? doc.salesperson;
+                if (raw != null) {
+                    const id = String(typeof raw === 'object' ? (raw.id ?? raw.code ?? '') : raw);
+                    const name = DEFAULT_CC_MAP[id] ?? `Vendedor ${id}`;
+                    return { id, name };
+                }
+                return { id: '13847', name: 'Carlos Arturo Saenz' };
+            };
+
+            // Agrupar ventas y utilidades por vendedor (Lógica oficial de Comisiones.tsx)
+            const map: Record<string, any> = {};
+            const initRow = (id: string, name: string) => {
+                if (!map[name]) {
+                    map[name] = {
+                        id, name,
+                        ventasBruto: 0, devoluciones: 0, ventasNetas: 0,
+                        costos: 0, utilidad: 0, comision: 0,
+                        countFacturas: 0, countDevoluciones: 0, ticketPromedio: 0
+                    };
+                }
+                return map[name];
+            };
+
+            detailedInv.forEach(inv => {
+                const { id, name } = getSeller(inv);
+                const row = initRow(id, name);
+                row.countFacturas++;
+                (inv.items ?? []).forEach((item: any) => {
+                    const venta = lineTotal(item);
+                    const price = Number(item.price ?? item.unit_price ?? 0);
+                    const c = String(item.code || '').trim();
+                    const d = String(item.description || '').trim().toLowerCase().replace(/[áàäâ]/g, 'a').replace(/[éèëê]/g, 'e').replace(/[íìïî]/g, 'i').replace(/[óòöô]/g, 'o').replace(/[úùüû]/g, 'u');
+                    const isSvc = ['6035', '9289'].includes(c) || d.includes('flete') || d.includes('envio') || d.includes('mensajer') || d.includes('visita');
+                    const uCost = isSvc ? 0 : (costs[c] ?? costsByDesc[d] ?? (item.unit_cost ? Number(item.unit_cost) : (price * 0.70)));
+                    const costo = uCost * Number(item.quantity ?? 1);
+                    row.ventasBruto += venta;
+                    row.costos += costo;
+                });
+            });
+
+            // Descontar notas crédito
+            detailedCN.forEach(cn => {
+                const { id, name } = getSeller(cn);
+                const row = initRow(id, name);
+                row.countDevoluciones++;
+                (cn.items ?? []).forEach((item: any) => {
+                    const devol = Math.abs(lineTotal(item));
+                    const price = Number(item.price ?? item.unit_price ?? 0);
+                    const c = String(item.code || '').trim();
+                    const d = String(item.description || '').trim().toLowerCase().replace(/[áàäâ]/g, 'a').replace(/[éèëê]/g, 'e').replace(/[íìïî]/g, 'i').replace(/[óòöô]/g, 'o').replace(/[úùüû]/g, 'u');
+                    const isSvc = ['6035', '9289'].includes(c) || d.includes('flete') || d.includes('envio') || d.includes('mensajer') || d.includes('visita');
+                    const uCost = isSvc ? 0 : (costs[c] ?? costsByDesc[d] ?? (item.unit_cost ? Number(item.unit_cost) : (price * 0.70)));
+                    const costo = uCost * Math.abs(Number(item.quantity ?? 1));
+                    row.devoluciones += devol;
+                    row.costos -= costo;
+                });
+            });
+
+            // Consolidar netos, utilidades y comisiones
+            Object.values(map).forEach(r => {
+                r.ventasNetas = Math.round(r.ventasBruto - r.devoluciones);
+                r.costos = Math.round(r.costos);
+                r.utilidad = Math.round(r.ventasNetas - r.costos);
+                r.comision = Math.round(r.utilidad * 0.10);
+                r.ticketPromedio = r.countFacturas > 0 ? Math.round(r.ventasNetas / r.countFacturas) : 0;
+            });
+
+            setSiigoSummaryMap(map);
             setSiigoDataLoaded(true);
-            setSyncLog(`✅ Sincronizado: ${invs.length} facturas y ${cns.length} notas crédito.`);
+            localStorage.setItem(`comisiones_resumen_${selectedYear}_${selectedMonth}`, JSON.stringify(map));
+
+            // Sincronizar en PostgreSQL victoria.siigo_cierre_comercial para que Victoria lo use de inmediato
+            try {
+                for (const row of Object.values(map) as any[]) {
+                    const upsertSQL = `
+                        INSERT INTO victoria.siigo_cierre_comercial 
+                        (anio, mes, vendedor_id, vendedor_nombre, ventas_bruto, devoluciones, ventas_netas, costos, utilidad, comision, count_facturas, count_devoluciones, ticket_promedio)
+                        VALUES (${selectedYear}, ${selectedMonth}, '${row.id}', '${row.name}', ${row.ventasBruto}, ${row.devoluciones}, ${row.ventasNetas}, ${row.costos}, ${row.utilidad}, ${row.comision}, ${row.countFacturas}, ${row.countDevoluciones}, ${row.ticketPromedio})
+                        ON CONFLICT (anio, mes, vendedor_id) DO UPDATE SET
+                          vendedor_nombre = EXCLUDED.vendedor_nombre,
+                          ventas_bruto = EXCLUDED.ventas_bruto,
+                          devoluciones = EXCLUDED.devoluciones,
+                          ventas_netas = EXCLUDED.ventas_netas,
+                          costos = EXCLUDED.costos,
+                          utilidad = EXCLUDED.utilidad,
+                          comision = EXCLUDED.comision,
+                          count_facturas = EXCLUDED.count_facturas,
+                          count_devoluciones = EXCLUDED.count_devoluciones,
+                          ticket_promedio = EXCLUDED.ticket_promedio,
+                          actualizado_en = now();
+                    `;
+                    await fetch('http://192.168.10.201:5678/webhook/victoria-sql', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ clave: 'victoria-2026-consulta-interna', sql: upsertSQL })
+                    });
+                }
+            } catch (pgErr) {
+                console.warn('Postgres sync skipped:', pgErr);
+            }
+
+            const totalNeto = Object.values(map).reduce((acc: number, r: any) => acc + r.ventasNetas, 0);
+            const totalUtil = Object.values(map).reduce((acc: number, r: any) => acc + r.utilidad, 0);
+            setSyncLog(`✅ Siigo Sincronizado: ${detailedInv.length} facturas · Total Facturado: ${fmtCOP(totalNeto)} · Utilidad Real: ${fmtCOP(totalUtil)}`);
         } catch (err: any) {
             setSyncLog(`❌ Error: ${err.message}`);
         } finally {
@@ -367,8 +618,8 @@ export default function DashboardEjecutivo({
             }
         });
 
-        // Si tenemos datos descargados de Siigo, enriquecemos con los centros de costos de Siigo
-        if (siigoDataLoaded && siigoInvoices.length > 0) {
+        // Si tenemos datos consolidados de Siigo (resumen oficial con costos y notas crédito de Comisiones)
+        if (siigoDataLoaded && Object.keys(siigoSummaryMap).length > 0) {
             asesoresList.forEach(name => {
                 map[name].ventasNetas = 0;
                 map[name].costos = 0;
@@ -376,23 +627,30 @@ export default function DashboardEjecutivo({
                 map[name].cierresCount = 0;
             });
 
-            siigoInvoices.forEach(inv => {
-                const ccId = String(typeof inv.cost_center === 'object' ? (inv.cost_center?.id || '') : (inv.cost_center || ''));
-                const asesorNombre = DEFAULT_CC_MAP[ccId];
-                if (asesorNombre && map[asesorNombre]) {
-                    const totalInv = Number(inv.total || inv.balance || 0);
-                    map[asesorNombre].ventasNetas += totalInv;
-                    map[asesorNombre].cierresCount += 1;
-                    // Estimación de costo/utilidad de Siigo
-                    const utilEst = totalInv * 0.20;
-                    map[asesorNombre].utilidad += utilEst;
-                    map[asesorNombre].costos += (totalInv - utilEst);
+            Object.entries(siigoSummaryMap).forEach(([name, sRow]: [string, any]) => {
+                const target = asesoresList.find(a => a.toLowerCase() === name.toLowerCase()) || name;
+                if (!map[target]) {
+                    map[target] = {
+                        nombre: target,
+                        ventasNetas: 0,
+                        utilidad: 0,
+                        costos: 0,
+                        cierresCount: 0,
+                        cotizacionesCount: 0,
+                        cotizadoMonto: 0,
+                        pipelineCount: 0,
+                        pipelineMonto: 0
+                    };
                 }
+                map[target].ventasNetas = Number(sRow.ventasNetas || 0);
+                map[target].costos = Number(sRow.costos || 0);
+                map[target].utilidad = Number(sRow.utilidad || 0);
+                map[target].cierresCount = Number(sRow.countFacturas || 0);
             });
         }
 
         return Object.values(map);
-    }, [cotizacionesMes, pipelineSeguimiento, siigoDataLoaded, siigoInvoices]);
+    }, [cotizacionesMes, pipelineSeguimiento, siigoDataLoaded, siigoSummaryMap]);
 
     // Totales consolidados de Ventas y Utilidad del Mes
     const totalVentasMes = useMemo(() => {
@@ -433,27 +691,55 @@ export default function DashboardEjecutivo({
     const matrizAnual = useMemo(() => {
         const meses = [];
         for (let m = 1; m <= 12; m++) {
+            let siigoMes: any = null;
+            if (m === selectedMonth && siigoDataLoaded && Object.keys(siigoSummaryMap).length > 0) {
+                siigoMes = siigoSummaryMap;
+            } else {
+                try {
+                    const cached = localStorage.getItem(`comisiones_resumen_${selectedYear}_${m}`);
+                    if (cached) siigoMes = JSON.parse(cached);
+                } catch {}
+            }
+
+            let totalVentas = 0;
+            let totalUtil = 0;
+            let totalCostos = 0;
+            let cierresCount = 0;
+
             const prefix = `${selectedYear}-${String(m).padStart(2, '0')}`;
             const cots = cotizaciones.filter(c => c.fecha && c.fecha.startsWith(prefix));
             const ganadas = cots.filter(c => c.estado === 'Ganado');
-            const totalVentas = ganadas.reduce((acc, c) => acc + (Number(c.total) || 0), 0);
-            const totalUtil = ganadas.reduce((acc, c) => acc + (Number(c.utilidadTotal) || totalVentas * 0.18), 0);
             const totalCots = cots.reduce((acc, c) => acc + (Number(c.total) || 0), 0);
+
+            if (siigoMes && Object.keys(siigoMes).length > 0) {
+                Object.values(siigoMes).forEach((r: any) => {
+                    totalVentas += Number(r.ventasNetas || 0);
+                    totalUtil += Number(r.utilidad || 0);
+                    totalCostos += Number(r.costos || 0);
+                    cierresCount += Number(r.countFacturas || 0);
+                });
+            } else {
+                totalVentas = ganadas.reduce((acc, c) => acc + (Number(c.total) || 0), 0);
+                totalUtil = ganadas.reduce((acc, c) => acc + (Number(c.utilidadTotal) || totalVentas * 0.18), 0);
+                totalCostos = totalVentas - totalUtil;
+                cierresCount = ganadas.length;
+            }
+
             const margen = totalVentas > 0 ? (totalUtil / totalVentas) * 100 : 0;
 
             meses.push({
                 mesNum: m,
                 nombre: MONTH_NAMES[m - 1],
                 ventas: totalVentas,
-                costos: totalVentas - totalUtil,
+                costos: totalCostos,
                 utilidad: totalUtil,
                 margen,
                 cotizado: totalCots,
-                cierresCount: ganadas.length
+                cierresCount
             });
         }
         return meses;
-    }, [cotizaciones, selectedYear]);
+    }, [cotizaciones, selectedYear, selectedMonth, siigoDataLoaded, siigoSummaryMap]);
 
     const totalVentasAnual = matrizAnual.reduce((acc, m) => acc + m.ventas, 0);
     const totalUtilidadAnual = matrizAnual.reduce((acc, m) => acc + m.utilidad, 0);
