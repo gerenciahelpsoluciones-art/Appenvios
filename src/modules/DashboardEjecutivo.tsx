@@ -482,17 +482,18 @@ export default function DashboardEjecutivo({
                 costosSiigo = manualM.costos;
                 utilSiigo = manualM.utilidad;
                 facturasSiigo = manualM.facturas;
+            } else if (hasSiigoLive && siigoLiveM.ventasNetas > 0) {
+                // Facturación real en vivo descargada de Siigo Nube (sin topes artificiales)
+                ventasSiigo = siigoLiveM.ventasNetas;
+                utilSiigo = Math.round(ventasSiigo * 0.312);
+                costosSiigo = ventasSiigo - utilSiigo;
+                facturasSiigo = siigoLiveM.facturasCount;
             } else if (m === 10) {
                 // Octubre: Valor oficial exacto de Siigo Nube informado por Carlos
                 ventasSiigo = 112259066;
                 utilSiigo = Math.round(112259066 * 0.312);
                 costosSiigo = ventasSiigo - utilSiigo;
                 facturasSiigo = (hasSiigoLive && siigoLiveM.facturasCount > 0) ? siigoLiveM.facturasCount : 98;
-            } else if (hasSiigoLive && siigoLiveM.ventasNetas > 0 && siigoLiveM.ventasNetas < 180000000) {
-                ventasSiigo = siigoLiveM.ventasNetas;
-                utilSiigo = ventasSiigo * 0.312;
-                costosSiigo = ventasSiigo - utilSiigo;
-                facturasSiigo = siigoLiveM.facturasCount;
             } else if (siigoBaseM) {
                 if (isAdmin || selectedVendedor === 'all') {
                     ventasSiigo = siigoBaseM.ventasNetas;
@@ -885,10 +886,10 @@ export default function DashboardEjecutivo({
             localStorage.setItem('siigo_username', u);
             localStorage.setItem('siigo_access_key', k);
 
-            // Descargar mes a mes para no desbordar el rango máximo permitido por Siigo API
+            // Descargar mes a mes por fecha contable de factura (date_start / date_end)
             setSyncLog(`⏳ Descargando facturación electrónica mensual de ${selectedYear}...`);
             let allInvoices: any[] = [];
-            const currentM = now.getMonth() + 1;
+            const currentM = 12; // Consultar los 12 meses de 2026
 
             for (let m = 1; m <= currentM; m++) {
                 const lastDay = new Date(selectedYear, m, 0).getDate();
@@ -896,29 +897,72 @@ export default function DashboardEjecutivo({
                 const startStr = `${selectedYear}-${mStr}-01`;
                 const endStr = `${selectedYear}-${mStr}-${String(lastDay).padStart(2, '0')}`;
 
-                const url = `${EDGE_FUNCTION_URL}?action=invoices&created_start=${startStr}&created_end=${endStr}&page=1&page_size=100`;
-                const r = await fetch(url, {
-                    headers: { ...baseHeaders, 'x-siigo-token': access_token }
-                });
+                let page = 1;
+                let hasMore = true;
+                let monthCount = 0;
 
-                if (r.ok) {
-                    const j = await r.json();
-                    const items = j.results || j.data || (Array.isArray(j) ? j : []);
-                    items.forEach((item: any) => {
-                        const id = String(item.id || item.number || item.name || '');
-                        if (id && !allInvoices.some(x => String(x.id || x.number || x.name) === id)) {
-                            allInvoices.push(item);
+                // 1) Consulta primaria por fecha oficial de factura (date_start / date_end)
+                while (hasMore && page <= 5) {
+                    const url = `${EDGE_FUNCTION_URL}?action=invoices&date_start=${startStr}&date_end=${endStr}&page=${page}&page_size=100`;
+                    try {
+                        const r = await fetch(url, {
+                            headers: { ...baseHeaders, 'x-siigo-token': access_token }
+                        });
+                        if (!r.ok) { hasMore = false; break; }
+                        const j = await r.json();
+                        const items = j.results || j.data || (Array.isArray(j) ? j : []);
+                        if (!items || items.length === 0) { hasMore = false; break; }
+
+                        items.forEach((item: any) => {
+                            const id = String(item.id || item.number || item.name || '');
+                            if (id && !allInvoices.some(x => String(x.id || x.number || x.name) === id)) {
+                                allInvoices.push(item);
+                                monthCount++;
+                            }
+                        });
+
+                        if (items.length < 100) { hasMore = false; } else { page++; }
+                    } catch {
+                        hasMore = false;
+                    }
+                }
+
+                // 2) Fallback con created_start si no trajo por date_start
+                if (monthCount === 0) {
+                    page = 1;
+                    hasMore = true;
+                    while (hasMore && page <= 5) {
+                        const url = `${EDGE_FUNCTION_URL}?action=invoices&created_start=${startStr}&created_end=${endStr}&page=${page}&page_size=100`;
+                        try {
+                            const r = await fetch(url, {
+                                headers: { ...baseHeaders, 'x-siigo-token': access_token }
+                            });
+                            if (!r.ok) { hasMore = false; break; }
+                            const j = await r.json();
+                            const items = j.results || j.data || (Array.isArray(j) ? j : []);
+                            if (!items || items.length === 0) { hasMore = false; break; }
+
+                            items.forEach((item: any) => {
+                                const id = String(item.id || item.number || item.name || '');
+                                if (id && !allInvoices.some(x => String(x.id || x.number || x.name) === id)) {
+                                    allInvoices.push(item);
+                                }
+                            });
+
+                            if (items.length < 100) { hasMore = false; } else { page++; }
+                        } catch {
+                            hasMore = false;
                         }
-                    });
+                    }
                 }
             }
 
             if (allInvoices.length > 0) {
                 setSiigoInvoices(allInvoices);
                 localStorage.setItem(`siigo_invoices_${selectedYear}`, JSON.stringify(allInvoices));
-                setSyncLog(`✅ Sincronización exitosa: ${allInvoices.length} facturas descargadas de Siigo.`);
+                setSyncLog(`✅ Sincronización exitosa: ${allInvoices.length} facturas descargadas de Siigo Nube.`);
             } else {
-                setSyncLog(`✅ Conexión con Siigo verificada. Mostrando consolidado oficial de facturación contable.`);
+                setSyncLog(`✅ Conexión con Siigo verificada. Si no hay facturas devueltas por la API, se muestra el consolidado oficial.`);
             }
             setShowSiigoModal(false);
         } catch (err: any) {
