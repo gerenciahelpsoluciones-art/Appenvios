@@ -131,7 +131,7 @@ const ClientesModule: React.FC<IProps> = ({ clientes, onAdd, onUpdate, onDelete,
             <input className="input-field" placeholder="Dirección" value={formData.direccion || ''} onChange={e => setFormData({ ...formData, direccion: e.target.value })} />
             <input className="input-field" placeholder="Ciudad" value={formData.ciudad || ''} onChange={e => setFormData({ ...formData, ciudad: e.target.value })} />
             <input className="input-field" placeholder="Coordenadas (Lat, Long)" value={formData.coordenadas || ''} onChange={e => setFormData({ ...formData, coordenadas: e.target.value })} />
-            <select 
+                        <select 
               className="input-field" 
               value={formData.regimen || 'Régimen Común'} 
               onChange={e => setFormData({ ...formData, regimen: e.target.value as any })}
@@ -139,6 +139,42 @@ const ClientesModule: React.FC<IProps> = ({ clientes, onAdd, onUpdate, onDelete,
               <option value="Régimen Común">Régimen Común</option>
               <option value="Régimen Simplificado">Régimen Simplificado</option>
             </select>
+
+            <div style={{ gridColumn: 'span 2', background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0', marginTop: '0.25rem' }}>
+              <label style={{ display: 'block', fontWeight: 700, fontSize: '0.85rem', color: '#1e293b', marginBottom: '0.5rem' }}>
+                🏷️ Clasificación de Cliente (Categoría en Colores)
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem' }}>
+                {(['A', 'B', 'C', 'D'] as CategoriaCliente[]).map(catKey => {
+                  const cfg = CATEGORIAS_CLIENTE[catKey];
+                  const isSelected = (formData.categoria || 'A') === catKey;
+                  return (
+                    <div
+                      key={catKey}
+                      onClick={() => setFormData({ ...formData, categoria: catKey })}
+                      style={{
+                        padding: '0.6rem 0.8rem',
+                        borderRadius: '8px',
+                        border: `2px solid ${isSelected ? cfg.dotColor : cfg.border}`,
+                        background: isSelected ? cfg.bg : '#ffffff',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        boxShadow: isSelected ? '0 2px 4px rgba(0,0,0,0.08)' : 'none',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: cfg.dotColor, flexShrink: 0 }} />
+                      <div>
+                        <div style={{ fontWeight: 800, fontSize: '0.82rem', color: cfg.color }}>Cat. {catKey}</div>
+                        <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{cfg.nombreColor}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
 
             <div className="contact-section" style={{ gridColumn: 'span 2', background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
               <h4 style={{ margin: '0 0 1rem 0', color: 'var(--primary-blue)' }}>💰 Datos de Tesorería</h4>
@@ -321,7 +357,30 @@ const ClientesModule: React.FC<IProps> = ({ clientes, onAdd, onUpdate, onDelete,
                     <small>{c.correo}</small>
                   </td>
                   <td>
-                    <ClienteCategoriaBadge categoria={c.categoria} size="md" showLabel={true} />
+                    <select
+                      value={c.categoria || 'A'}
+                      onChange={(e) => {
+                        const newCat = e.target.value as CategoriaCliente;
+                        onUpdate({ ...c, categoria: newCat });
+                      }}
+                      style={{
+                        padding: '4px 8px',
+                        borderRadius: '12px',
+                        fontSize: '0.78rem',
+                        fontWeight: 700,
+                        background: CATEGORIAS_CLIENTE[(c.categoria || 'A') as CategoriaCliente]?.bg || '#fef9c3',
+                        border: `1.5px solid ${CATEGORIAS_CLIENTE[(c.categoria || 'A') as CategoriaCliente]?.border || '#facc15'}`,
+                        color: CATEGORIAS_CLIENTE[(c.categoria || 'A') as CategoriaCliente]?.color || '#854d0e',
+                        cursor: 'pointer',
+                        outline: 'none'
+                      }}
+                      title="Haz clic para cambiar la clasificación de este cliente"
+                    >
+                      <option value="A">🟡 Cat. A (Amarillo - Estándar)</option>
+                      <option value="B">🟢 Cat. B (Verde - VIP / Frecuente)</option>
+                      <option value="C">🔴 Cat. C (Rojo - Crítico / Mora)</option>
+                      <option value="D">🟠 Cat. D (Naranja - Prospecto / Nuevo)</option>
+                    </select>
                   </td>
                   <td>{c.nit}</td>
                   <td>{c.contacto}<br /><small>{c.telefono}</small></td>

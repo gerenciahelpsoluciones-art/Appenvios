@@ -857,7 +857,8 @@ function App() {
       cupo_credito: c.cupoCredito || 0,
       compradores: c.compradores || [],
       sedes: c.sedes || [],
-      regimen: c.regimen || 'Régimen Común'
+      regimen: c.regimen || 'Régimen Común',
+      categoria: c.categoria || 'A'
     };
 
     console.log('Insertando cliente en Supabase:', dbClient);
@@ -921,7 +922,8 @@ delete fallbackClient.categoria;
       cupo_credito: c.cupoCredito || 0,
       compradores: c.compradores || [],
       sedes: c.sedes || [],
-      regimen: c.regimen || 'Régimen Común'
+      regimen: c.regimen || 'Régimen Común',
+      categoria: c.categoria || 'A'
     };
 
     console.log('Actualizando cliente en Supabase:', payload);
