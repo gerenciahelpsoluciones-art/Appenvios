@@ -247,19 +247,19 @@ const SIIGO_FACTURACION_REAL_2026: Record<number, {
         }
     },
     10: {
-        ventasNetas: 39543488,
-        costos: 27276500,
-        utilidad: 12266988,
-        facturas: 36,
-        clientes: 28,
-        hardwareVentas: 27680000,
-        serviciosVentas: 11863488,
+        ventasNetas: 112259066,
+        costos: 77234237,
+        utilidad: 35024829,
+        facturas: 98,
+        clientes: 74,
+        hardwareVentas: 77907792,
+        serviciosVentas: 34351274,
         porAsesor: {
-            'Carlos Arturo Saenz': 15600000,
-            'Deicy Rodriguez': 13000000,
-            'Juan Andres Perez': 6100000,
-            'Lidy Hernandez': 3300000,
-            'Angelica Villanueva': 1543488
+            'Carlos Arturo Saenz': 46587512,
+            'Deicy Rodriguez': 37943564,
+            'Juan Andres Perez': 17063378,
+            'Lidy Hernandez': 7296839,
+            'Angelica Villanueva': 3367773
         }
     }
 };
@@ -306,7 +306,7 @@ export default function DashboardEjecutivo({
 
     // Sincronización Siigo
     const [loadingSiigo, setLoadingSiigo] = useState<boolean>(false);
-    const [syncLog, setSyncLog] = useState<string>('✓ Datos contables oficiales de Siigo Nube activos ($300.24 M facturado).');
+    const [syncLog, setSyncLog] = useState<string>('✓ Datos contables oficiales de Siigo Nube activos (Octubre: $112.259.066).');
     const [showSiigoModal, setShowSiigoModal] = useState<boolean>(false);
     const [siigoUsername, setSiigoUsername] = useState<string>(localStorage.getItem('siigo_username') || 'gerencia@helpsoluciones.com.co');
     const [siigoAccessKey, setSiigoAccessKey] = useState<string>(localStorage.getItem('siigo_access_key') || '');
