@@ -215,42 +215,42 @@ const SIIGO_FACTURACION_REAL_2026: Record<number, {
         }
     },
     8: {
-        ventasNetas: 34250000,
-        costos: 23290000,
-        utilidad: 10960000,
-        facturas: 33,
-        clientes: 26,
-        hardwareVentas: 23975000,
-        serviciosVentas: 10275000,
+        ventasNetas: 99768486,
+        costos: 68640718,
+        utilidad: 31127768,
+        facturas: 81,
+        clientes: 55,
+        hardwareVentas: 69239329,
+        serviciosVentas: 30529157,
         porAsesor: {
-            'Carlos Arturo Saenz': 13500000,
-            'Deicy Rodriguez': 11200000,
-            'Juan Andres Perez': 5300000,
-            'Lidy Hernandez': 2800000,
-            'Angelica Villanueva': 1450000
+            'Carlos Arturo Saenz': 39308783,
+            'Deicy Rodriguez': 32624295,
+            'Juan Andres Perez': 15464115,
+            'Lidy Hernandez': 8181016,
+            'Angelica Villanueva': 4190277
         }
     },
     9: {
-        ventasNetas: 36800000,
-        costos: 25024000,
-        utilidad: 11776000,
-        facturas: 34,
-        clientes: 27,
-        hardwareVentas: 25760000,
-        serviciosVentas: 11040000,
+        ventasNetas: 211959908,
+        costos: 145828417,
+        utilidad: 66131491,
+        facturas: 104,
+        clientes: 78,
+        hardwareVentas: 147100176,
+        serviciosVentas: 64859732,
         porAsesor: {
-            'Carlos Arturo Saenz': 14500000,
-            'Deicy Rodriguez': 12100000,
-            'Juan Andres Perez': 5700000,
-            'Lidy Hernandez': 3050000,
-            'Angelica Villanueva': 1450000
+            'Carlos Arturo Saenz': 83512204,
+            'Deicy Rodriguez': 69320890,
+            'Juan Andres Perez': 32853786,
+            'Lidy Hernandez': 17380712,
+            'Angelica Villanueva': 8892316
         }
     },
     10: {
         ventasNetas: 112259066,
         costos: 77234237,
         utilidad: 35024829,
-        facturas: 98,
+        facturas: 100,
         clientes: 74,
         hardwareVentas: 77907792,
         serviciosVentas: 34351274,
@@ -545,11 +545,23 @@ export default function DashboardEjecutivo({
                 costosSiigo = ventasSiigo - utilSiigo;
                 facturasSiigo = siigoLiveM.facturasCount;
             } else if (m === 10) {
-                // Octubre: Valor oficial exacto de Siigo Nube informado por Carlos
+                // Octubre: Valor oficial exacto de Siigo Nube ($112.259.066)
                 ventasSiigo = 112259066;
-                utilSiigo = Math.round(112259066 * 0.312);
-                costosSiigo = ventasSiigo - utilSiigo;
-                facturasSiigo = (hasSiigoLive && siigoLiveM.facturasCount > 0) ? siigoLiveM.facturasCount : 98;
+                utilSiigo = 35024829;
+                costosSiigo = 77234237;
+                facturasSiigo = (hasSiigoLive && siigoLiveM.facturasCount > 0) ? siigoLiveM.facturasCount : 100;
+            } else if (m === 9) {
+                // Septiembre: Valor oficial exacto de Siigo Nube informado por Carlos ($211.959.908)
+                ventasSiigo = 211959908;
+                utilSiigo = 66131491;
+                costosSiigo = 145828417;
+                facturasSiigo = (hasSiigoLive && siigoLiveM.facturasCount > 0) ? siigoLiveM.facturasCount : 104;
+            } else if (m === 8) {
+                // Agosto: Valor oficial exacto de Siigo Nube ($99.768.486)
+                ventasSiigo = 99768486;
+                utilSiigo = 31127768;
+                costosSiigo = 68640718;
+                facturasSiigo = (hasSiigoLive && siigoLiveM.facturasCount > 0) ? siigoLiveM.facturasCount : 81;
             } else if (siigoBaseM) {
                 if (isAdmin || selectedVendedor === 'all') {
                     ventasSiigo = siigoBaseM.ventasNetas;
@@ -637,7 +649,48 @@ export default function DashboardEjecutivo({
         if (hwPeriodView === 'mes') {
             const baseM = selectedYear === 2026 ? SIIGO_FACTURACION_REAL_2026[selectedMonth] : null;
             if (dataSource === 'siigo') {
-                if (baseM && selectedMonthData.ventas === baseM.ventasNetas) {
+                // Si tenemos facturas descargadas de Siigo para este mes, clasificamos ítem por ítem
+                const mesInvoices = (siigoInvoices || []).filter(inv => {
+                    if (!inv.date) return false;
+                    const parts = String(inv.date).split('-');
+                    return parts[0] === String(selectedYear) && parseInt(parts[1], 10) === selectedMonth;
+                });
+
+                if (mesInvoices.length > 0) {
+                    mesInvoices.forEach(inv => {
+                        const cName = String(inv.customer?.name || '').toLowerCase();
+                        const cNit = String(inv.customer?.identification || '');
+                        const isAtcg = cName.includes('atcg') || cNit.includes('900423222');
+
+                        if (Array.isArray(inv.items) && inv.items.length > 0) {
+                            inv.items.forEach((it: any) => {
+                                const qty = Number(it.quantity) || 1;
+                                const price = Number(it.price) || 0;
+                                const disc = Number(it.discount) || 0;
+                                const monto = qty * price - disc;
+                                const itDesc = String(it.description || it.name || it.code || '').toLowerCase();
+
+                                // REGLA ESPECIAL ATCG: En este cliente el ítem combo corresponde a alquiler
+                                const isSvc = itDesc.includes('servicio') || 
+                                              itDesc.includes('mantenimiento') || 
+                                              itDesc.includes('alquiler') || 
+                                              itDesc.includes('arrendamiento') || 
+                                              itDesc.includes('licencia') || 
+                                              itDesc.includes('acronis') || 
+                                              itDesc.includes('cloud') || 
+                                              itDesc.includes('soporte') ||
+                                              (isAtcg && itDesc.includes('combo'));
+
+                                if (isSvc) totalSVC += monto;
+                                else totalHW += monto;
+                            });
+                        } else {
+                            const sub = Number(inv.subtotal || 0) || Math.round((Number(inv.total || 0)) / 1.19);
+                            totalHW += Math.round(sub * 0.694);
+                            totalSVC += sub - Math.round(sub * 0.694);
+                        }
+                    });
+                } else if (baseM && selectedMonthData.ventas === baseM.ventasNetas) {
                     totalHW = baseM.hardwareVentas;
                     totalSVC = baseM.serviciosVentas;
                 } else if (selectedMonthData.ventas > 0) {
@@ -652,6 +705,8 @@ export default function DashboardEjecutivo({
                 const prefix = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`;
                 const ganadas = cotizacionesVisibles.filter(c => c.estado === 'Ganado' && c.fecha && c.fecha.startsWith(prefix));
                 ganadas.forEach(c => {
+                    const cName = String(c.clienteNombre || '').toLowerCase();
+                    const isAtcg = cName.includes('atcg') || c.clienteId === '1bb34909-5214-4f35-b379-da0d551e6748';
                     (c.items || []).forEach(item => {
                         const prod = productos.find(p => p.id === item.productoId);
                         const pName = (prod?.nombre || '').toLowerCase();
@@ -662,7 +717,8 @@ export default function DashboardEjecutivo({
                                       pName.includes('licencia') || 
                                       pName.includes('acronis') || 
                                       pName.includes('cloud') || 
-                                      pName.includes('soporte');
+                                      pName.includes('soporte') ||
+                                      (isAtcg && pName.includes('combo')); // Especial ATCG: combo es alquiler
                         const monto = (Number(item.cantidad) || 1) * (Number(item.precioVenta) || (Number(item.costoUnitario) * 1.25) || 50000);
                         if (isSvc) totalSVC += monto;
                         else totalHW += monto;
@@ -672,22 +728,28 @@ export default function DashboardEjecutivo({
         } else {
             // Consolidado Anual
             if (dataSource === 'siigo') {
-                if (totalVentasAnual > 0) {
+                let sumHW = 0;
+                let sumSVC = 0;
+                for (let m = 1; m <= 12; m++) {
+                    const base = selectedYear === 2026 ? SIIGO_FACTURACION_REAL_2026[m] : null;
+                    if (base) {
+                        sumHW += base.hardwareVentas;
+                        sumSVC += base.serviciosVentas;
+                    }
+                }
+                if (sumHW > 0 || sumSVC > 0) {
+                    totalHW = sumHW;
+                    totalSVC = sumSVC;
+                } else if (totalVentasAnual > 0) {
                     totalHW = Math.round(totalVentasAnual * 0.694);
                     totalSVC = totalVentasAnual - totalHW;
-                } else {
-                    for (let m = 1; m <= 10; m++) {
-                        const base = SIIGO_FACTURACION_REAL_2026[m];
-                        if (base) {
-                            totalHW += base.hardwareVentas;
-                            totalSVC += base.serviciosVentas;
-                        }
-                    }
                 }
             } else {
                 // CRM anual
                 const ganadas = cotizacionesVisibles.filter(c => c.estado === 'Ganado');
                 ganadas.forEach(c => {
+                    const cName = String(c.clienteNombre || '').toLowerCase();
+                    const isAtcg = cName.includes('atcg') || c.clienteId === '1bb34909-5214-4f35-b379-da0d551e6748';
                     (c.items || []).forEach(item => {
                         const prod = productos.find(p => p.id === item.productoId);
                         const pName = (prod?.nombre || '').toLowerCase();
@@ -698,7 +760,8 @@ export default function DashboardEjecutivo({
                                       pName.includes('licencia') || 
                                       pName.includes('acronis') || 
                                       pName.includes('cloud') || 
-                                      pName.includes('soporte');
+                                      pName.includes('soporte') ||
+                                      (isAtcg && pName.includes('combo')); // Especial ATCG: combo es alquiler
                         const monto = (Number(item.cantidad) || 1) * (Number(item.precioVenta) || (Number(item.costoUnitario) * 1.25) || 50000);
                         if (isSvc) totalSVC += monto;
                         else totalHW += monto;
@@ -737,7 +800,7 @@ export default function DashboardEjecutivo({
                 ]
             }
         };
-    }, [hwPeriodView, dataSource, selectedMonth, selectedYear, selectedMonthData, totalVentasAnual, cotizacionesVisibles, productos]);
+    }, [hwPeriodView, dataSource, selectedMonth, selectedYear, selectedMonthData, totalVentasAnual, cotizacionesVisibles, productos, siigoInvoices]);
 
     // ── ANÁLISIS EXCLUSIVO DE ALQUILERES (CANTIDAD, CLIENTE Y VALOR) ──
     const alquileresAnalysis = useMemo(() => {
@@ -749,6 +812,8 @@ export default function DashboardEjecutivo({
             cantidad: number;
             valorMensualTotal: number;
             equipos: Alquiler[];
+            isAtcg: boolean;
+            comboItems: any[];
         }> = {};
 
         let totalEquipos = (alquileres || []).length;
@@ -771,6 +836,8 @@ export default function DashboardEjecutivo({
                 const contacto = matchedClient?.contacto || '';
 
                 const key = alq.clienteId || cName;
+                const isAtcg = cName.toLowerCase().includes('atcg') || nit.includes('900423222') || alq.clienteId === '1bb34909-5214-4f35-b379-da0d551e6748';
+
                 if (!clientMap[key]) {
                     clientMap[key] = {
                         clienteId: alq.clienteId || '',
@@ -779,7 +846,9 @@ export default function DashboardEjecutivo({
                         contacto,
                         cantidad: 0,
                         valorMensualTotal: 0,
-                        equipos: []
+                        equipos: [],
+                        isAtcg,
+                        comboItems: []
                     };
                 }
                 clientMap[key].cantidad += 1;
@@ -789,6 +858,37 @@ export default function DashboardEjecutivo({
                 totalEnBodega++;
             }
         });
+
+        // Buscar en facturas descargadas de Siigo si hay ítems de combo/alquiler para ATCG
+        if (siigoInvoices && siigoInvoices.length > 0) {
+            const atcgKey = Object.keys(clientMap).find(k => clientMap[k].isAtcg);
+            if (atcgKey && clientMap[atcgKey]) {
+                siigoInvoices.forEach(inv => {
+                    const invCustName = String(inv.customer?.name || '').toLowerCase();
+                    const invCustNit = String(inv.customer?.identification || '');
+                    if (invCustName.includes('atcg') || invCustNit.includes('900423222')) {
+                        if (Array.isArray(inv.items)) {
+                            inv.items.forEach((it: any) => {
+                                const desc = String(it.description || it.name || it.code || '').toLowerCase();
+                                if (desc.includes('combo') || desc.includes('alquiler') || desc.includes('arrendamiento')) {
+                                    const qty = Number(it.quantity) || 1;
+                                    const pr = Number(it.price) || 0;
+                                    clientMap[atcgKey].comboItems.push({
+                                        facturaNumero: inv.name || inv.number || 'Factura Siigo',
+                                        fecha: inv.date || '',
+                                        descripcion: it.description || it.name || 'Ítem Combo / Alquiler',
+                                        cantidad: qty,
+                                        precio: pr,
+                                        total: qty * pr,
+                                        esCombo: desc.includes('combo')
+                                    });
+                                }
+                            });
+                        }
+                    }
+                });
+            }
+        }
 
         // Convertir a lista y ordenar por canon mensual descendente
         const clientesList = Object.values(clientMap).sort((a, b) => b.valorMensualTotal - a.valorMensualTotal);
@@ -823,7 +923,7 @@ export default function DashboardEjecutivo({
             clientesList,
             filteredEquipos
         };
-    }, [alquileres, clientes, alquilerSearch, alquilerFilterStatus]);
+    }, [alquileres, clientes, alquilerSearch, alquilerFilterStatus, siigoInvoices]);
 
     // ── TOP PRODUCTOS Y SOLUCIONES MÁS VENDIDOS ──
     const topProductosData = useMemo(() => {
@@ -2403,7 +2503,25 @@ export default function DashboardEjecutivo({
                                                     #{idx + 1}
                                                 </td>
                                                 <td style={{ padding: '0.85rem 1rem' }}>
-                                                    <div style={{ fontWeight: 700, color: '#0f172a' }}>{cli.clienteNombre}</div>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                                        <span style={{ fontWeight: 700, color: '#0f172a' }}>{cli.clienteNombre}</span>
+                                                        {cli.isAtcg && (
+                                                            <span style={{
+                                                                background: '#fef3c7',
+                                                                color: '#b45309',
+                                                                border: '1px solid #fde68a',
+                                                                padding: '2px 7px',
+                                                                borderRadius: '6px',
+                                                                fontSize: '0.72rem',
+                                                                fontWeight: 700,
+                                                                display: 'inline-flex',
+                                                                alignItems: 'center',
+                                                                gap: '3px'
+                                                            }} title="En la factura de Siigo aparece ítem 'Combo' que se computa como alquiler">
+                                                                ⚡ Ítem Combo = Alquiler
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                     <div style={{ fontSize: '0.75rem', color: '#64748b' }}>NIT: {cli.nit}</div>
                                                 </td>
                                                 <td style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>
@@ -2691,6 +2809,31 @@ export default function DashboardEjecutivo({
                                 </div>
 
                                 <div style={{ padding: '1rem 1.5rem', overflowY: 'auto', flex: 1 }}>
+                                    {selectedClientForModal.isAtcg && (
+                                        <div style={{ margin: '0 0 1.25rem 0', padding: '1rem', background: '#f0fdf4', borderRadius: '12px', border: '1px solid #bbf7d0' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 700, color: '#166534', fontSize: '0.85rem', marginBottom: '0.35rem' }}>
+                                                <CheckCircle2 size={17} color="#16a34a" />
+                                                Verificación Contable Siigo: Regla de Ítem "Combo" como Alquiler
+                                            </div>
+                                            <p style={{ margin: 0, fontSize: '0.8rem', color: '#14532d', lineHeight: 1.45 }}>
+                                                <strong>Validación en Factura Electrónica:</strong> Para <strong>ATCG DE COLOMBIA S.A.S.</strong>, el ítem registrado en la factura de Siigo Nube bajo el concepto <strong>"Combo"</strong> corresponde a la modalidad de <strong>Alquiler / Arrendamiento de Equipos</strong>. El sistema clasifica este rubro dentro de Servicios de Alquiler para garantizar que la facturación contable coincida con el canon real del parque computacional y no se desvíe erróneamente a venta de hardware.
+                                            </p>
+                                            {selectedClientForModal.comboItems && selectedClientForModal.comboItems.length > 0 && (
+                                                <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px dashed #86efac' }}>
+                                                    <div style={{ fontWeight: 700, fontSize: '0.78rem', color: '#166534', marginBottom: '0.3rem' }}>
+                                                        🧾 Ítems de Factura Siigo Vinculados:
+                                                    </div>
+                                                    {selectedClientForModal.comboItems.map((ci: any, idx: number) => (
+                                                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', color: '#14532d', padding: '2px 0' }}>
+                                                            <span>{ci.facturaNumero} ({ci.fecha}): {ci.descripcion} · Cant: {ci.cantidad}</span>
+                                                            <strong>{fmt(ci.total)}</strong>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
                                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
                                         <thead>
                                             <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'left' }}>

@@ -625,7 +625,14 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
                                 <td>
                                     {a.estado === 'Alquilado' ? (
                                         <>
-                                            <div style={{ fontWeight: '500' }}>{a.clienteNombre}</div>
+                                            <div style={{ fontWeight: '500', display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                                                {a.clienteNombre}
+                                                {(a.clienteNombre || '').toLowerCase().includes('atcg') && (
+                                                    <span style={{ background: '#fef3c7', color: '#b45309', padding: '1px 6px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold' }} title="Ítem Combo en factura se liquida como alquiler">
+                                                        ⚡ Combo = Alquiler
+                                                    </span>
+                                                )}
+                                            </div>
                                             <div className="text-muted" style={{ fontSize: '0.8rem' }}>Desde: {a.fechaInicio}</div>
                                         </>
                                     ) : <span className="text-muted">-</span>}
