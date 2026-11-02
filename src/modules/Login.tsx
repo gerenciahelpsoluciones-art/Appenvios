@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, AlertCircle } from 'lucide-react';
-import type { AppUser } from '../App';
+import { USER_COLS, type AppUser } from '../App';
 import { logoBase64 } from '../assets/logoBase64';
 import { supabase } from '../lib/supabaseClient';
+
+// Cada usuario del CRM tiene una cuenta de Supabase Auth con este correo interno.
+// Debe coincidir con public.hs_auth_email en supabase/seguridad_tablas_parte3a.sql
+const AUTH_EMAIL_DOMAIN = 'crm.helpsoluciones.com.co';
 
 interface IProps {
     users: AppUser[]; // solo se usa en modo demo
@@ -28,18 +32,31 @@ const Login: React.FC<IProps> = ({ users, onLogin }) => {
             return;
         }
 
-        // La contraseña se valida en el servidor (función hs_login); el navegador nunca la recibe
+        // Supabase Auth valida la contraseña y entrega la sesión con la que se leen las tablas
         setLoading(true);
-        const { data, error: rpcError } = await supabase.rpc('hs_login', { p_usuario: username.trim(), p_password: password });
+        const email = `${username.trim().toLowerCase()}@${AUTH_EMAIL_DOMAIN}`;
+        const { data: auth, error: authError } = await supabase.auth.signInWithPassword({ email, password });
+
+        if (authError || !auth.user) {
+            setLoading(false);
+            if (authError && authError.status !== 400) {
+                setError('No se pudo conectar con el servidor. Intente de nuevo.');
+                console.error('signIn:', authError);
+            } else {
+                setError('Usuario o contraseña incorrectos.');
+            }
+            return;
+        }
+
+        const { data, error: userError } = await supabase.from('app_users').select(USER_COLS).eq('id', auth.user.id).maybeSingle();
         setLoading(false);
 
-        if (rpcError) {
-            setError('No se pudo conectar con el servidor. Intente de nuevo.');
-            console.error('hs_login:', rpcError);
-        } else if (data) {
-            onLogin(data as AppUser);
+        if (data) {
+            onLogin(data as unknown as AppUser);
         } else {
-            setError('Usuario o contraseña incorrectos.');
+            if (userError) console.error('app_users:', userError);
+            await supabase.auth.signOut();
+            setError('Este usuario no tiene acceso al CRM.');
         }
     };
 

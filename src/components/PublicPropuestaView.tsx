@@ -19,11 +19,8 @@ export default function PublicPropuestaView({ folio }: PublicPropuestaViewProps)
       setLoading(true);
       try {
         const cleanFolio = decodeURIComponent(folio).trim();
-        const { data, error } = await supabase
-          .from('propuestas')
-          .select('*')
-          .or(`consecutivo.eq.${cleanFolio},id.eq.${cleanFolio}`)
-          .maybeSingle();
+        // El cliente no tiene sesión: una función del servidor entrega solo esta propuesta
+        const { data, error } = await supabase.rpc('hs_propuesta_publica', { p_folio: cleanFolio });
 
         if (error) {
           console.error('Error cargando propuesta:', error);
@@ -49,12 +46,10 @@ export default function PublicPropuestaView({ folio }: PublicPropuestaViewProps)
 
     setAceptando(true);
     try {
-      const { error } = await supabase
-        .from('propuestas')
-        .update({ estado: 'Aceptada' })
-        .eq('id', propuesta.id);
+      const { data: ok, error } = await supabase.rpc('hs_aceptar_propuesta', { p_folio: String(propuesta.id) });
 
       if (error) throw error;
+      if (!ok) throw new Error('La propuesta no se encontró o ya estaba aceptada');
       setAceptada(true);
       setPropuesta({ ...propuesta, estado: 'Aceptada' });
       alert('¡Propuesta aceptada con éxito! Se ha notificado a la Gerencia de Help Soluciones Informáticas.');

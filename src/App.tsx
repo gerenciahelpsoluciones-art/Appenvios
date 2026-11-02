@@ -45,7 +45,7 @@ import {
 const IS_DEMO = import.meta.env.VITE_DEMO_MODE === 'true';
 
 // La columna password no se puede leer desde el navegador (ver supabase/seguridad_login_parte2.sql)
-const USER_COLS = 'id, nombre, usuario, cargo, email, telefono, rol, permisos, created_at';
+export const USER_COLS = 'id, nombre, usuario, cargo, email, telefono, rol, permisos, created_at';
 const sinPassword = <T extends { password?: string }>(u: T): T => { const { password: _pw, ...rest } = u; return rest as T; };
 
 // Types for shared data
@@ -823,6 +823,20 @@ function App() {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
+  }, []);
+
+  // Las tablas solo se leen con sesión de Supabase Auth: la marca guardada en el navegador no basta
+  useEffect(() => {
+    if (IS_DEMO) return;
+    const cerrarLocal = () => {
+      setIsLoggedIn(false);
+      setCurrentUser(null);
+      localStorage.removeItem('hs_is_logged_in');
+      localStorage.removeItem('hs_current_user');
+    };
+    supabase.auth.getSession().then(({ data }) => { if (!data.session) cerrarLocal(); });
+    const { data: sub } = supabase.auth.onAuthStateChange((event) => { if (event === 'SIGNED_OUT') cerrarLocal(); });
+    return () => sub.subscription.unsubscribe();
   }, []);
 
   useEffect(() => { if (!IS_DEMO) localStorage.setItem('hs_is_logged_in', isLoggedIn ? 'true' : 'false'); }, [isLoggedIn]);
@@ -2161,6 +2175,7 @@ delete fallbackPayload.categoria;
     setCurrentUser(user);
     localStorage.setItem('hs_is_logged_in', 'true');
     localStorage.setItem('hs_current_user', JSON.stringify(user));
+    fetchInitialData(); // antes del login las tablas no devuelven nada
   };
 
   const handleAddAlquiler = async (a: Alquiler) => {
@@ -2228,6 +2243,7 @@ delete fallbackPayload.categoria;
 
   const handleLogout = () => {
     if (IS_DEMO) return;
+    supabase.auth.signOut();
     setIsLoggedIn(false);
     setCurrentUser(null);
     localStorage.removeItem('hs_is_logged_in');
