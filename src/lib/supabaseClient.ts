@@ -9,3 +9,6 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '')
+
+// Columnas de app_users que el navegador puede leer (la contraseña no tiene permiso de lectura)
+export const USER_COLS = 'id, nombre, usuario, cargo, email, telefono, rol, permisos, created_at'

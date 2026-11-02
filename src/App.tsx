@@ -24,7 +24,7 @@ import ComisionesModule from './modules/Comisiones'
 import CarteraModule from './modules/Cartera'
 import PropuestasModule from './modules/Propuestas'
 import DashboardEjecutivo from './modules/DashboardEjecutivo'
-import { supabase } from './lib/supabaseClient'
+import { supabase, USER_COLS } from './lib/supabaseClient'
 import RegistrationForm from './modules/RegistrationForm';
 import PublicPropuestaView from './components/PublicPropuestaView';
 import { logoBase64 } from './assets/logoBase64'
@@ -45,7 +45,6 @@ import {
 const IS_DEMO = import.meta.env.VITE_DEMO_MODE === 'true';
 
 // La columna password no se puede leer desde el navegador (ver supabase/seguridad_login_parte2.sql)
-export const USER_COLS = 'id, nombre, usuario, cargo, email, telefono, rol, permisos, created_at';
 const sinPassword = <T extends { password?: string }>(u: T): T => { const { password: _pw, ...rest } = u; return rest as T; };
 
 // Types for shared data

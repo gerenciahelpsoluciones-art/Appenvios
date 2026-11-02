@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, AlertCircle } from 'lucide-react';
-import { USER_COLS, type AppUser } from '../App';
+import type { AppUser } from '../App';
 import { logoBase64 } from '../assets/logoBase64';
-import { supabase } from '../lib/supabaseClient';
+import { supabase, USER_COLS } from '../lib/supabaseClient';
 
 // Cada usuario del CRM tiene una cuenta de Supabase Auth con este correo interno.
 // Debe coincidir con public.hs_auth_email en supabase/seguridad_tablas_parte3a.sql
