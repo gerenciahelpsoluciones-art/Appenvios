@@ -48,6 +48,28 @@ import { hoyColombia } from './utils/fecha';
 // La columna password no se puede leer desde el navegador (ver supabase/seguridad_login_parte2.sql)
 const sinPassword = <T extends { password?: string }>(u: T): T => { const { password: _pw, ...rest } = u; return rest as T; };
 
+// Tablas del CRM. La base es compartida con otras apps (velia, 2rpits, helpmarketing):
+// el tiempo real solo escucha estas para no recargar el CRM por cambios ajenos.
+// visitantes_web no está: cada visita a la web recargaría todo el CRM.
+const TABLAS_CRM = [
+  'alquileres', 'app_users', 'budgets', 'clientes', 'clientes_web', 'conductores',
+  'contratos_obligaciones', 'cotizaciones', 'despachos', 'devoluciones',
+  'mkt_remision_detalles', 'mkt_remisiones', 'ordenes_compra', 'productos', 'propuestas',
+  'proveedores', 'registros_pendientes', 'reparaciones', 'ventas_manuales'
+];
+
+// Mayor número usado en un consecutivo PREFIJO-NNN, comparado como número.
+// Ordenar el texto fallaba desde 1000 ('REP-999' > 'REP-1000') y repetía números.
+// Usa public.hs_max_consecutivo (supabase/seguridad_parte3e.sql); si aún no existe, el método anterior.
+const maxConsecutivo = async (tabla: string, prefijo: string): Promise<number> => {
+  const { data, error } = await supabase.rpc('hs_max_consecutivo', { p_tabla: tabla, p_prefijo: prefijo });
+  if (!error && typeof data === 'number') return data;
+  const { data: filas } = await supabase.from(tabla).select('consecutivo')
+    .ilike('consecutivo', `${prefijo}%`).order('consecutivo', { ascending: false }).limit(1);
+  const n = filas && filas.length ? parseInt(String(filas[0].consecutivo).slice(prefijo.length), 10) : 0;
+  return isNaN(n) ? 0 : n;
+};
+
 // Types for shared data
 export interface AppUser {
   id: string;
@@ -422,6 +444,12 @@ export interface Propuesta {
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard')
   const isAddingCotizacionRef = useRef(false)
+  // Varias escrituras seguidas (otro usuario guardando) disparan una sola recarga
+  const recargaTimer = useRef<number | undefined>(undefined);
+  const programarRecarga = () => {
+    window.clearTimeout(recargaTimer.current);
+    recargaTimer.current = window.setTimeout(() => fetchInitialData(), 800);
+  };
 
   // Shared state from Supabase
   const [clientes, setClientes] = useState<Cliente[]>([]);
@@ -455,23 +483,28 @@ function App() {
   useEffect(() => {
     fetchInitialData();
   }, []);
+  const currentUserRef = useRef(currentUser);
+  useEffect(() => { currentUserRef.current = currentUser; }, [currentUser]);
 
   // Helper para traer todos los registros sin límite de 1000 de Supabase
   const fetchAll = async (table: string) => {
     let allData: any[] = [];
+    let fetchError: any = null;
     let from = 0;
     const step = 999;
     while (true) {
       const { data, error } = await supabase.from(table).select('*').range(from, from + step);
       if (error) {
         console.error(`Error fetching ${table}:`, error);
+        fetchError = error;
+        setRealtimeStatus('⚠ Datos incompletos: recargue la página');
         break;
       }
       if (data) allData = allData.concat(data);
       if (!data || data.length <= step) break;
       from += step + 1;
     }
-    return { data: allData, error: null };
+    return { data: allData, error: fetchError };
   };
 
   const fetchInitialData = async () => {
@@ -787,16 +820,16 @@ function App() {
       console.log('Suscribiéndo a canales de tiempo real...');
       setRealtimeStatus('Conectando...');
 
-      channel = supabase
-        .channel('schema-db-changes')
-        .on('postgres_changes', { event: '*', schema: 'public' }, (p) => {
-          console.log(`Cambio detectado en tabla: ${p.table}`, p);
-          fetchInitialData();
-          if (p.table === 'app_users' && currentUser && p.new && (p.new as any).id === currentUser.id) {
-            setCurrentUser(p.new as AppUser);
+      channel = supabase.channel('schema-db-changes');
+      TABLAS_CRM.forEach(table => {
+        channel.on('postgres_changes', { event: '*', schema: 'public', table }, (p: any) => {
+          programarRecarga();
+          if (p.table === 'app_users' && p.new && p.new.id === currentUserRef.current?.id) {
+            setCurrentUser(sinPassword(p.new as AppUser));
           }
-        })
-        .subscribe((status) => {
+        });
+      });
+      channel.subscribe((status: string) => {
           console.log('Estado de conexión Realtime:', status);
           setRealtimeStatus(status === 'SUBSCRIBED' ? 'En Línea' : status);
           if (status === 'SUBSCRIBED') fetchInitialData(); // Refrescar al conectar
@@ -967,7 +1000,7 @@ delete fallbackPayload.categoria;
       console.error('Error al eliminar cliente:', error);
       alert('Error al eliminar cliente: ' + error.message);
     } else {
-      setClientes(clientes.filter(c => c.id !== id));
+      setClientes(prev => prev.filter(c => c.id !== id));
     }
   };
 
@@ -986,7 +1019,7 @@ delete fallbackPayload.categoria;
     if (IS_DEMO) { setProveedores(prev => prev.map(i => i.id === p.id ? p : i)); return; }
     const { error } = await supabase.from('proveedores').update(p).eq('id', p.id);
     if (!error) {
-      setProveedores(proveedores.map(item => item.id === p.id ? p : item));
+      setProveedores(prev => prev.map(item => item.id === p.id ? p : item));
     } else {
       console.error('Error al actualizar proveedor:', error);
       alert(`Error al actualizar proveedor: ${error.message}`);
@@ -995,7 +1028,8 @@ delete fallbackPayload.categoria;
   const deleteProveedor = async (id: string) => {
     if (IS_DEMO) { setProveedores(prev => prev.filter(p => p.id !== id)); return; }
     const { error } = await supabase.from('proveedores').delete().eq('id', id);
-    if (!error) setProveedores(proveedores.filter(p => p.id !== id));
+    if (error) alert('No se pudo guardar el cambio: ' + error.message);
+    else setProveedores(prev => prev.filter(p => p.id !== id));
   };
 
   const addProducto = async (p: Producto) => {
@@ -1049,13 +1083,14 @@ delete fallbackPayload.categoria;
       tipo: tipo || 'Producto',
       exento_iva: exentoIva || false
     }).eq('id', p.id);
-    if (!error) setProductos(productos.map(item => item.id === p.id ? p : item));
+    if (!error) setProductos(prev => prev.map(item => item.id === p.id ? p : item));
     else alert('Error al actualizar producto: ' + error.message);
   };
   const deleteProducto = async (id: string) => {
     if (IS_DEMO) { setProductos(prev => prev.filter(p => p.id !== id)); return; }
     const { error } = await supabase.from('productos').delete().eq('id', id);
-    if (!error) setProductos(productos.filter(p => p.id !== id));
+    if (error) alert('No se pudo guardar el cambio: ' + error.message);
+    else setProductos(prev => prev.filter(p => p.id !== id));
   };
 
   const updateDespacho = async (d: Despacho) => {
@@ -1096,7 +1131,7 @@ delete fallbackPayload.categoria;
     }
 
     console.log('Despacho actualizado con éxito en DB');
-    setDespachos(despachos.map(item => item.id === d.id ? d : item));
+    setDespachos(prev => prev.map(item => item.id === d.id ? d : item));
 
     if (oldDespacho && oldDespacho.estado !== d.estado) {
       // Email FROM facturacion TO the person who created the quotation
@@ -1121,23 +1156,17 @@ delete fallbackPayload.categoria;
   const deleteDespacho = async (id: string) => {
     if (IS_DEMO) { setDespachos(prev => prev.filter(d => d.id !== id)); return; }
     const { error } = await supabase.from('despachos').delete().eq('id', id);
-    if (!error) setDespachos(despachos.filter(d => d.id !== id));
+    if (error) alert('No se pudo guardar el cambio: ' + error.message);
+    else setDespachos(prev => prev.filter(d => d.id !== id));
   };
 
   const addReparacion = async (r: Reparacion) => {
     if (IS_DEMO) { setReparaciones(prev => [{ ...r, id: crypto.randomUUID() }, ...prev]); alert('Reparación registrada (modo demo).'); return; }
     // 1. Re-calculate the absolute maximum consecutive from the database to avoid collisions
-    const { data: latestREPs, error: fetchError } = await supabase
-      .from('reparaciones')
-      .select('consecutivo')
-      .ilike('consecutivo', 'REP-%')
-      .order('consecutivo', { ascending: false })
-      .limit(1);
-
     let finalConsecutivo = r.consecutivo;
+    const dbMax = await maxConsecutivo('reparaciones', 'REP-');
 
-    if (!fetchError && latestREPs && latestREPs.length > 0) {
-      const dbMax = parseInt(latestREPs[0].consecutivo.replace('REP-', ''), 10);
+    if (dbMax > 0) {
       const proposed = parseInt(r.consecutivo.replace('REP-', ''), 10);
       
       // If the database has a higher or equal number, increment it
@@ -1197,12 +1226,14 @@ delete fallbackPayload.categoria;
       fecha_ingreso: r.fechaIngreso,
       foto: r.foto
     }).eq('id', r.id);
-    if (!error) setReparaciones(prev => prev.map(item => item.id === r.id ? r : item));
+    if (error) alert('No se pudo guardar el cambio: ' + error.message);
+    else setReparaciones(prev => prev.map(item => item.id === r.id ? r : item));
   };
   const deleteReparacion = async (id: string) => {
     if (IS_DEMO) { setReparaciones(prev => prev.filter(r => r.id !== id)); return; }
     const { error } = await supabase.from('reparaciones').delete().eq('id', id);
-    if (!error) setReparaciones(prev => prev.filter(r => r.id !== id));
+    if (error) alert('No se pudo guardar el cambio: ' + error.message);
+    else setReparaciones(prev => prev.filter(r => r.id !== id));
   };
 
   const sendEmailNotification = async (to: string, subject: string, body: string, cc?: string, senderName?: string, senderEmail?: string) => {
@@ -1578,17 +1609,10 @@ delete fallbackPayload.categoria;
   const addOrdenCompra = async (oc: OrdenCompra): Promise<OrdenCompra | null> => {
     if (IS_DEMO) { const newOC = { ...oc, id: crypto.randomUUID() }; setOrdenesCompra(prev => [newOC, ...prev]); return newOC; }
     // 1. Re-calculate the absolute maximum consecutive from the database to avoid collisions
-    const { data: latestOCs, error: fetchError } = await supabase
-      .from('ordenes_compra')
-      .select('consecutivo')
-      .ilike('consecutivo', 'OC-%')
-      .order('consecutivo', { ascending: false })
-      .limit(1);
-
     let finalConsecutivo = oc.consecutivo;
+    const dbMax = await maxConsecutivo('ordenes_compra', 'OC-');
 
-    if (!fetchError && latestOCs && latestOCs.length > 0) {
-      const dbMax = parseInt(latestOCs[0].consecutivo.replace('OC-', ''), 10);
+    if (dbMax > 0) {
       const proposed = parseInt(oc.consecutivo.replace('OC-', ''), 10);
       
       // If the database has a higher or equal number, increment it
@@ -1714,7 +1738,8 @@ delete fallbackPayload.categoria;
   const deleteOrdenCompra = async (id: string) => {
     if (IS_DEMO) { setOrdenesCompra(prev => prev.filter(oc => oc.id !== id)); return; }
     const { error } = await supabase.from('ordenes_compra').delete().eq('id', id);
-    if (!error) setOrdenesCompra(ordenesCompra.filter(oc => oc.id !== id));
+    if (error) alert('No se pudo guardar el cambio: ' + error.message);
+    else setOrdenesCompra(prev => prev.filter(oc => oc.id !== id));
   };
 
   const addConductor = async (c: Conductor) => {
@@ -1752,12 +1777,14 @@ delete fallbackPayload.categoria;
       tipo_vehiculo: c.tipoVehiculo,
       tarjeta_propiedad: c.tarjetaPropiedad
     }).eq('id', c.id);
-    if (!error) setConductores(conductores.map(item => item.id === c.id ? c : item));
+    if (error) alert('No se pudo guardar el cambio: ' + error.message);
+    else setConductores(prev => prev.map(item => item.id === c.id ? c : item));
   };
   const deleteConductor = async (id: string) => {
     if (IS_DEMO) { setConductores(prev => prev.filter(c => c.id !== id)); return; }
     const { error } = await supabase.from('conductores').delete().eq('id', id);
-    if (!error) setConductores(conductores.filter(c => c.id !== id));
+    if (error) alert('No se pudo guardar el cambio: ' + error.message);
+    else setConductores(prev => prev.filter(c => c.id !== id));
   };
 
   const addUser = async (u: AppUser) => {
@@ -1780,7 +1807,7 @@ delete fallbackPayload.categoria;
       alert('Error al actualizar usuario: ' + error.message);
     } else {
       const limpio = sinPassword(u);
-      setUsers(users.map(item => item.id === u.id ? limpio : item));
+      setUsers(prev => prev.map(item => item.id === u.id ? limpio : item));
       if (currentUser && currentUser.id === u.id) setCurrentUser(limpio);
     }
   };
@@ -1791,7 +1818,8 @@ delete fallbackPayload.categoria;
       return;
     }
     const { error } = await supabase.from('app_users').delete().eq('id', id);
-    if (!error) setUsers(users.filter(u => u.id !== id));
+    if (error) alert('No se pudo guardar el cambio: ' + error.message);
+    else setUsers(prev => prev.filter(u => u.id !== id));
   };
 
   const addDevolucion = async (d: Devolucion): Promise<boolean> => {
@@ -1846,7 +1874,7 @@ delete fallbackPayload.categoria;
       console.error('Error actualizando devolución:', error);
       alert('Error en base de datos: ' + error.message);
     } else {
-      setDevoluciones(devoluciones.map(item => item.id === d.id ? d : item));
+      setDevoluciones(prev => prev.map(item => item.id === d.id ? d : item));
     }
   };
 
@@ -1858,7 +1886,7 @@ delete fallbackPayload.categoria;
         console.error('Error eliminando devolución:', error);
         alert('Error en base de datos: ' + error.message);
       } else {
-        setDevoluciones(devoluciones.filter(d => d.id !== id));
+        setDevoluciones(prev => prev.filter(d => d.id !== id));
       }
     }
   };
@@ -1872,7 +1900,8 @@ delete fallbackPayload.categoria;
       usuario_id: b.usuarioId,
       nombre_vendedor: b.nombreVendedor
     }]);
-    if (!error) setBudgets([...budgets, b]);
+    if (error) alert('No se pudo guardar el cambio: ' + error.message);
+    else setBudgets(prev => [...prev, b]);
   };
   const updateBudget = async (b: SalesBudget) => {
     if (IS_DEMO) { setBudgets(prev => prev.map(i => i.id === b.id ? b : i)); return; }
@@ -1883,12 +1912,14 @@ delete fallbackPayload.categoria;
       usuario_id: b.usuarioId,
       nombre_vendedor: b.nombreVendedor
     }).eq('id', b.id);
-    if (!error) setBudgets(budgets.map(item => item.id === b.id ? b : item));
+    if (error) alert('No se pudo guardar el cambio: ' + error.message);
+    else setBudgets(prev => prev.map(item => item.id === b.id ? b : item));
   };
   const deleteBudget = async (id: string) => {
     if (IS_DEMO) { setBudgets(prev => prev.filter(b => b.id !== id)); return; }
     const { error } = await supabase.from('budgets').delete().eq('id', id);
-    if (!error) setBudgets(budgets.filter(b => b.id !== id));
+    if (error) alert('No se pudo guardar el cambio: ' + error.message);
+    else setBudgets(prev => prev.filter(b => b.id !== id));
   };
 
   const addVentaManual = async (v: VentaManual) => {
@@ -2028,13 +2059,7 @@ delete fallbackPayload.categoria;
       alert('Propuesta guardada (modo demo).');
       return;
     }
-    const { data: lastP } = await supabase
-      .from('propuestas')
-      .select('consecutivo')
-      .order('consecutivo', { ascending: false })
-      .limit(1);
-    const parsed = lastP && lastP.length > 0 ? parseInt(lastP[0].consecutivo.replace('P-', ''), 10) : 0;
-    const nextNum = isNaN(parsed) ? 1 : parsed + 1;
+    const nextNum = (await maxConsecutivo('propuestas', 'P-')) + 1;
     const consecutivo = `P-${String(nextNum).padStart(3, '0')}`;
 
     const incProt = p.incluirProtocolo !== false;
@@ -2169,7 +2194,8 @@ delete fallbackPayload.categoria;
   const deletePropuesta = async (id: string) => {
     if (IS_DEMO) { setPropuestas(prev => prev.filter(p => p.id !== id)); return; }
     const { error } = await supabase.from('propuestas').delete().eq('id', id);
-    if (!error) setPropuestas(prev => prev.filter(p => p.id !== id));
+    if (error) alert('No se pudo guardar el cambio: ' + error.message);
+    else setPropuestas(prev => prev.filter(p => p.id !== id));
   };
 
   const menuItems: MenuItem[] = [
@@ -2479,6 +2505,7 @@ delete fallbackPayload.categoria;
         />;
       case 'vendedores':
         return <VendedoresModule
+          clientes={clientes}
           users={users}
           budgets={budgets}
           cotizaciones={cotizaciones}

@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState } from 'react';
-import type { AppUser, SalesBudget, Cotizacion, VentaManual } from '../App';
+import type { AppUser, SalesBudget, Cotizacion, VentaManual, Cliente } from '../App';
 import { generateCommercialReportPDF } from '../utils/pdfGenerator';
 import { hoyColombia } from '../utils/fecha';
 
@@ -12,9 +12,10 @@ interface IProps {
     despachos: any[];
     ordenesCompra: any[];
     currentUser: AppUser;
+    clientes: Cliente[];
 }
 
-const Vendedores: React.FC<IProps> = ({ users, budgets, cotizaciones, ventasManuales, despachos, ordenesCompra, currentUser }) => {
+const Vendedores: React.FC<IProps> = ({ users, budgets, cotizaciones, ventasManuales, despachos, ordenesCompra, currentUser, clientes = [] }) => {
     const today = hoyColombia();
     const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
     
@@ -66,15 +67,21 @@ const Vendedores: React.FC<IProps> = ({ users, budgets, cotizaciones, ventasManu
                 const cot = cotizaciones.find(c => c.id === d.cotizacionId);
                 return cot?.usuarioId === userId;
             })
-            .reduce((acc, d) => {
+            .reduce((acc, d, _i, lista) => {
+                // Una cotización con varios despachos facturados se cuenta una sola vez
+                if (lista.findIndex(x => x.cotizacionId === d.cotizacionId) !== _i) return acc;
                 const cot = cotizaciones.find(c => c.id === d.cotizacionId);
-                return acc + (cot?.subtotal ?? (d.total / 1.19) ?? 0);
+                return acc + (cot?.subtotal ?? (d.total / 1.19));
             }, 0);
 
         const manualSales = (ventasManuales || []).filter(v => {
             if (!v.fecha || v.usuarioId !== userId) return false;
             return v.fecha >= start && v.fecha <= end;
-        }).reduce((acc, v) => acc + (v.monto / 1.19), 0);
+        }).reduce((acc, v) => {
+            // Régimen Simplificado no cobra IVA: el monto ya es neto (igual que en Informes)
+            const cliente = clientes.find(c => c.id === v.clienteId);
+            return acc + (cliente?.regimen === 'Régimen Simplificado' ? v.monto : v.monto / 1.19);
+        }, 0);
 
         return quoteSales + manualSales;
     };

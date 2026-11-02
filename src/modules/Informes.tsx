@@ -218,9 +218,18 @@ const InformesModule: React.FC<IProps> = ({
         .filter(v => v.tipoNormalized.includes('contrato'))
         .reduce((acc, v) => acc + v.subtotal, 0);
     
+    // Meses del rango [inicio, fin] desde que empezó el alquiler. Solo equipos hoy alquilados:
+    // no hay historial de devoluciones, así que un equipo ya devuelto no suma meses pasados.
+    const mesesAlquilado = (fechaInicioAlq?: string) => {
+        const desde = fechaInicioAlq && fechaInicioAlq > appliedFilters.inicio ? fechaInicioAlq : appliedFilters.inicio;
+        if (desde > appliedFilters.fin) return 0;
+        const [y1, m1] = desde.split('-').map(Number);
+        const [y2, m2] = appliedFilters.fin.split('-').map(Number);
+        return (y2 - y1) * 12 + (m2 - m1) + 1;
+    };
     const revenueByRental = alquileres
         .filter((a: any) => a.estado === 'Alquilado')
-        .reduce((acc: number, a: any) => acc + (a.valorMensual || 0), 0);
+        .reduce((acc: number, a: any) => acc + (a.valorMensual || 0) * mesesAlquilado(a.fechaInicio), 0);
     
     const revenueByLicense = manualSalesWithNet
         .filter(v => v.tipoNormalized.includes('licencia'))
