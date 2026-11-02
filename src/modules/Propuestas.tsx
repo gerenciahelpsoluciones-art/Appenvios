@@ -579,7 +579,7 @@ const fmtCOP = (n: number) => fmtMoney(n, 'COP');
                       <button
                         title="Copiar enlace para el cliente"
                         onClick={() => {
-                          const url = `${window.location.origin}/?p=${encodeURIComponent(p.consecutivo)}`;
+                          const url = `${window.location.origin}/?p=${encodeURIComponent(p.id)}`;
                           navigator.clipboard.writeText(url);
                           alert(`Enlace copiado para compartir:\n${url}`);
                         }}
@@ -589,7 +589,7 @@ const fmtCOP = (n: number) => fmtMoney(n, 'COP');
                       </button>
                       <a
                         title="Abrir enlace público en pestaña nueva"
-                        href={`/?p=${encodeURIComponent(p.consecutivo)}`}
+                        href={`/?p=${encodeURIComponent(p.id)}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="bg-transparent mx-1 opacity-60 hover:opacity-100 inline-block no-underline"

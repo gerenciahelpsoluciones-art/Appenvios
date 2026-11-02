@@ -1,5 +1,21 @@
 import React, { useState } from 'react';
 import { type AppUser } from '../App';
+import { supabase } from '../lib/supabaseClient';
+
+// Los RUT y Cámaras de Comercio están en un bucket privado. Los registros guardan la URL
+// pública antigua; de ella se saca la ruta y se pide un enlace firmado de 5 minutos.
+const abrirDocumento = async (e: React.MouseEvent, url: string) => {
+  e.preventDefault();
+  const ruta = decodeURIComponent(url.split('/documentos_registro/')[1] ?? '');
+  const ventana = window.open('', '_blank');
+  const { data, error } = await supabase.storage.from('documentos_registro').createSignedUrl(ruta, 300);
+  if (error || !data) {
+    ventana?.close();
+    alert('No se pudo abrir el documento: ' + (error?.message ?? 'sin respuesta'));
+    return;
+  }
+  if (ventana) ventana.location.href = data.signedUrl;
+};
 import { 
   Building2, 
   User, 
@@ -294,7 +310,7 @@ const RegistrosWeb: React.FC<RegistrosWebProps> = ({ registros, onUpdateStatus, 
                 <div className="space-y-3">
                   {selectedRegistro.doc_rut_url && (
                     <a 
-                      href={selectedRegistro.doc_rut_url} 
+                      href={selectedRegistro.doc_rut_url} onClick={(e) => abrirDocumento(e, selectedRegistro.doc_rut_url!)} 
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="w-full p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-center justify-between group hover:bg-emerald-600 hover:border-emerald-600 transition-all text-emerald-700 hover:text-white"
@@ -309,7 +325,7 @@ const RegistrosWeb: React.FC<RegistrosWebProps> = ({ registros, onUpdateStatus, 
 
                   {selectedRegistro.doc_camara_comercio_url && (
                     <a 
-                      href={selectedRegistro.doc_camara_comercio_url} 
+                      href={selectedRegistro.doc_camara_comercio_url} onClick={(e) => abrirDocumento(e, selectedRegistro.doc_camara_comercio_url!)} 
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="w-full p-4 bg-blue-50 border border-blue-100 rounded-2xl flex items-center justify-between group hover:bg-blue-600 hover:border-blue-600 transition-all text-blue-700 hover:text-white"

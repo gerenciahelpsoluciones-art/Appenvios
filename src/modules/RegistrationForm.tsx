@@ -86,8 +86,8 @@ export default function RegistrationForm() {
       
       for (const [key, file] of Object.entries(files)) {
         if (file) {
-          const fileExt = file.name.split('.').pop();
-          const fileName = `${formData.nit_cedula}_${key}_${Date.now()}.${fileExt}`;
+          const fileExt = (file.name.split('.').pop() || 'bin').replace(/[^a-zA-Z0-9]/g, '').slice(0, 5);
+          const fileName = `${key}/${crypto.randomUUID()}.${fileExt}`;
           const { data, error: uploadError } = await supabase.storage
             .from('documentos_registro')
             .upload(fileName, file);
