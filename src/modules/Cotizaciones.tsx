@@ -231,8 +231,9 @@ BBVA - Cuenta Corriente No. 390021475`;
     // Actual margin percent based on total cost vs selling price
     const profitTotal = items.reduce((acc, item) => acc + calculateMarginTotal(item), 0);
     const totalCost = items.reduce((acc, item) => acc + (item.costoUnitario * item.cantidad), 0);
-    const marginPercent = totalCost > 0
-        ? ((subtotalGeneral - totalCost) / totalCost) * 100
+    // Margen sobre el precio de venta: (venta - costo) / venta
+    const marginPercent = subtotalGeneral > 0
+        ? ((subtotalGeneral - totalCost) / subtotalGeneral) * 100
         : 100;
 
     const generatePDF = async () => {

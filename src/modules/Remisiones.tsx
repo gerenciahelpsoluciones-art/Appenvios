@@ -84,7 +84,7 @@ const RemisionesModule: React.FC<IProps> = ({ clientes = [], productos = [], cur
                 if (field === 'producto_id') {
                     const prod = productos.find(p => p.id === value);
                     updated.descripcion = prod?.nombre || '';
-                    updated.precio_unitario = prod?.precioCompra || 0;
+                    updated.precio_unitario = Math.round((prod?.precioCompra || 0) * 1.15 * 100) / 100; // precio de venta sugerido
                 }
                 updated.subtotal = (Number(updated.cantidad) || 0) * (Number(updated.precio_unitario) || 0);
                 return updated;
@@ -116,7 +116,7 @@ const RemisionesModule: React.FC<IProps> = ({ clientes = [], productos = [], cur
 
         setIsSaving(true);
         try {
-            const numero = `REM-${Date.now().toString().slice(-6)}`;
+            const numero = `REM-${Date.now().toString(36).toUpperCase()}`; // único (antes se repetía cada ~17 min)
             const total = calculateTotal();
 
             const { data: header, error: hError } = await supabase

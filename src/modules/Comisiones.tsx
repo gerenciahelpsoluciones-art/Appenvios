@@ -42,6 +42,7 @@ interface LineaDetalle {
     quantity: number; unitPrice: number; totalVenta: number;
     unitCost: number; totalCosto: number; utilidad: number;
     esDevolucion: boolean;
+    costoEstimado: boolean; // sin costo de compra: se asumió 70 % del precio
 }
 
 const fmt = (n: number) => `$${Math.round(n).toLocaleString('es-CO')}`;
@@ -653,14 +654,16 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, ve
                 const c = String(item.code || '').trim();
                 const d = String(item.description || '').trim().toLowerCase().replace(/[áàäâ]/g, 'a').replace(/[éèëê]/g, 'e').replace(/[íìïî]/g, 'i').replace(/[óòöô]/g, 'o').replace(/[úùüû]/g, 'u');
                 const isSvc = ['6035', '9289'].includes(c) || d.includes('flete') || d.includes('envio') || d.includes('mensajer') || d.includes('visita tecnica');
-                const unitCost = isSvc ? 0 : (productCosts[c] ?? (window as any)._costsByDesc?.[d] ?? (item.unit_cost ? Number(item.unit_cost) : (price * 0.7))); // misma regla que el resumen
+                const costoConocido = productCosts[c] ?? (window as any)._costsByDesc?.[d] ?? (item.unit_cost ? Number(item.unit_cost) : undefined);
+                const costoEstimado = !isSvc && costoConocido === undefined;
+                const unitCost = isSvc ? 0 : (costoConocido ?? price * 0.7); // misma regla que el resumen
                 const totalC = Math.round(unitCost * qty * 100) / 100;
                 lines.push({
                     vendedorId: vid, vendedorName: vname,
                     facturaNum: num, facturaFecha: fecha, clienteNombre: cliente,
                     code: item.code ?? '—', description: item.description ?? '—',
                     quantity: qty, unitPrice: price, totalVenta: totalV,
-                    unitCost, totalCosto: totalC,
+                    unitCost, totalCosto: totalC, costoEstimado,
                     utilidad: Math.round((totalV - totalC) * 100) / 100,
                     esDevolucion: false,
                 });
@@ -690,14 +693,16 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, ve
                 const c = String(item.code || '').trim();
                 const d = String(item.description || '').trim().toLowerCase().replace(/[áàäâ]/g, 'a').replace(/[éèëê]/g, 'e').replace(/[íìïî]/g, 'i').replace(/[óòöô]/g, 'o').replace(/[úùüû]/g, 'u');
                 const isSvc = ['6035', '9289'].includes(c) || d.includes('flete') || d.includes('envio') || d.includes('mensajer') || d.includes('visita tecnica');
-                const unitCost = isSvc ? 0 : (productCosts[c] ?? (window as any)._costsByDesc?.[d] ?? (item.unit_cost ? Number(item.unit_cost) : (price * 0.7))); // misma regla que el resumen
+                const costoConocido = productCosts[c] ?? (window as any)._costsByDesc?.[d] ?? (item.unit_cost ? Number(item.unit_cost) : undefined);
+                const costoEstimado = !isSvc && costoConocido === undefined;
+                const unitCost = isSvc ? 0 : (costoConocido ?? price * 0.7); // misma regla que el resumen
                 const totalC = Math.round(unitCost * qty * 100) / 100;
                 lines.push({
                     vendedorId: vid, vendedorName: vname,
                     facturaNum: num, facturaFecha: fecha, clienteNombre: cliente,
                     code: item.code ?? '—', description: item.description ?? '—',
                     quantity: qty, unitPrice: price, totalVenta: -totalV,
-                    unitCost, totalCosto: -totalC,
+                    unitCost, totalCosto: -totalC, costoEstimado,
                     utilidad: -Math.round((totalV - totalC) * 100) / 100,
                     esDevolucion: true,
                 });
@@ -872,7 +877,7 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, ve
             const lines = getLineas();
             csv = [
                 ['Vendedor', 'Factura', 'Fecha', 'Cliente', 'Código', 'Descripción', 'Cantidad', 'Precio Unit.', 'Total Venta', 'Costo Unit.', 'Total Costo', 'Utilidad', 'Tipo'].map(esc).join(';'),
-                ...lines.map(l => [l.vendedorName, l.facturaNum, l.facturaFecha, l.clienteNombre, l.code, l.description, l.quantity, num(l.unitPrice), num(l.totalVenta), num(l.unitCost), num(l.totalCosto), num(l.utilidad), l.esDevolucion ? 'DEVOLUCIÓN' : 'VENTA'].map(esc).join(';')),
+                ...lines.map(l => [l.vendedorName, l.facturaNum, l.facturaFecha, l.clienteNombre, l.code, l.description, l.quantity, num(l.unitPrice), num(l.totalVenta), num(l.unitCost), num(l.totalCosto), num(l.utilidad), (l.esDevolucion ? 'DEVOLUCIÓN' : 'VENTA') + (l.costoEstimado ? ' · COSTO ESTIMADO' : '')].map(esc).join(';')),
             ].join('\n');
         }
 
@@ -896,6 +901,7 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, ve
     }), { bruto: 0, devoluciones: 0, netas: 0, costos: 0, utilidad: 0, comision: 0 });
 
     const lineas = getLineas();
+    const lineasCostoEstimado = lineas.filter(l => l.costoEstimado).length;
 
     // ── Render ────────────────────────────────────────────────────────────────
     return (
@@ -1067,6 +1073,7 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, ve
             </div>
 
             {error && <div style={{ background: '#fee2e2', color: '#b91c1c', padding: '0.75rem 1rem', borderRadius: 8, marginBottom: '1rem', border: '1px solid #fecaca' }}>{error}</div>}
+            {lineasCostoEstimado > 0 && <div style={{ background: '#fef3c7', color: '#92400e', padding: '0.75rem 1rem', borderRadius: 8, marginBottom: '1rem', border: '1px solid #fcd34d' }}>⚠ {lineasCostoEstimado} línea(s) sin costo de compra en Siigo: se asumió un costo del 70 % del precio. Revíselas en la pestaña Detalle (marcadas con ⚠) antes de pagar comisiones.</div>}
 
             {/* ── TAB SIIGO ── */}
             {mainTab === 'siigo' && (
@@ -1275,7 +1282,9 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, ve
                                                 <td className="num">{l.quantity}</td>
                                                 <td className="num">{fmt(l.unitPrice)}</td>
                                                 <td className="num" style={{ color: l.esDevolucion ? '#f43f5e' : '#10b981', fontWeight: 600 }}>{fmt(Math.abs(l.totalVenta))}</td>
-                                                <td className="num" style={{ color: '#f59e0b' }}>{l.unitCost > 0 ? fmt(l.unitCost) : <span style={{ color: '#94a3b8' }}>N/D</span>}</td>
+                                                <td className="num" style={{ color: '#f59e0b' }}>{l.costoEstimado
+                                                    ? <span title="Sin costo de compra en Siigo: se asumió 70 % del precio. Revisar." style={{ color: '#dc2626', fontWeight: 600 }}>≈ {fmt(l.unitCost)} ⚠</span>
+                                                    : l.unitCost > 0 ? fmt(l.unitCost) : <span style={{ color: '#94a3b8' }}>N/D</span>}</td>
                                                 <td className="num" style={{ color: '#f59e0b' }}>{l.totalCosto !== 0 ? fmt(Math.abs(l.totalCosto)) : <span style={{ color: '#94a3b8' }}>N/D</span>}</td>
                                                 <td className="num" style={{ color: l.utilidad >= 0 ? '#8b5cf6' : '#ef4444', fontWeight: 700 }}>{fmt(l.utilidad)}</td>
                                                 <td className="num" style={{ color: mLine < 10 ? '#ef4444' : '#10b981', fontWeight: 700 }}>{mLine.toFixed(2)}%</td>
