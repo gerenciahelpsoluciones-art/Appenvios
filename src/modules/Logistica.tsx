@@ -621,7 +621,7 @@ const LogisticaModule: React.FC<IProps> = ({
                                                     <button className="btn-status" onClick={() => handleStatusChange(d, 'Entrega Parcial')} title="Parcial" disabled={d.estado === 'Entrega Parcial'}>🌗</button>
                                                     <button className="btn-status" onClick={() => handleStatusChange(d, 'Entregado')} title="Entregado" disabled={d.estado === 'Entregado'}>✅</button>
                                                     <button className="btn-status" onClick={() => setGlobalTab && setGlobalTab('remisiones')} title="Ir a Remisiones">📄</button>
-                                                    <button className="btn-status" style={{ color: 'var(--error)' }} onClick={() => onDeleteDespacho(d.id)}>🗑️</button>
+                                                    <button className="btn-status" style={{ color: 'var(--error)' }} onClick={() => { if (window.confirm(`¿Eliminar el despacho de ${d.consecutivoCotizacion} (${d.clienteNombre})? Se pierden sus fotos y su estado.`)) onDeleteDespacho(d.id); }}>🗑️</button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -974,7 +974,7 @@ const LogisticaModule: React.FC<IProps> = ({
                                                 <div className="action-buttons">
                                                     <button className="btn-status" onClick={() => handleDevolutionStatusChange(d, 'Enviado')} title="Marcar como Enviado" disabled={d.estado === 'Enviado'}>📤</button>
                                                     <button className="btn-status" onClick={() => handleDevolutionStatusChange(d, 'Completado')} title="Marcar como Completado" disabled={d.estado === 'Completado'}>✅</button>
-                                                    <button className="btn-status" style={{ color: 'var(--error)' }} onClick={() => onDeleteDevolucion(d.id)}>🗑️</button>
+                                                    <button className="btn-status" style={{ color: 'var(--error)' }} onClick={() => { if (window.confirm('¿Eliminar esta devolución?')) onDeleteDevolucion(d.id); }}>🗑️</button>
                                                 </div>
                                             </td>
                                         </tr>

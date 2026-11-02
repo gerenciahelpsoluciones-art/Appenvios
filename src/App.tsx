@@ -1249,24 +1249,43 @@ delete fallbackPayload.categoria;
     try {
       console.log('📦 Preparando copia de seguridad masiva...');
       const tables = [
-        'productos', 'clientes', 'cotizaciones', 'ordenes_compra', 
-        'proveedores', 'conductores', 'alquileres', 'despachos', 
-        'reparaciones', 'devoluciones', 'ventas_manuales', 'app_users'
+        'productos', 'clientes', 'cotizaciones', 'ordenes_compra',
+        'proveedores', 'conductores', 'alquileres', 'despachos',
+        'reparaciones', 'devoluciones', 'ventas_manuales', 'propuestas',
+        'budgets', 'clientes_web', 'registros_pendientes', 'mkt_remisiones',
+        'mkt_remision_detalles', 'contratos_obligaciones'
       ];
-      
+
       const backup: any = {
-        version: '1.0',
+        version: '1.1',
         timestamp: new Date().toISOString(),
         data: {}
       };
+      const fallidas: string[] = [];
+
+      // Por páginas de 1000 (límite de Supabase); si una tabla falla se avisa, no se omite en silencio
+      const exportarTabla = async (table: string, cols = '*') => {
+        let filas: any[] = [];
+        for (let from = 0; ; from += 1000) {
+          const { data, error } = await supabase.from(table).select(cols).range(from, from + 999);
+          if (error) throw error;
+          filas = filas.concat(data || []);
+          if (!data || data.length < 1000) return filas;
+        }
+      };
 
       for (const table of tables) {
-        const { data, error } = await supabase.from(table).select('*');
-        if (!error && data) {
-          backup.data[table] = data;
-        } else {
+        try {
+          backup.data[table] = await exportarTabla(table);
+        } catch (error) {
           console.error(`Error exportando tabla ${table}:`, error);
+          fallidas.push(table);
         }
+      }
+      try {
+        backup.data.app_users = await exportarTabla('app_users', USER_COLS); // sin contraseñas
+      } catch {
+        fallidas.push('app_users');
       }
 
       // Convert to JSON and trigger download
@@ -1281,7 +1300,11 @@ delete fallbackPayload.categoria;
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
       
-      console.log('✅ Copia de seguridad descargada con éxito.');
+      if (fallidas.length) {
+        alert(`⚠️ La copia se descargó INCOMPLETA. No se pudieron exportar: ${fallidas.join(', ')}.`);
+      } else {
+        console.log('✅ Copia de seguridad descargada con éxito.');
+      }
     } catch (err) {
       console.error('Error en exportación masiva:', err);
       alert('Hubo un error al generar la copia de seguridad.');
@@ -1289,16 +1312,15 @@ delete fallbackPayload.categoria;
   };
 
   const addCotizacion = async (c: Cotizacion) => {
+    // Si no se guarda se lanza error: Cotizaciones no genera el PDF ni limpia el formulario
     if (isAddingCotizacionRef.current) {
-      console.warn('Ya se está procesando el guardado de una cotización.');
-      return;
+      throw new Error('Ya se está procesando el guardado de una cotización.');
     }
 
     const existing = cotizaciones.find(item => item.consecutivo?.trim() === c.consecutivo?.trim());
     if (existing) {
-      console.warn(`Cotización con consecutivo ${c.consecutivo} ya existe.`);
-      alert(`⚠️ Ya existe una cotización registrada con el consecutivo "${c.consecutivo}".`);
-      return;
+      alert(`⚠️ Ya existe una cotización registrada con el consecutivo "${c.consecutivo}". No se guardó ni se generó el PDF.`);
+      throw new Error(`Consecutivo ${c.consecutivo} repetido`);
     }
 
     isAddingCotizacionRef.current = true;
@@ -1438,11 +1460,13 @@ delete fallbackPayload.categoria;
 
     // 3. Trigger Outlook Email & Logistics Automation if Won
     if (c.estado === 'Ganado') {
-      // Outlook Integration via Template
-      const emailSubject = `NUEVO PEDIDO GANADO - ${c.consecutivo}`;
-      const emailBody = `Hola equipo de Logística/Facturación,\n\nSe ha confirmado una nueva venta ganada:\n\n- Cotización: ${c.consecutivo}\n- Cliente: ${c.clienteNombre}\n- Valor Total: $${Math.round(c.total).toLocaleString()}\n\nPor favor, proceder con el despacho y la facturación correspondiente.`;
+      // El aviso sale solo cuando la cotización pasa a Ganado, no en cada edición posterior
+      if (oldQuote?.estado !== 'Ganado') {
+        const emailSubject = `NUEVO PEDIDO GANADO - ${c.consecutivo}`;
+        const emailBody = `Hola equipo de Logística/Facturación,\n\nSe ha confirmado una nueva venta ganada:\n\n- Cotización: ${c.consecutivo}\n- Cliente: ${c.clienteNombre}\n- Valor Total: $${Math.round(c.total).toLocaleString()}\n\nPor favor, proceder con el despacho y la facturación correspondiente.`;
 
-      sendEmailNotification('logistica@helpsoluciones.com.co', emailSubject, emailBody, 'facturacion@helpsoluciones.com.co');
+        sendEmailNotification('logistica@helpsoluciones.com.co', emailSubject, emailBody, 'facturacion@helpsoluciones.com.co');
+      }
 
       // Create Logistics record if it doesn't exist
       if (!despachos.some(d => d.cotizacionId === c.id)) {
@@ -1506,13 +1530,23 @@ delete fallbackPayload.categoria;
         }
       }
     } else if (oldQuote && oldQuote.estado === 'Ganado') {
-      // If it was won and now it's not (since we're in the else block of c.estado === 'Ganado'), remove from logistics
-      const { error: despachoDelError } = await supabase.from('despachos').delete().eq('cotizacion_id', c.id);
-      if (!despachoDelError) {
-        setDespachos(prev => prev.filter(d => d.cotizacionId !== c.id));
-        console.log(`Despacho asociado a ${c.consecutivo} eliminado por cambio de estado.`);
-      } else {
-        console.error('Error eliminando despacho asociado:', despachoDelError);
+      // Dejó de estar ganada: solo se retira de logística un despacho que no ha avanzado.
+      // Uno despachado, facturado o con fotos se conserva para no perder la evidencia.
+      const asociados = despachos.filter(d => d.cotizacionId === c.id);
+      const sinAvanzar = asociados.filter(d => d.estado === 'Pendiente' && !d.facturado && !d.fotoEntrega && !d.fotoRemision);
+      const conservados = asociados.length - sinAvanzar.length;
+
+      if (sinAvanzar.length) {
+        const ids = sinAvanzar.map(d => d.id);
+        const { error: despachoDelError } = await supabase.from('despachos').delete().in('id', ids);
+        if (!despachoDelError) {
+          setDespachos(prev => prev.filter(d => !ids.includes(d.id)));
+        } else {
+          console.error('Error eliminando despacho asociado:', despachoDelError);
+        }
+      }
+      if (conservados) {
+        alert(`La cotización ${c.consecutivo} ya no está Ganada, pero su despacho se conservó porque ya fue despachado, facturado o tiene fotos. Revíselo en Logística.`);
       }
     }
   };
