@@ -2,6 +2,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { logoBase64 } from '../assets/logoBase64';
 import type { Cliente, Producto } from '../App';
+import { hoyColombia } from '../utils/fecha';
 
 export interface PDFData {
     consecutivo: string;
@@ -66,7 +67,7 @@ export const generateQuotationPDF = (data: PDFData, action: 'save' | 'view' = 's
         doc.text(`Contacto: ${data.cliente.contacto}`, 14, 70);
         doc.text(`Dirección: ${data.cliente.direccion}`, 14, 75);
 
-        doc.text(`Fecha: ${new Date().toISOString().split('T')[0]}`, 150, 60);
+        doc.text(`Fecha: ${hoyColombia()}`, 150, 60);
         doc.text(`Validez: ${data.validez || 3} día(s) calendario`, 150, 65);
 
         // Recalculate totals internally to ensure consistency with displayed items

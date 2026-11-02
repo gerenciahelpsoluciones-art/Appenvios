@@ -4,6 +4,7 @@ import type { Producto } from '../App';
 import InventarioModule from './Inventario';
 
 import RecoveryAssistant from '../components/RecoveryAssistant';
+import { hoyColombia } from '../utils/fecha';
 
 interface IProps {
     productos: Producto[];
@@ -40,7 +41,7 @@ const ProductosModule: React.FC<IProps> = ({ productos, onAdd, onUpdate, onDelet
                     id: editingId,
                     moneda: formData.moneda || 'COP',
                     trmReferencia: formData.moneda === 'USD' ? (formData.trmReferencia || currentTrm || undefined) : undefined,
-                    history: existing ? [...existing.history, { date: new Date().toISOString().split('T')[0], price: formData.precioCompra || 0 }] : []
+                    history: existing ? [...existing.history, { date: hoyColombia(), price: formData.precioCompra || 0 }] : []
                 };
                 onUpdate(updated);
                 setEditingId(null);
@@ -51,7 +52,7 @@ const ProductosModule: React.FC<IProps> = ({ productos, onAdd, onUpdate, onDelet
                     moneda: formData.moneda || 'COP',
                     tipo: formData.tipo || 'Producto',
                     trmReferencia: formData.moneda === 'USD' ? (currentTrm || undefined) : undefined,
-                    history: [{ date: new Date().toISOString().split('T')[0], price: formData.precioCompra || 0 }]
+                    history: [{ date: hoyColombia(), price: formData.precioCompra || 0 }]
                 };
                 onAdd(prod);
                 setIsAdding(false);
@@ -74,14 +75,14 @@ const ProductosModule: React.FC<IProps> = ({ productos, onAdd, onUpdate, onDelet
                     ...exists,
                     ...p as Producto,
                     id: exists.id,
-                    history: [...exists.history, { date: new Date().toISOString().split('T')[0], price: p.precioCompra || 0 }]
+                    history: [...exists.history, { date: hoyColombia(), price: p.precioCompra || 0 }]
                 });
             } else {
                 // Create new
                 onAdd({
                     ...p as Producto,
                     id: crypto.randomUUID(),
-                    history: [{ date: new Date().toISOString().split('T')[0], price: p.precioCompra || 0 }]
+                    history: [{ date: hoyColombia(), price: p.precioCompra || 0 }]
                 });
             }
         }

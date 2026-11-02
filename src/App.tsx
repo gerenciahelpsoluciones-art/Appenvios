@@ -43,6 +43,7 @@ import {
 } from './data/crmDemoData'
 
 const IS_DEMO = import.meta.env.VITE_DEMO_MODE === 'true';
+import { hoyColombia } from './utils/fecha';
 
 // La columna password no se puede leer desde el navegador (ver supabase/seguridad_login_parte2.sql)
 const sinPassword = <T extends { password?: string }>(u: T): T => { const { password: _pw, ...rest } = u; return rest as T; };
@@ -1294,7 +1295,7 @@ delete fallbackPayload.categoria;
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `BACKUP_CRM_APPENVIOS_${new Date().toISOString().split('T')[0]}.json`;
+      link.download = `BACKUP_CRM_APPENVIOS_${hoyColombia()}.json`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -1400,7 +1401,7 @@ delete fallbackPayload.categoria;
         const client = clientes.find(cli => cli.id === c.clienteId);
         setDespachos(prev => [...prev, {
           id: crypto.randomUUID(), cotizacionId: c.id, consecutivoCotizacion: c.consecutivo,
-          fechaSolicitud: new Date().toISOString().split('T')[0], clienteId: c.clienteId,
+          fechaSolicitud: hoyColombia(), clienteId: c.clienteId,
           clienteNombre: c.clienteNombre, direccion: client?.direccion || 'N/A',
           items: (c.items || []).map(item => { const p = productos.find(x => x.id === item.productoId); return { productoId: item.productoId, nombreProducto: p?.nombre || 'Producto', numPart: p?.numPart || 'N/A', cantidad: item.cantidad }; }),
           total: c.total, ejecutivoEmail: c.ejecutivoEmail || '', ejecutivoTelefono: c.ejecutivoTelefono,
@@ -1485,7 +1486,7 @@ delete fallbackPayload.categoria;
           id: crypto.randomUUID(), // Temp ID
           cotizacionId: c.id,
           consecutivoCotizacion: c.consecutivo,
-          fechaSolicitud: new Date().toISOString().split('T')[0],
+          fechaSolicitud: hoyColombia(),
           clienteId: c.clienteId,
           clienteNombre: c.clienteNombre,
           direccion: client?.direccion || 'N/A',

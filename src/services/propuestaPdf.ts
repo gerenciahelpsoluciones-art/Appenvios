@@ -497,8 +497,13 @@ export const generatePropuestaPDF = (propuesta: Propuesta, action: 'save' | 'vie
   y += 6;
 
   const itemsConValor = (propuesta.items || []).filter(it => (it.valorUnitario || 0) > 0);
-  const subtotal = itemsConValor.reduce((s, it) => s + (it.cantidad || 0) * (it.valorUnitario || 0), 0);
-  const iva = propuesta.incluyeIva ? Math.round(subtotal * 0.19) : 0;
+  // Sin ítems con valor se usa propuesta.valor, que ya trae el IVA incluido (calcTotal en Propuestas)
+  const subtotal = itemsConValor.length
+    ? itemsConValor.reduce((s, it) => s + (it.cantidad || 0) * (it.valorUnitario || 0), 0)
+    : (propuesta.incluyeIva ? Math.round((propuesta.valor || 0) / 1.19) : (propuesta.valor || 0));
+  const iva = propuesta.incluyeIva
+    ? (itemsConValor.length ? Math.round(subtotal * 0.19) : (propuesta.valor || 0) - subtotal)
+    : 0;
   const total = subtotal + iva;
 
   const tableBody: (string | { content: string; colSpan?: number; styles?: object })[][] =
@@ -518,8 +523,8 @@ export const generatePropuestaPDF = (propuesta: Propuesta, action: 'save' | 'vie
         styles: { fontSize: 8.5 }
       },
       '1',
-      formatCurrency(propuesta.valor, propuesta.moneda),
-      formatCurrency(propuesta.valor, propuesta.moneda),
+      formatCurrency(subtotal, propuesta.moneda),
+      formatCurrency(subtotal, propuesta.moneda),
     ]);
   }
 

@@ -5,6 +5,7 @@ import { generateQuotationPDF } from '../utils/pdfGenerator';
 import { supabase } from '../lib/supabaseClient';
 import { calculateDespachoNeto } from '../utils/financialCalculations';
 import ProductSearchSelect from '../components/ProductSearchSelect';
+import { hoyColombia } from '../utils/fecha';
 
 interface IProps {
     cotizaciones: Cotizacion[];
@@ -845,7 +846,7 @@ const InformesModule: React.FC<IProps> = ({
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', maxHeight: '350px', overflowY: 'auto', padding: '0.25rem' }}>
                         {pendingReminders.map(rem => {
-                            const isOverdue = rem.date < new Date().toISOString().split('T')[0];
+                            const isOverdue = rem.date < hoyColombia();
                             return (
                                 <div 
                                     key={rem.id} 

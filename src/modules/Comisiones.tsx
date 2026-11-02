@@ -653,7 +653,7 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, ve
                 const c = String(item.code || '').trim();
                 const d = String(item.description || '').trim().toLowerCase().replace(/[áàäâ]/g, 'a').replace(/[éèëê]/g, 'e').replace(/[íìïî]/g, 'i').replace(/[óòöô]/g, 'o').replace(/[úùüû]/g, 'u');
                 const isSvc = ['6035', '9289'].includes(c) || d.includes('flete') || d.includes('envio') || d.includes('mensajer') || d.includes('visita tecnica');
-                const unitCost = isSvc ? 0 : (productCosts[c] ?? (window as any)._costsByDesc?.[d] ?? 0);
+                const unitCost = isSvc ? 0 : (productCosts[c] ?? (window as any)._costsByDesc?.[d] ?? (item.unit_cost ? Number(item.unit_cost) : (price * 0.7))); // misma regla que el resumen
                 const totalC = Math.round(unitCost * qty * 100) / 100;
                 lines.push({
                     vendedorId: vid, vendedorName: vname,
@@ -690,7 +690,7 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, ve
                 const c = String(item.code || '').trim();
                 const d = String(item.description || '').trim().toLowerCase().replace(/[áàäâ]/g, 'a').replace(/[éèëê]/g, 'e').replace(/[íìïî]/g, 'i').replace(/[óòöô]/g, 'o').replace(/[úùüû]/g, 'u');
                 const isSvc = ['6035', '9289'].includes(c) || d.includes('flete') || d.includes('envio') || d.includes('mensajer') || d.includes('visita tecnica');
-                const unitCost = isSvc ? 0 : (productCosts[c] ?? (window as any)._costsByDesc?.[d] ?? 0);
+                const unitCost = isSvc ? 0 : (productCosts[c] ?? (window as any)._costsByDesc?.[d] ?? (item.unit_cost ? Number(item.unit_cost) : (price * 0.7))); // misma regla que el resumen
                 const totalC = Math.round(unitCost * qty * 100) / 100;
                 lines.push({
                     vendedorId: vid, vendedorName: vname,

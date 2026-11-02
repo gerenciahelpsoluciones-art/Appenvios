@@ -4,6 +4,7 @@ import type { Cliente, Producto, Cotizacion, AppUser } from '../App';
 import { generateQuotationPDF } from '../utils/pdfGenerator';
 import ProductSearchSelect from '../components/ProductSearchSelect';
 import ClienteCategoriaBadge from '../components/ClienteCategoriaBadge';
+import { hoyColombia } from '../utils/fecha';
 
 interface QuoteItem {
     id: string;
@@ -39,7 +40,7 @@ const CotizacionesModule: React.FC<IProps> = ({
 }) => {
     // Helper to generate dynamic consecutive
     const generateConsecutivo = () => {
-        const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
+        const dateStr = hoyColombia().replace(/-/g, '');
         const names = currentUser?.nombre ? currentUser.nombre.trim().split(' ').filter(Boolean) : [];
         const init1 = names[0] ? names[0][0].toUpperCase() : 'X';
         const init2 = names.length > 1 ? names[names.length - 1][0].toUpperCase() : (names[0] && names[0].length > 1 ? names[0][1].toUpperCase() : 'X');
@@ -257,7 +258,7 @@ BBVA - Cuenta Corriente No. 390021475`;
             // Save to DB (await completion)
             await onAddQuote({
                 id: crypto.randomUUID(),
-                fecha: new Date().toISOString().split('T')[0],
+                fecha: hoyColombia(),
                 clienteId: selectedClienteId,
                 clienteNombre: selectedCliente?.nombre || 'N/A',
                 consecutivo: consecutivo,
@@ -394,7 +395,7 @@ BBVA - Cuenta Corriente No. 390021475`;
                                     ))}
                                 </select>
                             )}
-                            <input className="input-field" type="date" value={new Date().toISOString().split('T')[0]} readOnly title="Fecha" />
+                            <input className="input-field" type="date" value={hoyColombia()} readOnly title="Fecha" />
                         </div>
                     </div>
                     <div>

@@ -4,6 +4,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { logoBase64 } from '../assets/logoBase64';
 import ProductSearchSelect from '../components/ProductSearchSelect';
+import { hoyColombia } from '../utils/fecha';
 
 interface IProps {
     proveedores: Proveedor[];
@@ -103,8 +104,8 @@ const OrdenesCompraModule: React.FC<IProps> = ({ proveedores, productos, alquile
             id: editingId || crypto.randomUUID(),
             consecutivo: nextConsecutivo,
             fecha: editingId
-                ? ordenesCompra.find(oc => oc.id === editingId)?.fecha || new Date().toISOString().split('T')[0]
-                : new Date().toISOString().split('T')[0],
+                ? ordenesCompra.find(oc => oc.id === editingId)?.fecha || hoyColombia()
+                : hoyColombia(),
             proveedorId: prov.id,
             nombreProveedor: prov.nombre,
             items: items,

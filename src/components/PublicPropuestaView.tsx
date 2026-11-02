@@ -93,7 +93,7 @@ export default function PublicPropuestaView({ folio }: PublicPropuestaViewProps)
     );
   }
 
-  const isUsd = propuesta.moneda === 'USD' || ((Number(propuesta.valor) || 0) < 5000 && (Number(propuesta.valor) || 0) > 0);
+  const isUsd = propuesta.moneda === 'USD';
   const formatMoney = (val: number | string) => {
     const n = Number(val) || 0;
     if (isUsd) {
@@ -102,23 +102,23 @@ export default function PublicPropuestaView({ folio }: PublicPropuestaViewProps)
     return `$${Math.round(n).toLocaleString('es-CO')}`;
   };
 
-  const isCloudBackup = propuesta.tipo_servicio === 'cloud-backup' || 
+  // Solo cambia textos de la página; el IVA lo decide incluye_iva
+  const isCloudBackup = propuesta.tipo_servicio === 'cloud-backup' ||
                         (propuesta.tipo_servicio_nombre && propuesta.tipo_servicio_nombre.toLowerCase().includes('backup')) ||
                         (propuesta.tipo_servicio_nombre && propuesta.tipo_servicio_nombre.toLowerCase().includes('cloud')) ||
                         propuesta.consecutivo === 'P-005';
+  const isIvaExento = !propuesta.incluye_iva;
 
-  const items: any[] = Array.isArray(propuesta.items) && propuesta.items.length > 0 
-    ? propuesta.items 
-    : [
-        { descripcion: 'Licenciamiento Agente Acronis Cyber Protect (Servidores Windows/Linux)', cantidad: 2, valorUnitario: 54.00 },
-        { descripcion: 'Licenciamiento Agente Acronis Cyber Protect (Estaciones de Trabajo)', cantidad: 8, valorUnitario: 14.40 },
-        { descripcion: 'Almacenamiento Cloud Seguro en Nube Inmutable Acronis (1.000 GB / 1 TB)', cantidad: 1000, valorUnitario: 0.09 },
-        { descripcion: 'Monitoreo Proactivo 24/7, Gestión de Alertas y Pruebas Semestrales de Recuperación', cantidad: 1, valorUnitario: 32.40 }
-      ];
-
-  const subtotal = items.reduce((acc, it) => acc + (Number(it.cantidad) || 1) * (Number(it.valorUnitario) || 0), 0) || Number(propuesta.valor) || 345.60;
-  const isIvaExento = !propuesta.incluye_iva || isCloudBackup;
-  const iva = isIvaExento ? 0 : subtotal * 0.19;
+  // Mismos números que el CRM y el PDF: ítems con valor, IVA solo si la propuesta lo incluye
+  const items: any[] = (Array.isArray(propuesta.items) ? propuesta.items : [])
+    .filter((it: any) => (Number(it.valorUnitario) || 0) > 0);
+  const valorGuardado = Number(propuesta.valor) || 0; // ya trae el IVA incluido
+  const subtotal = items.length
+    ? items.reduce((acc, it) => acc + (Number(it.cantidad) || 1) * (Number(it.valorUnitario) || 0), 0)
+    : (propuesta.incluye_iva ? Math.round(valorGuardado / 1.19) : valorGuardado);
+  const iva = propuesta.incluye_iva
+    ? (items.length ? Math.round(subtotal * 0.19) : valorGuardado - subtotal)
+    : 0;
   const total = subtotal + iva;
 
   return (

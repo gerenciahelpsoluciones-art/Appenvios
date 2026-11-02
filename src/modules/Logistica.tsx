@@ -12,6 +12,7 @@ import {
     type Cliente,
     type Cotizacion
 } from '../App';
+import { hoyColombia } from '../utils/fecha';
 
 interface IProps {
     despachos: Despacho[];
@@ -71,7 +72,7 @@ const LogisticaModule: React.FC<IProps> = ({
         d.setDate(1); // Default to start of month
         return d.toISOString().split('T')[0];
     });
-    const [dateEnd, setDateEnd] = useState<string>(new Date().toISOString().split('T')[0]);
+    const [dateEnd, setDateEnd] = useState<string>(hoyColombia());
     const [selectedUser, setSelectedUser] = useState<string>('Todos');
 
     // Manual Modal State
@@ -224,7 +225,7 @@ const LogisticaModule: React.FC<IProps> = ({
         const newOC: OrdenCompra = {
             id: crypto.randomUUID(),
             consecutivo: `REC-${Date.now().toString().slice(-6)}`,
-            fecha: new Date().toISOString().split('T')[0],
+            fecha: hoyColombia(),
             proveedorId: origenId,
             nombreProveedor: origenNombre,
             items: manualItems.map(mi => ({
@@ -260,7 +261,7 @@ const LogisticaModule: React.FC<IProps> = ({
         const newDev: Devolucion = {
             id: crypto.randomUUID(),
             consecutivo: `DEV-${Date.now().toString().slice(-6)}`,
-            fecha: new Date().toISOString().split('T')[0],
+            fecha: hoyColombia(),
             proveedorId: selectedProvId,
             nombreProveedor: prov?.nombre || 'PROV MANUAL',
             items: manualItems,

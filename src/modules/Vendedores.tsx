@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import type { AppUser, SalesBudget, Cotizacion, VentaManual } from '../App';
 import { generateCommercialReportPDF } from '../utils/pdfGenerator';
+import { hoyColombia } from '../utils/fecha';
 
 interface IProps {
     users: AppUser[];
@@ -14,7 +15,7 @@ interface IProps {
 }
 
 const Vendedores: React.FC<IProps> = ({ users, budgets, cotizaciones, ventasManuales, despachos, ordenesCompra, currentUser }) => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = hoyColombia();
     const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
     
     const [fechaInicio, setFechaInicio] = useState(firstDayOfMonth);

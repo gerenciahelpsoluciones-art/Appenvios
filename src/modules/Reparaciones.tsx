@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import type { Reparacion, Cliente, Proveedor } from '../App';
 import { jsPDF } from 'jspdf';
 import QRCode from 'qrcode';
+import { hoyColombia } from '../utils/fecha';
 
 interface IProps {
     reparaciones: Reparacion[];
@@ -18,7 +19,7 @@ const ReparacionesModule: React.FC<IProps> = ({ reparaciones, clientes, proveedo
     const [formData, setFormData] = useState<Partial<Reparacion>>({
         estado: 'Recibido',
         tipoServicio: 'HELP SOLUCIONES',
-        fechaIngreso: new Date().toISOString().split('T')[0]
+        fechaIngreso: hoyColombia()
     });
 
     const getNextConsecutivo = () => {
@@ -38,7 +39,7 @@ const ReparacionesModule: React.FC<IProps> = ({ reparaciones, clientes, proveedo
                 consecutivo: actualConsecutivo,
                 clienteNombre: client?.nombre || 'Desconocido',
                 proveedorNombre: formData.tipoServicio === 'Proveedor' ? (provider?.nombre || 'Proveedor Desconocido') : undefined,
-                fechaIngreso: formData.fechaIngreso || new Date().toISOString().split('T')[0],
+                fechaIngreso: formData.fechaIngreso || hoyColombia(),
             } as Reparacion;
 
             if (editingId) {
@@ -48,7 +49,7 @@ const ReparacionesModule: React.FC<IProps> = ({ reparaciones, clientes, proveedo
                 onAdd({ ...repairData, id: crypto.randomUUID() });
                 setIsAdding(false);
             }
-            setFormData({ estado: 'Recibido', tipoServicio: 'HELP SOLUCIONES', fechaIngreso: new Date().toISOString().split('T')[0] });
+            setFormData({ estado: 'Recibido', tipoServicio: 'HELP SOLUCIONES', fechaIngreso: hoyColombia() });
         } else {
             alert('Por favor complete Cliente y Serial');
         }
@@ -70,7 +71,7 @@ const ReparacionesModule: React.FC<IProps> = ({ reparaciones, clientes, proveedo
     const cancel = () => {
         setIsAdding(false);
         setEditingId(null);
-        setFormData({ estado: 'Recibido', tipoServicio: 'HELP SOLUCIONES', fechaIngreso: new Date().toISOString().split('T')[0] });
+        setFormData({ estado: 'Recibido', tipoServicio: 'HELP SOLUCIONES', fechaIngreso: hoyColombia() });
     };
 
     const generateTicket = async (r: Reparacion) => {
@@ -136,7 +137,7 @@ const ReparacionesModule: React.FC<IProps> = ({ reparaciones, clientes, proveedo
         <div className="module-container">
             <div className="module-header">
                 <h2>Gestión de Reparaciones</h2>
-                <button onClick={() => { setIsAdding(true); setEditingId(null); setFormData({ estado: 'Recibido', tipoServicio: 'HELP SOLUCIONES', fechaIngreso: new Date().toISOString().split('T')[0] }); }}>+ Nueva Reparación</button>
+                <button onClick={() => { setIsAdding(true); setEditingId(null); setFormData({ estado: 'Recibido', tipoServicio: 'HELP SOLUCIONES', fechaIngreso: hoyColombia() }); }}>+ Nueva Reparación</button>
             </div>
 
             {(isAdding || editingId) && (

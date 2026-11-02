@@ -56,11 +56,11 @@ const CarteraModule: React.FC<IProps> = ({ currentUser, clientes }) => {
             }
             setSiigoUsers(users);
 
-            // Fetch Invoices (Last 6 months to find unpaid)
-            addLog('Buscando facturas en los últimos 6 meses...');
+            // Facturas de los últimos 24 meses: con 6 la deuda más vieja nunca aparecía
+            addLog('Buscando facturas en los últimos 24 meses...');
             const today = new Date();
             const sixMonthsAgo = new Date();
-            sixMonthsAgo.setMonth(today.getMonth() - 6);
+            sixMonthsAgo.setMonth(today.getMonth() - 24);
 
             const yearStart = sixMonthsAgo.getFullYear();
             const monthStart = String(sixMonthsAgo.getMonth() + 1).padStart(2, '0');
@@ -72,7 +72,7 @@ const CarteraModule: React.FC<IProps> = ({ currentUser, clientes }) => {
             const dateQ = `created_start=${yearStart}-${monthStart}-${dayStart}&created_end=${yearEnd}-${monthEnd}-${dayEnd}`;
 
             let allInvoices: any[] = [];
-            for (let p = 1; p <= 50; p++) {
+            for (let p = 1; p <= 200; p++) {
                 const url = `${EDGE_FUNCTION_URL}?action=invoices&${dateQ}&page=${p}&page_size=100`;
                 const r = await fetch(url, { headers: { ...baseHeaders(), 'x-siigo-token': access_token } });
                 if (!r.ok) break;
@@ -164,7 +164,9 @@ const CarteraModule: React.FC<IProps> = ({ currentUser, clientes }) => {
         const numFactura = inv.name || inv.number || '';
         const nombreCliente = inv.customer?.name || crmClient?.nombre || '';
         const msg = encodeURIComponent(`Hola ${nombreCliente}, te saludamos de Help Soluciones. Te escribimos para recordarte amablemente que la factura ${numFactura} presenta un saldo pendiente de ${saldo}. ¡Quedamos atentos a tu confirmación de pago!`);
-        window.open(`https://wa.me/57${cleanPhone}?text=${msg}`, '_blank');
+        // Si el número ya trae el 57 (12 dígitos) no se repite
+        const destino = cleanPhone.length === 12 && cleanPhone.startsWith('57') ? cleanPhone : `57${cleanPhone}`;
+        window.open(`https://wa.me/${destino}?text=${msg}`, '_blank');
     };
 
     const totalCartera = filteredInvoices.reduce((sum, inv) => sum + Number(inv.balance || 0), 0);

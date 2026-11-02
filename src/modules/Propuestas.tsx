@@ -3,6 +3,7 @@ import type { Cliente, Propuesta, PropuestaItem, AppUser, Producto, PasoInfograf
 import SlaEditor from '../components/SlaEditor';
 import { SERVICIO_TEMPLATES } from '../data/servicioTemplates';
 import { generatePropuestaPDF } from '../services/propuestaPdf';
+import { hoyColombia } from '../utils/fecha';
 
 interface IProps {
   propuestas: Propuesta[];
@@ -33,7 +34,7 @@ const newItem = (): PropuestaItem => ({
 });
 
 const makeEmpty = (currentUser: AppUser): Omit<Propuesta, 'id' | 'consecutivo'> => ({
-  fecha: new Date().toISOString().split('T')[0],
+  fecha: hoyColombia(),
   clienteId: '', clienteNombre: '', clienteNit: '', clienteCiudad: '', clienteContacto: '',
   tipoServicioId: '', tipoServicioNombre: '',
   moneda: 'COP', valor: 0, items: [newItem()], incluyeIva: false,
@@ -169,7 +170,8 @@ const PropuestasModule: React.FC<IProps> = ({ propuestas, clientes, productos, c
     setForm(f => {
       const items = f.items.map(it =>
         it.id === itemId
-          ? { ...it, productoId: p.id, descripcion: p.nombre, numPart: p.numPart || '', valorUnitario: p.precioCompra || 0 }
+          // Precio sugerido = costo + 15 %, igual que en Cotizaciones (antes se cotizaba al costo)
+          ? { ...it, productoId: p.id, descripcion: p.nombre, numPart: p.numPart || '', valorUnitario: Math.round((p.precioCompra || 0) * 1.15 * 100) / 100 }
           : it
       );
       return { ...f, items, moneda: p.moneda || f.moneda, valor: calcTotal(items, f.incluyeIva) };
@@ -542,7 +544,7 @@ const fmtCOP = (n: number) => fmtMoney(n, 'COP');
                 </tr>
               ) : filtered.map(p => {
                 const t = SERVICIO_TEMPLATES.find(t => t.id === p.tipoServicioId);
-                const rowTotal = p.valor + (p.incluyeIva ? Math.round(p.valor * 0.19) : 0);
+                const rowTotal = p.valor; // calcTotal ya incluye el IVA
                 return (
                   <tr key={p.id} className="border-b border-[#EDF3FA] hover:bg-[#F5F9FF]">
                     <td className="px-4 py-3 text-slate-500 font-mono text-xs">{p.consecutivo}</td>

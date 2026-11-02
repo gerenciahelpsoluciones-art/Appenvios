@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import type { VentaManual, Cliente, AppUser, Producto } from '../App';
+import { hoyColombia } from '../utils/fecha';
 
 interface IProps {
     ventas: VentaManual[];
@@ -28,7 +29,7 @@ const VentasManualesModule: React.FC<IProps> = ({
     const [targetMonth, setTargetMonth] = useState(new Date().getMonth() + 1);
     const [selectedUsuarioIdClone, setSelectedUsuarioIdClone] = useState(currentUser.id);
 
-    const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0]);
+    const [fecha, setFecha] = useState(hoyColombia());
     const [selectedClienteId, setSelectedClienteId] = useState('');
     const [selectedProductoId, setSelectedProductoId] = useState('');
     const [selectedUsuarioId, setSelectedUsuarioId] = useState(currentUser.id);
@@ -137,7 +138,7 @@ const VentasManualesModule: React.FC<IProps> = ({
     const resetForm = () => {
         setIsAdding(false);
         setEditingVenta(null);
-        setFecha(new Date().toISOString().split('T')[0]);
+        setFecha(hoyColombia());
         setSelectedClienteId('');
         setSelectedProductoId('');
         setSelectedUsuarioId(currentUser.id);

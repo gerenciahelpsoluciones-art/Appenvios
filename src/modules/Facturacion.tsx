@@ -4,6 +4,7 @@ import type { Despacho, Cotizacion, Cliente, Producto } from '../App';
 import { generateQuotationPDF } from '../utils/pdfGenerator';
 import { supabase } from '../lib/supabaseClient';
 import { calculateDespachoNeto } from '../utils/financialCalculations';
+import { hoyColombia } from '../utils/fecha';
 
 interface IProps {
     despachos: Despacho[];
@@ -47,7 +48,7 @@ const FacturacionModule: React.FC<IProps> = ({ despachos, cotizaciones, clientes
 
     const handleFacturar = (d: Despacho) => {
         if (window.confirm(`¿Marcar el pedido ${d.consecutivoCotizacion} como FACTURADO?`)) {
-            const fechaHoy = new Date().toISOString().split('T')[0];
+            const fechaHoy = hoyColombia();
             onUpdateDespacho({ ...d, facturado: true, fechaFacturado: fechaHoy });
         }
     };

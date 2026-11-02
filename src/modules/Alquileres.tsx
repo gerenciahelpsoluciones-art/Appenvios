@@ -3,6 +3,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { logoBase64 } from '../assets/logoBase64';
 import type { Alquiler, Cliente, AppUser } from '../App';
+import { hoyColombia } from '../utils/fecha';
 
 interface IProps {
     alquileres: Alquiler[];
@@ -246,7 +247,7 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
 
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(0, 0, 0);
-        doc.text(`Fecha de inicio del alquiler:  ${a.fechaInicio || new Date().toISOString().split('T')[0]}`, marginX + 5, y + 14);
+        doc.text(`Fecha de inicio del alquiler:  ${a.fechaInicio || hoyColombia()}`, marginX + 5, y + 14);
         doc.text(`Valor mensual del alquiler:  $${a.valorMensual.toLocaleString()} COP`, marginX + contentWidth / 2, y + 14);
 
         y += 30;
@@ -311,7 +312,7 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
         doc.text('C.C.: ________________________', rightX + 10, y + 48);
 
         // ─── FOOTER ───
-        doc.save(`Acta_Entrega_${a.serial}_${new Date().toISOString().split('T')[0]}.pdf`);
+        doc.save(`Acta_Entrega_${a.serial}_${hoyColombia()}.pdf`);
     };
 
     const generateInformeGlobal = () => {
@@ -376,7 +377,7 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
         doc.setTextColor(0, 0, 0);
         doc.text(`Total Mensual Proyectado: $${totalMensual.toLocaleString()} COP`, doc.internal.pageSize.width - marginX, finalY, { align: 'right' });
 
-        doc.save(`Informe_Alquileres_${new Date().toISOString().split('T')[0]}.pdf`);
+        doc.save(`Informe_Alquileres_${hoyColombia()}.pdf`);
     };
 
     const filtered = alquileres.filter(a =>
@@ -395,7 +396,7 @@ const AlquileresModule: React.FC<IProps> = ({ alquileres, clientes, onAddAlquile
             estado: 'Alquilado',
             clienteId: assignClienteId,
             clienteNombre: cliente?.nombre || '',
-            fechaInicio: assignFechaInicio || new Date().toISOString().split('T')[0],
+            fechaInicio: assignFechaInicio || hoyColombia(),
             valorMensual: assignValorMensual
         };
         const success = await onUpdateAlquiler(updated);
