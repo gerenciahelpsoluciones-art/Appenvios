@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+import { SIIGO_PROXY_URL, siigoHeaders } from '../lib/siigo';
 
 interface SiigoProduct {
     id: string;
@@ -11,31 +10,19 @@ interface SiigoProduct {
     stock: number;
 }
 
-// URL directa de la Edge Function de Supabase (hardcoded para máxima confiabilidad)
-const SUPABASE_PROJECT_URL = import.meta.env.VITE_SUPABASE_URL || 'https://matyjysinegbibdwzhoq.supabase.co';
-const EDGE_FUNCTION_URL = `${SUPABASE_PROJECT_URL}/functions/v1/siigo-proxy`;
+const EDGE_FUNCTION_URL = SIIGO_PROXY_URL;
 
 const InventarioModule: React.FC = () => {
     const [products, setProducts] = useState<SiigoProduct[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
-    const [username, setUsername] = useState(localStorage.getItem('siigo_username') || '');
-    const [accessKey, setAccessKey] = useState(localStorage.getItem('siigo_access_key') || '');
     const [token, setToken] = useState<string | null>(null);
     const [debugInfo, setDebugInfo] = useState<any>(null);
 
-    const getBaseHeaders = (): Record<string, string> => ({
-        'Content-Type': 'application/json',
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-    });
+    const getBaseHeaders = siigoHeaders;
 
     const authenticate = async (): Promise<string | null> => {
-        if (!username || !accessKey) {
-            setError('Por favor ingrese Usuario y Access Key de Siigo.');
-            return null;
-        }
         try {
             setLoading(true);
             setError(null);
@@ -44,7 +31,6 @@ const InventarioModule: React.FC = () => {
             const res = await fetch(`${EDGE_FUNCTION_URL}?action=auth`, {
                 method: 'POST',
                 headers: getBaseHeaders(),
-                body: JSON.stringify({ username, access_key: accessKey }),
             });
 
             const data = await res.json();
@@ -56,8 +42,6 @@ const InventarioModule: React.FC = () => {
 
             console.log('Autenticación exitosa con Siigo.');
             setToken(data.access_token);
-            localStorage.setItem('siigo_username', username);
-            localStorage.setItem('siigo_access_key', accessKey);
             return data.access_token;
         } catch (err: any) {
             setError(err.message);
@@ -207,30 +191,8 @@ const InventarioModule: React.FC = () => {
                 <div className="card animate-fade-in" style={{ marginBottom: '2rem' }}>
                     <h3>🔗 Conectar con Siigo Nube</h3>
                     <p style={{ color: '#64748b', marginBottom: '1rem', fontSize: '0.9rem' }}>
-                        La conexión se realiza de forma segura a través del servidor (sin riesgo de bloqueo por firewall o CORS).
+                        La conexión usa la cuenta de Siigo de la empresa, configurada en el servidor.
                     </p>
-                    <div className="form-grid" style={{ marginBottom: '1rem' }}>
-                        <div className="form-group">
-                            <label>Usuario (Email de Siigo)</label>
-                            <input
-                                className="input-field"
-                                type="email"
-                                placeholder="ejemplo@empresa.com"
-                                value={username}
-                                onChange={e => setUsername(e.target.value)}
-                            />
-                        </div>
-                        <div className="form-group">
-                            <label>Access Key (API Key)</label>
-                            <input
-                                className="input-field"
-                                type="password"
-                                placeholder="••••••••••••••••••"
-                                value={accessKey}
-                                onChange={e => setAccessKey(e.target.value)}
-                            />
-                        </div>
-                    </div>
                     <button onClick={handleRefresh} className="btn-success" disabled={loading}>
                         {loading ? '⏳ Conectando...' : '✅ Conectar y Traer Datos'}
                     </button>

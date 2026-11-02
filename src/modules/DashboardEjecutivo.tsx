@@ -53,6 +53,7 @@ import {
     Boxes
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
+import { SIIGO_PROXY_URL, siigoHeaders } from '../lib/siigo';
 
 interface IProps {
     cotizaciones: Cotizacion[];
@@ -69,9 +70,7 @@ interface IProps {
     reparaciones?: Reparacion[];
 }
 
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
-const SUPABASE_PROJECT_URL = import.meta.env.VITE_SUPABASE_URL || 'https://matyjysinegbibdwzhoq.supabase.co';
-const EDGE_FUNCTION_URL = `${SUPABASE_PROJECT_URL}/functions/v1/siigo-proxy`;
+const EDGE_FUNCTION_URL = SIIGO_PROXY_URL;
 
 // Mapeo oficial de centros de costo Siigo Help Soluciones
 const DEFAULT_CC_MAP: Record<string, string> = {
@@ -312,8 +311,8 @@ export default function DashboardEjecutivo({
     const [loadingSiigo, setLoadingSiigo] = useState<boolean>(false);
     const [syncLog, setSyncLog] = useState<string>('✓ Datos contables oficiales de Siigo Nube activos (Octubre: $112.259.066).');
     const [showSiigoModal, setShowSiigoModal] = useState<boolean>(false);
-    const [siigoUsername, setSiigoUsername] = useState<string>(localStorage.getItem('siigo_username') || 'gerencia@helpsoluciones.com.co');
-    const [siigoAccessKey, setSiigoAccessKey] = useState<string>(localStorage.getItem('siigo_access_key') || '');
+    const [siigoUsername, setSiigoUsername] = useState<string>('');
+    const [siigoAccessKey, setSiigoAccessKey] = useState<string>('');
     
     // Facturas descargadas de Siigo (Persistidas en localStorage)
     const [siigoInvoices, setSiigoInvoices] = useState<any[]>(() => {
@@ -1134,26 +1133,18 @@ export default function DashboardEjecutivo({
     }, [cotizacionesMes, selectedMonth, isAdmin, myComercialName, dataSource]);
 
     // ── FUNCIÓN DE SINCRONIZACIÓN REAL CON SIIGO NUBE (POR MESES) ──
-    const ejecutarSincronizacionSiigo = async (u: string, k: string) => {
-        if (!u || !k) {
-            setShowSiigoModal(true);
-            return;
-        }
+    // Las credenciales de Siigo están en el servidor (secretos de siigo-proxy)
+    const ejecutarSincronizacionSiigo = async (_u?: string, _k?: string) => {
 
         setLoadingSiigo(true);
         setSyncLog('⏳ Autenticando con Siigo Nube...');
 
         try {
-            const baseHeaders = {
-                'Content-Type': 'application/json',
-                'apikey': SUPABASE_ANON_KEY,
-                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-            };
+            const baseHeaders = siigoHeaders();
 
             const authRes = await fetch(`${EDGE_FUNCTION_URL}?action=auth`, {
                 method: 'POST',
                 headers: baseHeaders,
-                body: JSON.stringify({ username: u, access_key: k })
             });
 
             if (!authRes.ok) {
@@ -1164,8 +1155,6 @@ export default function DashboardEjecutivo({
             const { access_token } = await authRes.json();
             if (!access_token) throw new Error('No se recibió token de acceso de Siigo.');
 
-            localStorage.setItem('siigo_username', u);
-            localStorage.setItem('siigo_access_key', k);
 
             // Descargar mes a mes por fecha contable de factura (date_start / date_end)
             setSyncLog(`⏳ Descargando facturación electrónica mensual de ${selectedYear}...`);
@@ -1270,7 +1259,6 @@ export default function DashboardEjecutivo({
         } catch (err: any) {
             console.error('Error sincronizando Siigo:', err);
             setSyncLog(`⚠️ Aviso Siigo: ${err.message}. Mostrando facturación contable oficial verificada.`);
-            setShowSiigoModal(true);
         } finally {
             setLoadingSiigo(false);
         }
@@ -1292,13 +1280,7 @@ export default function DashboardEjecutivo({
     };
 
     const handleSyncSiigoClick = () => {
-        const u = localStorage.getItem('siigo_username') || siigoUsername;
-        const k = localStorage.getItem('siigo_access_key') || siigoAccessKey;
-        if (!u || !k) {
-            setShowSiigoModal(true);
-        } else {
-            ejecutarSincronizacionSiigo(u, k);
-        }
+        ejecutarSincronizacionSiigo();
     };
 
     // Guardar ajuste manual

@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import type { AppUser, Cotizacion, Despacho } from '../types/crm';
+import { SIIGO_PROXY_URL, siigoHeaders } from '../lib/siigo';
 
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
-const SUPABASE_PROJECT_URL = import.meta.env.VITE_SUPABASE_URL || 'https://matyjysinegbibdwzhoq.supabase.co';
-const EDGE_FUNCTION_URL = `${SUPABASE_PROJECT_URL}/functions/v1/siigo-proxy`;
+const EDGE_FUNCTION_URL = SIIGO_PROXY_URL;
 
 interface VentaManual { fecha: string; usuarioNombre: string; monto: number; costo?: number; tipoVenta?: string; }
 interface Alquiler { usuarioId: string; valorMensual: number; estado: string; }
@@ -141,24 +140,13 @@ const ComisionesModule: React.FC<IProps> = ({ users, cotizaciones, despachos, ve
 
     const addLog = (msg: string) => setSyncLog(prev => [...prev.slice(-29), `[${new Date().toLocaleTimeString()}] ${msg}`]);
 
-    const baseHeaders = (): Record<string, string> => ({
-        'Content-Type': 'application/json',
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-    });
+    const baseHeaders = siigoHeaders;
 
     // ── Autenticación ─────────────────────────────────────────────────────────
     const authenticate = async (): Promise<string | null> => {
-        const username = localStorage.getItem('siigo_username');
-        const accessKey = localStorage.getItem('siigo_access_key');
-        if (!username || !accessKey) {
-            setError('Credenciales Siigo no configuradas. Conecte primero en el módulo Inventario.');
-            return null;
-        }
         try {
             const res = await fetch(`${EDGE_FUNCTION_URL}?action=auth`, {
                 method: 'POST', headers: baseHeaders(),
-                body: JSON.stringify({ username, access_key: accessKey }),
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Autenticación fallida');

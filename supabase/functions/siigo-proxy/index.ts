@@ -1,161 +1,112 @@
 // supabase/functions/siigo-proxy/index.ts
-// Proxy seguro para la API de Siigo Nube - Elimina problemas de CORS
+// Proxy de solo lectura para la API de Siigo Nube.
+// - Solo atiende a usuarios del CRM con sesión (Authorization: Bearer <token de la sesión>).
+// - Las credenciales de Siigo son secretos de la función (SIIGO_USERNAME, SIIGO_ACCESS_KEY):
+//   el navegador nunca las ve ni recibe el token de Siigo.
+import { corsHeaders, esUsuarioCrm, json } from '../_shared/crm-auth.ts';
 
 const SIIGO_BASE_URL = 'https://api.siigo.com';
-const PARTNER_ID = 'AppEnvios'; // Nombre de aplicación más corto y sin caracteres especiales
+const PARTNER_ID = 'AppEnvios';
 
-
-const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-siigo-token',
-    'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+const endpointMap: Record<string, string> = {
+    'users': '/v1/users',
+    'user-detail': '/v1/users',
+    'cost-centers': '/v1/cost-centers',
+    'cost-center-detail': '/v1/cost-centers',
+    'invoices': '/v1/invoices',
+    'invoice-detail': '/v1/invoices',
+    'credit-notes': '/v1/credit-notes',
+    'credit-note-detail': '/v1/credit-notes',
+    'purchases': '/v1/purchases',
+    'purchase-detail': '/v1/purchases',
+    'bills': '/v1/bills',
+    'bill-detail': '/v1/bills',
+    'debit-notes': '/v1/debit-notes',
+    'debit-note-detail': '/v1/debit-notes',
+    'products': '/v1/products',
+    'purchase-support-documents': '/v1/purchase-support-documents',
+    'purchase-support-document-detail': '/v1/purchase-support-documents',
 };
+
+// Token de Siigo en memoria de la función; Siigo lo da por 24 h, se renueva antes
+let siigoToken: { valor: string; vence: number } | null = null;
+
+async function obtenerToken(forzar = false): Promise<string> {
+    if (!forzar && siigoToken && Date.now() < siigoToken.vence) return siigoToken.valor;
+
+    const username = Deno.env.get('SIIGO_USERNAME');
+    const access_key = Deno.env.get('SIIGO_ACCESS_KEY');
+    if (!username || !access_key) throw new Error('Faltan los secretos SIIGO_USERNAME / SIIGO_ACCESS_KEY');
+
+    const res = await fetch(`${SIIGO_BASE_URL}/auth`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Partner-Id': PARTNER_ID },
+        body: JSON.stringify({ username, access_key }),
+    });
+    if (!res.ok) throw new Error(`Siigo rechazó la autenticación (HTTP ${res.status})`);
+
+    const data = await res.json();
+    siigoToken = { valor: data.access_token, vence: Date.now() + 20 * 60 * 60 * 1000 };
+    return siigoToken.valor;
+}
+
+function construirUrl(action: string, url: URL): string | null {
+    let siigoUrl = `${SIIGO_BASE_URL}${endpointMap[action]}`;
+    const id = url.searchParams.get('id');
+
+    if (action.endsWith('-detail')) {
+        if (!id || !/^[A-Za-z0-9-]+$/.test(id)) return null;
+        return `${siigoUrl}/${id}`;
+    }
+    const siigoParams = new URLSearchParams();
+    url.searchParams.forEach((value, key) => {
+        if (key !== 'action' && key !== 'id') siigoParams.append(key, value);
+    });
+    if (siigoParams.toString()) siigoUrl += `?${siigoParams.toString()}`;
+    return siigoUrl;
+}
 
 Deno.serve(async (req: Request) => {
     if (req.method === 'OPTIONS') {
         return new Response('ok', { headers: corsHeaders });
     }
+    if (!(await esUsuarioCrm(req))) return json({ error: 'No autorizado' }, 401);
 
     try {
         const url = new URL(req.url);
-        const action = url.searchParams.get('action');
+        const action = url.searchParams.get('action') ?? '';
 
-        // --- Autenticación ---
+        // Compatibilidad: los módulos piden 'auth' antes de consultar. Ya no hay
+        // credenciales que validar en el navegador; se confirma que Siigo responde.
         if (action === 'auth') {
-            const { username, access_key } = await req.json();
-
-            if (!username || !access_key) {
-                return new Response(JSON.stringify({ error: 'Faltan credenciales (username y access_key)' }), {
-                    status: 400,
-                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                });
-            }
-
-            console.log(`Autenticando usuario: ${username}`);
-
-            const siigoRes = await fetch(`${SIIGO_BASE_URL}/auth`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Partner-Id': PARTNER_ID,
-                },
-                body: JSON.stringify({ username, access_key }),
-            });
-
-            const responseText = await siigoRes.text();
-            console.log(`Siigo auth status: ${siigoRes.status}, body: ${responseText}`);
-
-            let data: any;
-            try {
-                data = JSON.parse(responseText);
-            } catch {
-                data = { raw: responseText };
-            }
-
-            if (!siigoRes.ok) {
-                return new Response(JSON.stringify({
-                    error: `Siigo rechazó las credenciales (HTTP ${siigoRes.status})`,
-                    siigoDetail: data,
-                    hint: siigoRes.status === 404
-                        ? 'La cuenta no tiene acceso a la API de Siigo, o el plan no incluye la funcionalidad. Verifique en Siigo > Configuración > Alianzas > Mi Credencial API.'
-                        : 'Verifique que el usuario y access_key sean correctos.'
-                }), {
-                    status: siigoRes.status,
-                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                });
-            }
-
-            return new Response(JSON.stringify(data), {
-                status: 200,
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            });
+            await obtenerToken();
+            return json({ access_token: 'servidor' });
         }
 
-        // --- Generic Siigo Endpoint Proxy ---
-        const token = req.headers.get('x-siigo-token');
-        if (token) {
-            const authHeaders = {
-                'Authorization': `Bearer ${token}`,
-                'Partner-Id': PARTNER_ID,
-                'Content-Type': 'application/json',
-            };
+        if (!endpointMap[action]) return json({ error: 'Acción no reconocida' }, 400);
+        const siigoUrl = construirUrl(action, url);
+        if (!siigoUrl) return json({ error: 'id inválido' }, 400);
 
-            const endpointMap: Record<string, string> = {
-                'users': '/v1/users',
-                'user-detail': '/v1/users',
-                'cost-centers': '/v1/cost-centers',
-                'cost-center-detail': '/v1/cost-centers',
-                'invoices': '/v1/invoices',
-                'invoice-detail': '/v1/invoices',
-                'credit-notes': '/v1/credit-notes',
-                'credit-note-detail': '/v1/credit-notes',
-                'purchases': '/v1/purchases',
-                'purchase-detail': '/v1/purchases',
-                'bills': '/v1/bills',
-                'bill-detail': '/v1/bills',
-                'debit-notes': '/v1/debit-notes',
-                'debit-note-detail': '/v1/debit-notes',
-                'products': '/v1/products',
-                'purchase-support-documents': '/v1/purchase-support-documents',
-                'purchase-support-document-detail': '/v1/purchase-support-documents'
-            };
-
-            if (action && endpointMap[action]) {
-                let siigoUrl = `${SIIGO_BASE_URL}${endpointMap[action]}`;
-                const id = url.searchParams.get('id');
-                
-                if (id && action.includes('detail')) {
-                    siigoUrl += `/${id}`;
-                } else {
-                    // Forward all other query params except 'action' and 'id'
-                    const siigoParams = new URLSearchParams();
-                    url.searchParams.forEach((value, key) => {
-                        if (key !== 'action' && key !== 'id') {
-                            siigoParams.append(key, value);
-                        }
-                    });
-                    if (siigoParams.toString()) {
-                        siigoUrl += `?${siigoParams.toString()}`;
-                    }
-                }
-
-                console.log(`Proxying to Siigo: ${siigoUrl}`);
-                const siigoRes = await fetch(siigoUrl, {
-                    method: 'GET',
-                    headers: authHeaders,
-                });
-
-                const rawText = await siigoRes.text();
-                console.log(`Siigo ${action} HTTP ${siigoRes.status} — ${rawText.slice(0, 200)}`);
-
-                let data: any;
-                try {
-                    data = JSON.parse(rawText);
-                } catch {
-                    data = {
-                        error: 'Siigo devolvió respuesta no-JSON',
-                        status: siigoRes.status,
-                        raw: rawText.slice(0, 600),
-                    };
-                }
-
-                return new Response(JSON.stringify(data), {
-                    status: siigoRes.status,
-                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                });
-            }
-        }
-
-        return new Response(JSON.stringify({ error: 'Acción no reconocida o Token faltante.' }), {
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        const consultar = async (token: string) => fetch(siigoUrl, {
+            method: 'GET',
+            headers: { 'Authorization': `Bearer ${token}`, 'Partner-Id': PARTNER_ID, 'Content-Type': 'application/json' },
         });
 
+        let siigoRes = await consultar(await obtenerToken());
+        if (siigoRes.status === 401) siigoRes = await consultar(await obtenerToken(true));
+
+        const rawText = await siigoRes.text();
+        console.log(`Siigo ${action} HTTP ${siigoRes.status}`);
+
+        let data: unknown;
+        try {
+            data = JSON.parse(rawText);
+        } catch {
+            data = { error: 'Siigo devolvió respuesta no-JSON', status: siigoRes.status };
+        }
+        return json(data, siigoRes.status);
     } catch (err: any) {
         console.error('Error en la función proxy:', err.message);
-        return new Response(JSON.stringify({ error: 'Error interno en el proxy', detail: err.message }), {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        return json({ error: 'Error interno en el proxy', detail: err.message }, 500);
     }
 });

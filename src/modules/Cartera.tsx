@@ -2,15 +2,14 @@
 import React, { useState, useEffect } from 'react';
 import type { AppUser, Cliente } from '../App';
 import { RefreshCcw, Search, MessageCircle, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+import { SIIGO_PROXY_URL, siigoHeaders } from '../lib/siigo';
 
 interface IProps {
     currentUser: AppUser;
     clientes: Cliente[];
 }
 
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
-const SUPABASE_PROJECT_URL = import.meta.env.VITE_SUPABASE_URL || 'https://matyjysinegbibdwzhoq.supabase.co';
-const EDGE_FUNCTION_URL = `${SUPABASE_PROJECT_URL}/functions/v1/siigo-proxy`;
+const EDGE_FUNCTION_URL = SIIGO_PROXY_URL;
 
 const fmt = (n: number) => `$${Math.round(n).toLocaleString('es-CO')}`;
 
@@ -23,29 +22,16 @@ const CarteraModule: React.FC<IProps> = ({ currentUser, clientes }) => {
 
     const addLog = (msg: string) => setSyncLog(prev => [...prev, msg]);
 
-    const baseHeaders = () => ({
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-    });
+    const baseHeaders = siigoHeaders;
 
     const fetchCartera = async () => {
         setLoading(true);
         setSyncLog([]);
         try {
-            const username = localStorage.getItem('siigo_username');
-            const accessKey = localStorage.getItem('siigo_access_key');
-
-            if (!username || !accessKey) {
-                addLog('⚠️ Faltan credenciales de Siigo en la configuración.');
-                setLoading(false);
-                return;
-            }
-
             addLog('Autenticando con Siigo...');
             const authRes = await fetch(`${EDGE_FUNCTION_URL}?action=auth`, {
                 method: 'POST',
                 headers: baseHeaders(),
-                body: JSON.stringify({ username, access_key: accessKey }),
             });
 
             if (!authRes.ok) throw new Error('Falló la autenticación con Siigo');
