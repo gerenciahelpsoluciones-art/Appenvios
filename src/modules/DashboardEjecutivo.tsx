@@ -90,7 +90,11 @@ const MONTH_SHORT = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'se
 
 const TRM_USD_COP = 4150;
 
-// ── DATOS OFICIALES SIIGO NUBE 2026 (Consolidado Contable: $300.24M, 286 Facturas, 223 Clientes) ──
+// Siigo no trae el costo de cada venta: la utilidad de los datos de Siigo es una estimación
+const MARGEN_ESTIMADO_SIIGO = 0.312;
+
+// ── CIFRAS CONTABLES CARGADAS A MANO (solo ago–oct 2026; ene–jul eran inventadas y se quitaron) ──
+// Se usan solo si no hay facturas descargadas de Siigo para ese mes.
 const SIIGO_FACTURACION_REAL_2026: Record<number, {
     ventasNetas: number;
     costos: number;
@@ -101,118 +105,6 @@ const SIIGO_FACTURACION_REAL_2026: Record<number, {
     serviciosVentas: number;
     porAsesor: Record<string, number>;
 }> = {
-    1: {
-        ventasNetas: 23450000,
-        costos: 16180500,
-        utilidad: 7269500,
-        facturas: 24,
-        clientes: 21,
-        hardwareVentas: 16415000,
-        serviciosVentas: 7035000,
-        porAsesor: {
-            'Carlos Arturo Saenz': 9200000,
-            'Deicy Rodriguez': 7650000,
-            'Juan Andres Perez': 3600000,
-            'Lidy Hernandez': 1950000,
-            'Angelica Villanueva': 1050000
-        }
-    },
-    2: {
-        ventasNetas: 26800000,
-        costos: 18492000,
-        utilidad: 8308000,
-        facturas: 26,
-        clientes: 23,
-        hardwareVentas: 18760000,
-        serviciosVentas: 8040000,
-        porAsesor: {
-            'Carlos Arturo Saenz': 10500000,
-            'Deicy Rodriguez': 8750000,
-            'Juan Andres Perez': 4100000,
-            'Lidy Hernandez': 2250000,
-            'Angelica Villanueva': 1200000
-        }
-    },
-    3: {
-        ventasNetas: 28150000,
-        costos: 19423500,
-        utilidad: 8726500,
-        facturas: 28,
-        clientes: 24,
-        hardwareVentas: 19705000,
-        serviciosVentas: 8445000,
-        porAsesor: {
-            'Carlos Arturo Saenz': 11000000,
-            'Deicy Rodriguez': 9200000,
-            'Juan Andres Perez': 4350000,
-            'Lidy Hernandez': 2350000,
-            'Angelica Villanueva': 1250000
-        }
-    },
-    4: {
-        ventasNetas: 25900000,
-        costos: 17871000,
-        utilidad: 8029000,
-        facturas: 25,
-        clientes: 22,
-        hardwareVentas: 18130000,
-        serviciosVentas: 7770000,
-        porAsesor: {
-            'Carlos Arturo Saenz': 10100000,
-            'Deicy Rodriguez': 8450000,
-            'Juan Andres Perez': 4000000,
-            'Lidy Hernandez': 2150000,
-            'Angelica Villanueva': 1200000
-        }
-    },
-    5: {
-        ventasNetas: 29400000,
-        costos: 20286000,
-        utilidad: 9114000,
-        facturas: 27,
-        clientes: 23,
-        hardwareVentas: 20580000,
-        serviciosVentas: 8820000,
-        porAsesor: {
-            'Carlos Arturo Saenz': 11500000,
-            'Deicy Rodriguez': 9600000,
-            'Juan Andres Perez': 4550000,
-            'Lidy Hernandez': 2450000,
-            'Angelica Villanueva': 1300000
-        }
-    },
-    6: {
-        ventasNetas: 27350000,
-        costos: 18871500,
-        utilidad: 8478500,
-        facturas: 26,
-        clientes: 21,
-        hardwareVentas: 19145000,
-        serviciosVentas: 8205000,
-        porAsesor: {
-            'Carlos Arturo Saenz': 10700000,
-            'Deicy Rodriguez': 8950000,
-            'Juan Andres Perez': 4200000,
-            'Lidy Hernandez': 2300000,
-            'Angelica Villanueva': 1200000
-        }
-    },
-    7: {
-        ventasNetas: 28600000,
-        costos: 19734000,
-        utilidad: 8866000,
-        facturas: 27,
-        clientes: 23,
-        hardwareVentas: 20020000,
-        serviciosVentas: 8580000,
-        porAsesor: {
-            'Carlos Arturo Saenz': 11200000,
-            'Deicy Rodriguez': 9350000,
-            'Juan Andres Perez': 4400000,
-            'Lidy Hernandez': 2400000,
-            'Angelica Villanueva': 1250000
-        }
-    },
     8: {
         ventasNetas: 99768486,
         costos: 68640718,
@@ -282,14 +174,15 @@ export default function DashboardEjecutivo({
     // ── GESTIÓN DE ROLES ──
     const isAdmin = useMemo(() => {
         const r = (currentUser?.rol || '').toLowerCase();
-        const n = (currentUser?.nombre || '').toLowerCase();
-        return r === 'admin' || r === 'administrador' || n.includes('carlos') || n.includes('saenz');
+        return r === 'admin' || r === 'administrador';
     }, [currentUser]);
 
     const myComercialName = useMemo(() => {
         const myName = (currentUser?.nombre || '').trim();
         const known = ['Deicy Rodriguez', 'Lidy Hernandez', 'Carlos Arturo Saenz', 'Juan Andres Perez', 'Angelica Villanueva'];
-        const found = known.find(k => k.toLowerCase() === myName.toLowerCase() || myName.toLowerCase().includes(k.toLowerCase()) || k.toLowerCase().includes(myName.toLowerCase()));
+        const mine = myName.toLowerCase();
+        const found = known.find(k => k.toLowerCase() === mine)
+            || (mine.length >= 4 ? known.find(k => mine.includes(k.toLowerCase()) || k.toLowerCase().includes(mine)) : undefined);
         return found || myName || 'Mi Cuenta';
     }, [currentUser]);
 
@@ -309,7 +202,7 @@ export default function DashboardEjecutivo({
 
     // Sincronización Siigo
     const [loadingSiigo, setLoadingSiigo] = useState<boolean>(false);
-    const [syncLog, setSyncLog] = useState<string>('✓ Datos contables oficiales de Siigo Nube activos (Octubre: $112.259.066).');
+    const [syncLog, setSyncLog] = useState<string>('Datos de Siigo: use Sincronizar para descargar la facturación del año.');
     const [showSiigoModal, setShowSiigoModal] = useState<boolean>(false);
     const [siigoUsername, setSiigoUsername] = useState<string>('');
     const [siigoAccessKey, setSiigoAccessKey] = useState<string>('');
@@ -337,18 +230,19 @@ export default function DashboardEjecutivo({
             return saved ? JSON.parse(saved) : {};
         } catch { return {}; }
     });
+    useEffect(() => {
+        const leer = (k: string, def: any) => { try { const s = localStorage.getItem(k); return s ? JSON.parse(s) : def; } catch { return def; } };
+        setSiigoInvoices(leer(`siigo_invoices_${selectedYear}`, []));
+        setSiigoCreditNotes(leer(`siigo_credit_notes_${selectedYear}`, []));
+        setManualMonthAdjust(leer(`crm_manual_months_${selectedYear}`, {}));
+    }, [selectedYear]);
     const [editingMonth, setEditingMonth] = useState<number | null>(null);
     const [editMonthForm, setEditMonthForm] = useState<{ ventas: string; costos: string; facturas: string }>({ ventas: '', costos: '', facturas: '' });
 
     // Flujo de caja y Mesa de Ayuda
     const [flujoCaja, setFlujoCaja] = useState<{ totalPagado: number; desgloseBancos: Record<string, number> }>({
-        totalPagado: 29732538,
-        desgloseBancos: {
-            "Davivienda *9011": 13305739,
-            "Bancolombia *4016": 7341722,
-            "Bancolombia *2540": 4503677,
-            "BBVA *1475": 4289400
-        }
+        totalPagado: 0,
+        desgloseBancos: {} // sin conexión a bancos todavía (antes eran saldos escritos a mano)
     });
 
     const [mesaAyuda, setMesaAyuda] = useState<{
@@ -358,15 +252,11 @@ export default function DashboardEjecutivo({
         slaPercent: number;
         technicians: { name: string; resolved: number; pending: number; sla: number }[];
     }>({
-        totalCreated: 148,
-        totalResolved: 137,
-        totalPending: 11,
-        slaPercent: 92.6,
-        technicians: [
-            { name: 'Soporte Help 1 (Campo)', resolved: 48, pending: 3, sla: 94.1 },
-            { name: 'Soporte Help 2 (HelpDesk)', resolved: 52, pending: 4, sla: 92.8 },
-            { name: 'Laboratorio Hardware', resolved: 37, pending: 4, sla: 90.2 }
-        ]
+        totalCreated: 0,
+        totalResolved: 0,
+        totalPending: 0,
+        slaPercent: 0,
+        technicians: [] // sin conexión a la mesa de ayuda todavía (antes eran cifras escritas a mano)
     });
 
     // Función de formateo según moneda (COP / USD)
@@ -390,9 +280,9 @@ export default function DashboardEjecutivo({
 
     // ── PROCESAMIENTO DE FACTURAS SIIGO EN VIVO (DEDUPLICADO Y NETO SIN IVA) ──
     const siigoMonthlyData = useMemo(() => {
-        const map: Record<number, { ventasNetas: number; facturasCount: number; porAsesor: Record<string, number> }> = {};
+        const map: Record<number, { ventasNetas: number; facturasCount: number; porAsesor: Record<string, number>; facturasPorAsesor: Record<string, number> }> = {};
         for (let m = 1; m <= 12; m++) {
-            map[m] = { ventasNetas: 0, facturasCount: 0, porAsesor: {} };
+            map[m] = { ventasNetas: 0, facturasCount: 0, porAsesor: {}, facturasPorAsesor: {} };
         }
 
         if (siigoInvoices && siigoInvoices.length > 0) {
@@ -431,8 +321,9 @@ export default function DashboardEjecutivo({
                         map[m].facturasCount += 1;
 
                         const ccId = String(typeof inv.cost_center === 'object' ? (inv.cost_center?.id || '') : (inv.cost_center || ''));
-                        const asesor = DEFAULT_CC_MAP[ccId] || inv.seller?.name || 'Carlos Arturo Saenz';
+                        const asesor = DEFAULT_CC_MAP[ccId] || inv.seller?.name || 'Sin asignar';
                         map[m].porAsesor[asesor] = (map[m].porAsesor[asesor] || 0) + val;
+                        map[m].facturasPorAsesor[asesor] = (map[m].facturasPorAsesor[asesor] || 0) + 1;
                     }
                 }
             });
@@ -520,6 +411,7 @@ export default function DashboardEjecutivo({
             // Siigo Live
             const siigoLiveM = siigoMonthlyData[m];
             const hasSiigoLive = siigoLiveM && siigoLiveM.ventasNetas > 0;
+            const vistaAsesor = isAdmin && selectedVendedor === 'all' ? null : selectedVendedor;
 
             // Base Oficial Siigo Nube 2026
             const siigoBaseM = selectedYear === 2026 ? SIIGO_FACTURACION_REAL_2026[m] : null;
@@ -537,32 +429,15 @@ export default function DashboardEjecutivo({
                 costosSiigo = manualM.costos;
                 utilSiigo = manualM.utilidad;
                 facturasSiigo = manualM.facturas;
-            } else if (hasSiigoLive && siigoLiveM.ventasNetas > 0) {
-                // Facturación real en vivo descargada de Siigo Nube (sin topes artificiales)
-                ventasSiigo = siigoLiveM.ventasNetas;
-                utilSiigo = Math.round(ventasSiigo * 0.312);
+            } else if (hasSiigoLive) {
+                // Facturación real descargada de Siigo. La utilidad es ESTIMADA (Siigo no trae el costo).
+                ventasSiigo = vistaAsesor ? (siigoLiveM.porAsesor[vistaAsesor] || 0) : siigoLiveM.ventasNetas;
+                utilSiigo = Math.round(ventasSiigo * MARGEN_ESTIMADO_SIIGO);
                 costosSiigo = ventasSiigo - utilSiigo;
-                facturasSiigo = siigoLiveM.facturasCount;
-            } else if (m === 10) {
-                // Octubre: Valor oficial exacto de Siigo Nube ($112.259.066)
-                ventasSiigo = 112259066;
-                utilSiigo = 35024829;
-                costosSiigo = 77234237;
-                facturasSiigo = (hasSiigoLive && siigoLiveM.facturasCount > 0) ? siigoLiveM.facturasCount : 100;
-            } else if (m === 9) {
-                // Septiembre: Valor oficial exacto de Siigo Nube informado por Carlos ($211.959.908)
-                ventasSiigo = 211959908;
-                utilSiigo = 66131491;
-                costosSiigo = 145828417;
-                facturasSiigo = (hasSiigoLive && siigoLiveM.facturasCount > 0) ? siigoLiveM.facturasCount : 104;
-            } else if (m === 8) {
-                // Agosto: Valor oficial exacto de Siigo Nube ($99.768.486)
-                ventasSiigo = 99768486;
-                utilSiigo = 31127768;
-                costosSiigo = 68640718;
-                facturasSiigo = (hasSiigoLive && siigoLiveM.facturasCount > 0) ? siigoLiveM.facturasCount : 81;
+                facturasSiigo = vistaAsesor ? (siigoLiveM.facturasPorAsesor[vistaAsesor] || 0) : siigoLiveM.facturasCount;
             } else if (siigoBaseM) {
-                if (isAdmin || selectedVendedor === 'all') {
+                // Ago–oct 2026: cifras contables cargadas por Carlos, mientras no haya descarga de Siigo
+                if (!vistaAsesor) {
                     ventasSiigo = siigoBaseM.ventasNetas;
                     costosSiigo = siigoBaseM.costos;
                     utilSiigo = siigoBaseM.utilidad;
@@ -570,7 +445,7 @@ export default function DashboardEjecutivo({
                 } else {
                     const vAsesor = siigoBaseM.porAsesor[selectedVendedor] || 0;
                     ventasSiigo = vAsesor;
-                    utilSiigo = vAsesor * 0.312;
+                    utilSiigo = vAsesor * MARGEN_ESTIMADO_SIIGO;
                     costosSiigo = vAsesor - utilSiigo;
                     facturasSiigo = Math.max(1, Math.round(siigoBaseM.facturas * (vAsesor / siigoBaseM.ventasNetas)));
                 }
@@ -601,9 +476,8 @@ export default function DashboardEjecutivo({
             }
 
             const margen = totalVentas > 0 ? (totalUtil / totalVentas) * 100 : 0;
-            // Comparativo 2025: en 2025 el total fue $270.22M (+11.1% variación)
-            const factor2025 = 0.90;
-            const ventas2025 = Math.round(totalVentas * factor2025);
+            // No hay datos reales de 2025 cargados (antes se mostraba 90 % de 2026)
+            const ventas2025 = 0;
 
             meses.push({
                 mesNum: m,
@@ -633,7 +507,7 @@ export default function DashboardEjecutivo({
     const totalCotizadoAnual = useMemo(() => matrizAnual.reduce((acc, m) => acc + m.cotizado, 0), [matrizAnual]);
     const totalVentas2025Anual = useMemo(() => matrizAnual.reduce((acc, m) => acc + m.ventas2025, 0), [matrizAnual]);
     const margenAnualPromedio = totalVentasAnual > 0 ? (totalUtilidadAnual / totalVentasAnual) * 100 : 0;
-    const variacionVs2025 = totalVentas2025Anual > 0 ? ((totalVentasAnual - totalVentas2025Anual) / totalVentas2025Anual) * 100 : 11.1;
+    const variacionVs2025 = totalVentas2025Anual > 0 ? ((totalVentasAnual - totalVentas2025Anual) / totalVentas2025Anual) * 100 : null;
 
     // Mes Seleccionado
     const selectedMonthData = useMemo(() => {
@@ -1086,20 +960,23 @@ export default function DashboardEjecutivo({
 
         if (dataSource === 'siigo') {
             // Base oficial Siigo acumulada
-            const baseMes = SIIGO_FACTURACION_REAL_2026[selectedMonth] || SIIGO_FACTURACION_REAL_2026[10];
+            const live = siigoMonthlyData[selectedMonth];
+            const baseMes = selectedYear === 2026 ? SIIGO_FACTURACION_REAL_2026[selectedMonth] : undefined;
             asesoresList.forEach(name => {
-                const v = baseMes.porAsesor[name] || 0;
+                const v = live && live.ventasNetas > 0 ? (live.porAsesor[name] || 0) : (baseMes?.porAsesor[name] || 0);
                 map[name].ventasNetas = v;
-                map[name].utilidad = v * 0.312;
-                map[name].costos = v * 0.688;
-                map[name].cierresCount = Math.max(1, Math.round(baseMes.facturas * (v / baseMes.ventasNetas)));
+                map[name].utilidad = v * MARGEN_ESTIMADO_SIIGO;
+                map[name].costos = v * (1 - MARGEN_ESTIMADO_SIIGO);
+                map[name].cierresCount = live && live.ventasNetas > 0
+                    ? (live.facturasPorAsesor[name] || 0)
+                    : (baseMes && baseMes.ventasNetas > 0 ? Math.round(baseMes.facturas * (v / baseMes.ventasNetas)) : 0);
             });
         } else {
             // CRM Cotizaciones
             cotizacionesMes.forEach(c => {
                 const ej = c.ejecutivo || 'Sin Asignar';
-                const matched = asesoresList.find(a => a.toLowerCase().includes(ej.toLowerCase()) || ej.toLowerCase().includes(a.toLowerCase())) || 'Carlos Arturo Saenz';
-                if (map[matched]) {
+                const matched = asesoresList.find(a => a.toLowerCase().includes(ej.toLowerCase()) || ej.toLowerCase().includes(a.toLowerCase()));
+                if (matched && map[matched]) {
                     map[matched].cotizacionesCount += 1;
                     map[matched].cotizadoMonto += Number(c.total || 0);
 
@@ -1258,7 +1135,7 @@ export default function DashboardEjecutivo({
             setShowSiigoModal(false);
         } catch (err: any) {
             console.error('Error sincronizando Siigo:', err);
-            setSyncLog(`⚠️ Aviso Siigo: ${err.message}. Mostrando facturación contable oficial verificada.`);
+            setSyncLog(`⚠️ Aviso Siigo: ${err.message}. Se muestran los últimos datos guardados.`);
         } finally {
             setLoadingSiigo(false);
         }
@@ -1286,8 +1163,9 @@ export default function DashboardEjecutivo({
     // Guardar ajuste manual
     const handleSaveMonthEdit = () => {
         if (editingMonth === null) return;
-        const v = parseFloat(editMonthForm.ventas.replace(/[^0-9.-]/g, '')) || 0;
-        const c = parseFloat(editMonthForm.costos.replace(/[^0-9.-]/g, '')) || 0;
+        // Pesos sin decimales: '112.259.066' → 112259066 (antes daba 112,259)
+        const v = parseInt(editMonthForm.ventas.replace(/[^0-9-]/g, ''), 10) || 0;
+        const c = parseInt(editMonthForm.costos.replace(/[^0-9-]/g, ''), 10) || 0;
         const f = parseInt(editMonthForm.facturas, 10) || 0;
         const u = v - c;
 
@@ -1737,7 +1615,9 @@ export default function DashboardEjecutivo({
                                 {fmt(totalVentasAnual)}
                             </div>
                             <div style={{ fontSize: '0.78rem', color: '#16a34a', marginTop: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 600 }}>
-                                <ArrowUpRight size={14} /> +{variacionVs2025.toFixed(1)}% vs mismo corte 2025
+                                {variacionVs2025 === null
+                                    ? <span style={{ color: '#64748b' }}>Sin datos de 2025 para comparar</span>
+                                    : <><ArrowUpRight size={14} /> {variacionVs2025 >= 0 ? '+' : ''}{variacionVs2025.toFixed(1)}% vs mismo corte 2025</>}
                             </div>
                         </div>
 
@@ -2943,6 +2823,7 @@ export default function DashboardEjecutivo({
             ════════════════════════════════════════════════════════════════════ */}
             {activeTab === 'mesa_ayuda' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                    <div style={{ background: '#fef3c7', border: '1px solid #fcd34d', color: '#92400e', borderRadius: 10, padding: '0.75rem 1rem', fontSize: '0.85rem' }}>⚠ Estos indicadores aún no están conectados a la mesa de ayuda: no hay datos reales.</div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
                         <div style={{ background: '#ffffff', borderRadius: '14px', padding: '1.25rem', border: '1px solid #e2e8f0' }}>
                             <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>TICKETS ATENDIDOS</span>
@@ -3034,6 +2915,7 @@ export default function DashboardEjecutivo({
             ════════════════════════════════════════════════════════════════════ */}
             {activeTab === 'tesoreria' && isAdmin && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                    <div style={{ background: '#fef3c7', border: '1px solid #fcd34d', color: '#92400e', borderRadius: 10, padding: '0.75rem 1rem', fontSize: '0.85rem' }}>⚠ Tesorería aún no está conectada a los bancos: no hay saldos reales.</div>
                     <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '1.5rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
                             <div>
