@@ -535,6 +535,9 @@ function App() {
       setCurrentTrm(4200);
       return;
     }
+    // Sin sesión las tablas responden 'no autorizado': no se carga nada hasta iniciar sesión
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
     try {
       console.log('Cargando datos iniciales de Supabase...');
       const { data: userData, error: userError } = await supabase.from('app_users').select(USER_COLS);

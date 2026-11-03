@@ -1,0 +1,49 @@
+# Puerta interna del Supabase del CRM: reparte cada ruta al servicio que la atiende,
+# igual que lo hace Supabase en la nube (mismas rutas: /rest/v1, /auth/v1, ...).
+:8000 {
+	# CORS: las apps viven en otros dominios (Vercel). PostgREST y las funciones ya mandan
+	# sus encabezados; login (auth) y storage no responden la consulta previa del navegador.
+	@preflight method OPTIONS
+	handle @preflight {
+		header Access-Control-Allow-Origin "*"
+		header Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+		header Access-Control-Allow-Headers "{http.request.header.Access-Control-Request-Headers}"
+		header Access-Control-Max-Age "86400"
+		respond 204
+	}
+	# Solo si el servicio no lo puso ya (dos valores harían fallar al navegador)
+	header ?Access-Control-Allow-Origin "*"
+	header ?Access-Control-Expose-Headers "Content-Range, Content-Location, X-Total-Count, Location"
+
+	handle_path /rest/v1/* {
+		reverse_proxy crm-rest:3000
+	}
+	handle_path /auth/v1/* {
+		reverse_proxy crm-auth:9999
+	}
+	handle_path /storage/v1/* {
+		reverse_proxy crm-storage:5000
+	}
+	handle_path /functions/v1/* {
+		reverse_proxy crm-functions:9000
+	}
+	# Realtime reconoce el "tenant" por el primer nombre del Host: realtime-dev
+	handle /realtime/v1/api/* {
+		uri replace /realtime/v1/api /api
+		reverse_proxy crm-realtime:4000 {
+			header_up Host realtime-dev.crm-realtime
+		}
+	}
+	handle /realtime/v1/* {
+		uri replace /realtime/v1/ /socket/
+		reverse_proxy crm-realtime:4000 {
+			header_up Host realtime-dev.crm-realtime
+		}
+	}
+	handle /ok {
+		respond "ok" 200
+	}
+	handle {
+		respond "No encontrado" 404
+	}
+}
