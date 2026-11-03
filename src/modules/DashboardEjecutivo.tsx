@@ -54,6 +54,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { SIIGO_PROXY_URL, siigoHeaders } from '../lib/siigo';
+import { alquilerFacturadoSiigo, normalizarNit, NIT_ATCG, type LineaAlquilerSiigo } from '../lib/alquilerSiigo';
 
 interface IProps {
     cotizaciones: Cotizacion[];
@@ -705,7 +706,8 @@ export default function DashboardEjecutivo({
             valorMensualTotal: number;
             equipos: Alquiler[];
             isAtcg: boolean;
-            comboItems: any[];
+            facturadoSiigo: number;
+            siigoItems: LineaAlquilerSiigo[];
         }> = {};
 
         let totalEquipos = (alquileres || []).length;
@@ -740,7 +742,8 @@ export default function DashboardEjecutivo({
                         valorMensualTotal: 0,
                         equipos: [],
                         isAtcg,
-                        comboItems: []
+                        facturadoSiigo: 0,
+                        siigoItems: []
                     };
                 }
                 clientMap[key].cantidad += 1;
@@ -751,39 +754,39 @@ export default function DashboardEjecutivo({
             }
         });
 
-        // Buscar en facturas descargadas de Siigo si hay ítems de combo/alquiler para ATCG
-        if (siigoInvoices && siigoInvoices.length > 0) {
-            const atcgKey = Object.keys(clientMap).find(k => clientMap[k].isAtcg);
-            if (atcgKey && clientMap[atcgKey]) {
-                siigoInvoices.forEach(inv => {
-                    const invCustName = String(inv.customer?.name || '').toLowerCase();
-                    const invCustNit = String(inv.customer?.identification || '');
-                    if (invCustName.includes('atcg') || invCustNit.includes('900423222')) {
-                        if (Array.isArray(inv.items)) {
-                            inv.items.forEach((it: any) => {
-                                const desc = String(it.description || it.name || it.code || '').toLowerCase();
-                                if (desc.includes('combo') || desc.includes('alquiler') || desc.includes('arrendamiento')) {
-                                    const qty = Number(it.quantity) || 1;
-                                    const pr = Number(it.price) || 0;
-                                    clientMap[atcgKey].comboItems.push({
-                                        facturaNumero: inv.name || inv.number || 'Factura Siigo',
-                                        fecha: inv.date || '',
-                                        descripcion: it.description || it.name || 'Ítem Combo / Alquiler',
-                                        cantidad: qty,
-                                        precio: pr,
-                                        total: qty * pr,
-                                        esCombo: desc.includes('combo')
-                                    });
-                                }
-                            });
-                        }
-                    }
-                });
-            }
-        }
+        // Lo realmente facturado en Siigo en el mes de corte ("alquiler" y "servicio de alquiler"),
+        // cruzado por NIT con los equipos registrados en el CRM
+        const prefijoMes = (y: number, m: number) => `${y}-${String(m).padStart(2, '0')}`;
+        const siigoMes = alquilerFacturadoSiigo(siigoInvoices, prefijoMes(selectedYear, selectedMonth));
+        const mesAnt = selectedMonth === 1 ? { y: selectedYear - 1, m: 12 } : { y: selectedYear, m: selectedMonth - 1 };
+        const siigoMesAnterior = alquilerFacturadoSiigo(siigoInvoices, prefijoMes(mesAnt.y, mesAnt.m));
+        const haySiigoMes = (siigoInvoices || []).some(inv => String(inv.date || '').startsWith(prefijoMes(selectedYear, selectedMonth)));
 
-        // Convertir a lista y ordenar por canon mensual descendente
-        const clientesList = Object.values(clientMap).sort((a, b) => b.valorMensualTotal - a.valorMensualTotal);
+        Object.values(siigoMes.porNit).forEach(s => {
+            let key = Object.keys(clientMap).find(k => s.nit && normalizarNit(clientMap[k].nit) === s.nit);
+            if (!key) {
+                const cli = (clientes || []).find(c => s.nit && normalizarNit(c.nit) === s.nit);
+                key = cli?.id || `siigo-${s.nit}`;
+                clientMap[key] = {
+                    clienteId: cli?.id || '',
+                    clienteNombre: cli?.nombre || s.nombre || `NIT ${s.nit}`,
+                    nit: cli?.nit || s.nit || '—',
+                    contacto: cli?.contacto || '',
+                    cantidad: 0,
+                    valorMensualTotal: 0,
+                    equipos: [],
+                    isAtcg: s.nit === NIT_ATCG,
+                    facturadoSiigo: 0,
+                    siigoItems: []
+                };
+            }
+            clientMap[key].facturadoSiigo += s.total;
+            clientMap[key].siigoItems.push(...s.lineas);
+        });
+
+        // Ordenar por lo facturado en Siigo; sin Siigo del mes, por el canon registrado en el CRM
+        const clientesList = Object.values(clientMap).sort((a, b) =>
+            (b.facturadoSiigo - a.facturadoSiigo) || (b.valorMensualTotal - a.valorMensualTotal));
         const totalClientesActivos = clientesList.length;
 
         // Filtrado de la lista detallada de equipos
@@ -813,9 +816,13 @@ export default function DashboardEjecutivo({
             canonMensualTotal,
             totalClientesActivos,
             clientesList,
-            filteredEquipos
+            filteredEquipos,
+            haySiigoMes,
+            facturadoSiigoMes: siigoMes.total,
+            facturadoSiigoMesAnterior: siigoMesAnterior.total,
+            mesAnteriorNombre: MONTH_NAMES[mesAnt.m - 1]
         };
-    }, [alquileres, clientes, alquilerSearch, alquilerFilterStatus, siigoInvoices]);
+    }, [alquileres, clientes, alquilerSearch, alquilerFilterStatus, siigoInvoices, selectedYear, selectedMonth]);
 
     // ── TOP PRODUCTOS Y SOLUCIONES MÁS VENDIDOS ──
     const topProductosData = useMemo(() => {
@@ -2306,7 +2313,9 @@ export default function DashboardEjecutivo({
                             </div>
                             <div style={{ fontSize: '0.82rem', fontWeight: 600, background: '#f0fdf4', color: '#15803d', padding: '0.4rem 0.85rem', borderRadius: '8px', border: '1px solid #bbf7d0', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                                 <CheckCircle2 size={16} />
-                                Canon Total Mensual: <strong>{fmt(alquileresAnalysis.canonMensualTotal)} / mes</strong>
+                                {alquileresAnalysis.haySiigoMes
+                                    ? <>Facturado en {MONTH_NAMES[selectedMonth - 1]} (Siigo): <strong>{fmt(alquileresAnalysis.facturadoSiigoMes)}</strong></>
+                                    : <>Canon registrado en el CRM: <strong>{fmt(alquileresAnalysis.canonMensualTotal)} / mes</strong></>}
                             </div>
                         </div>
 
@@ -2314,17 +2323,26 @@ export default function DashboardEjecutivo({
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
                             <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '1.25rem', border: '1px solid #e2e8f0' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                                    <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>CANON MENSUAL RECURRENTE</span>
+                                    <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>
+                                        {alquileresAnalysis.haySiigoMes ? `ALQUILER FACTURADO ${MONTH_SHORT[selectedMonth - 1]} (SIIGO)` : 'CANON REGISTRADO EN EL CRM'}
+                                    </span>
                                     <div style={{ padding: '0.4rem', background: '#dcfce7', borderRadius: '8px', color: '#16a34a' }}>
                                         <DollarSign size={18} />
                                     </div>
                                 </div>
                                 <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#15803d' }}>
-                                    {fmt(alquileresAnalysis.canonMensualTotal)}
+                                    {fmt(alquileresAnalysis.haySiigoMes ? alquileresAnalysis.facturadoSiigoMes : alquileresAnalysis.canonMensualTotal)}
                                 </div>
-                                <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
-                                    Facturación mensual proyectada
+                                <span style={{ fontSize: '0.78rem', color: '#64748b', display: 'block' }}>
+                                    {alquileresAnalysis.haySiigoMes
+                                        ? <>Registrado en el CRM: {fmt(alquileresAnalysis.canonMensualTotal)}</>
+                                        : 'Sincronice Siigo para ver lo facturado'}
                                 </span>
+                                {alquileresAnalysis.facturadoSiigoMesAnterior > 0 && (
+                                    <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block' }}>
+                                        {alquileresAnalysis.mesAnteriorNombre}: {fmt(alquileresAnalysis.facturadoSiigoMesAnterior)}
+                                    </span>
+                                )}
                             </div>
 
                             <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '1.25rem', border: '1px solid #e2e8f0' }}>
@@ -2383,7 +2401,7 @@ export default function DashboardEjecutivo({
                                     Consolidado por Cliente: Cantidad de Máquinas y Valor Mensual
                                 </h3>
                                 <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>
-                                    Desglose de contratos de alquiler por empresa, volumen de equipos arrendados y valor mensual facturado.
+                                    Lo facturado en Siigo en {MONTH_NAMES[selectedMonth - 1]} (ítems "alquiler" y "servicio de alquiler") frente a los equipos y el canon registrados en el CRM.
                                 </p>
                             </div>
                             <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
@@ -2398,16 +2416,18 @@ export default function DashboardEjecutivo({
                                         <th style={{ padding: '0.75rem 1rem', width: '50px' }}>#</th>
                                         <th style={{ padding: '0.75rem 1rem' }}>Cliente / Razón Social</th>
                                         <th style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>Cantidad de Equipos</th>
-                                        <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Valor Mensual (Canon)</th>
-                                        <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Promedio / Equipo</th>
+                                        <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Facturado {MONTH_SHORT[selectedMonth - 1]} (Siigo)</th>
+                                        <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Registrado en CRM</th>
                                         <th style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>Participación %</th>
                                         <th style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>Detalle</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {alquileresAnalysis.clientesList.map((cli, idx) => {
-                                        const pct = alquileresAnalysis.canonMensualTotal > 0 ? (cli.valorMensualTotal / alquileresAnalysis.canonMensualTotal) * 100 : 0;
-                                        const prom = cli.cantidad > 0 ? cli.valorMensualTotal / cli.cantidad : 0;
+                                        const conSiigo = alquileresAnalysis.haySiigoMes;
+                                        const base = conSiigo ? alquileresAnalysis.facturadoSiigoMes : alquileresAnalysis.canonMensualTotal;
+                                        const pct = base > 0 ? ((conSiigo ? cli.facturadoSiigo : cli.valorMensualTotal) / base) * 100 : 0;
+                                        const diferencia = cli.facturadoSiigo - cli.valorMensualTotal;
                                         return (
                                             <tr key={cli.clienteId || idx} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.15s' }}>
                                                 <td style={{ padding: '0.85rem 1rem', fontWeight: 800, color: idx < 3 ? '#0284c7' : '#94a3b8' }}>
@@ -2448,10 +2468,15 @@ export default function DashboardEjecutivo({
                                                     </span>
                                                 </td>
                                                 <td style={{ padding: '0.85rem 1rem', textAlign: 'right', fontWeight: 800, color: '#16a34a', fontSize: '0.95rem' }}>
-                                                    {fmt(cli.valorMensualTotal)}
+                                                    {conSiigo ? fmt(cli.facturadoSiigo) : '—'}
                                                 </td>
                                                 <td style={{ padding: '0.85rem 1rem', textAlign: 'right', color: '#475569', fontWeight: 600 }}>
-                                                    {fmt(prom)}
+                                                    {cli.cantidad > 0 ? fmt(cli.valorMensualTotal) : <span style={{ color: '#b45309' }}>Sin equipos en el CRM</span>}
+                                                    {conSiigo && cli.cantidad > 0 && Math.abs(diferencia) >= 1000 && (
+                                                        <div style={{ fontSize: '0.72rem', fontWeight: 600, color: diferencia > 0 ? '#b45309' : '#dc2626' }}>
+                                                            {diferencia > 0 ? `Faltan ${fmt(diferencia)} en el CRM` : `${fmt(-diferencia)} sin facturar`}
+                                                        </div>
+                                                    )}
                                                 </td>
                                                 <td style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>
                                                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
@@ -2497,10 +2522,10 @@ export default function DashboardEjecutivo({
                                             {alquileresAnalysis.totalAlquilados} Equipos
                                         </td>
                                         <td style={{ padding: '0.9rem 1rem', textAlign: 'right', color: '#16a34a', fontSize: '1.05rem' }}>
-                                            {fmt(alquileresAnalysis.canonMensualTotal)}
+                                            {alquileresAnalysis.haySiigoMes ? fmt(alquileresAnalysis.facturadoSiigoMes) : '—'}
                                         </td>
                                         <td style={{ padding: '0.9rem 1rem', textAlign: 'right', color: '#475569' }}>
-                                            {fmt(alquileresAnalysis.totalAlquilados > 0 ? alquileresAnalysis.canonMensualTotal / alquileresAnalysis.totalAlquilados : 0)}
+                                            {fmt(alquileresAnalysis.canonMensualTotal)}
                                         </td>
                                         <td style={{ padding: '0.9rem 1rem', textAlign: 'center', color: '#0f172a' }}>100.0%</td>
                                         <td style={{ padding: '0.9rem 1rem', textAlign: 'center' }}>—</td>
@@ -2729,19 +2754,21 @@ export default function DashboardEjecutivo({
                                             <p style={{ margin: 0, fontSize: '0.8rem', color: '#14532d', lineHeight: 1.45 }}>
                                                 <strong>Validación en Factura Electrónica:</strong> Para <strong>ATCG DE COLOMBIA S.A.S.</strong>, el ítem registrado en la factura de Siigo Nube bajo el concepto <strong>"Combo"</strong> corresponde a la modalidad de <strong>Alquiler / Arrendamiento de Equipos</strong>. El sistema clasifica este rubro dentro de Servicios de Alquiler para garantizar que la facturación contable coincida con el canon real del parque computacional y no se desvíe erróneamente a venta de hardware.
                                             </p>
-                                            {selectedClientForModal.comboItems && selectedClientForModal.comboItems.length > 0 && (
-                                                <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px dashed #86efac' }}>
-                                                    <div style={{ fontWeight: 700, fontSize: '0.78rem', color: '#166534', marginBottom: '0.3rem' }}>
-                                                        🧾 Ítems de Factura Siigo Vinculados:
-                                                    </div>
-                                                    {selectedClientForModal.comboItems.map((ci: any, idx: number) => (
-                                                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', color: '#14532d', padding: '2px 0' }}>
-                                                            <span>{ci.facturaNumero} ({ci.fecha}): {ci.descripcion} · Cant: {ci.cantidad}</span>
-                                                            <strong>{fmt(ci.total)}</strong>
-                                                        </div>
-                                                    ))}
+                                        </div>
+                                    )}
+
+                                    {selectedClientForModal.siigoItems && selectedClientForModal.siigoItems.length > 0 && (
+                                        <div style={{ margin: '0 0 1.25rem 0', padding: '1rem', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: '0.8rem', color: '#0f172a', marginBottom: '0.4rem' }}>
+                                                <span>🧾 Facturado en Siigo · {MONTH_NAMES[selectedMonth - 1]} {selectedYear}</span>
+                                                <span style={{ color: '#16a34a' }}>{fmt(selectedClientForModal.facturadoSiigo)}</span>
+                                            </div>
+                                            {selectedClientForModal.siigoItems.map((ci: LineaAlquilerSiigo, idx: number) => (
+                                                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem', fontSize: '0.76rem', color: '#334155', padding: '2px 0' }}>
+                                                    <span>{ci.facturaNumero} ({ci.fecha}) · {ci.codigo}: {ci.descripcion} · Cant: {ci.cantidad}{ci.esCombo ? ' · combo' : ''}</span>
+                                                    <strong style={{ whiteSpace: 'nowrap' }}>{fmt(ci.total)}</strong>
                                                 </div>
-                                            )}
+                                            ))}
                                         </div>
                                     )}
 
