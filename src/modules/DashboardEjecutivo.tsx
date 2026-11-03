@@ -97,6 +97,10 @@ type SiigoMes = { ventasNetas: number; facturasCount: number; porAsesor: Record<
 
 const leerGuardado = (k: string, def: any) => { try { const s = localStorage.getItem(k); return s ? JSON.parse(s) : def; } catch { return def; } };
 
+// Siigo manda el descuento del ítem como objeto { percentage, value }; value es el monto
+const descuentoItem = (it: any) =>
+    typeof it.discount === 'object' && it.discount !== null ? Number(it.discount.value) || 0 : Number(it.discount) || 0;
+
 // Venta neta SIN IVA de una factura o nota crédito (por ítems o subtotal oficial)
 const valorNetoSiigo = (doc: any) => {
     let val = 0;
@@ -104,7 +108,7 @@ const valorNetoSiigo = (doc: any) => {
         val = doc.items.reduce((sum: number, it: any) => {
             const qty = Number(it.quantity) || 1;
             const price = Number(it.price) || 0;
-            const discount = Number(it.discount) || 0;
+            const discount = descuentoItem(it);
             return sum + (qty * price - discount);
         }, 0);
     }
@@ -554,7 +558,7 @@ export default function DashboardEjecutivo({
                             inv.items.forEach((it: any) => {
                                 const qty = Number(it.quantity) || 1;
                                 const price = Number(it.price) || 0;
-                                const disc = Number(it.discount) || 0;
+                                const disc = descuentoItem(it);
                                 const monto = qty * price - disc;
                                 const itDesc = String(it.description || it.name || it.code || '').toLowerCase();
 
@@ -1054,6 +1058,21 @@ export default function DashboardEjecutivo({
             let allCreditNotes: any[] = [];
             const currentM = 12; // Consultar los 12 meses del año
 
+            // Siigo limita las consultas por minuto (HTTP 429): reintentar con espera y contar lo que falle
+            let consultasFallidas = 0;
+            const traer = async (url: string) => {
+                for (let intento = 1; intento <= 4; intento++) {
+                    try {
+                        const r = await fetch(url, { headers: { ...baseHeaders, 'x-siigo-token': access_token } });
+                        if (r.ok) return r;
+                        if (r.status !== 429 && r.status < 500) break;
+                    } catch {}
+                    await new Promise(res => setTimeout(res, 4000 * intento));
+                }
+                consultasFallidas++;
+                return null;
+            };
+
             for (let m = 1; m <= currentM; m++) {
                 const lastDay = new Date(anio, m, 0).getDate();
                 const mStr = String(m).padStart(2, '0');
@@ -1068,10 +1087,8 @@ export default function DashboardEjecutivo({
                 while (hasMore && page <= 5) {
                     const url = `${EDGE_FUNCTION_URL}?action=invoices&date_start=${startStr}&date_end=${endStr}&page=${page}&page_size=100`;
                     try {
-                        const r = await fetch(url, {
-                            headers: { ...baseHeaders, 'x-siigo-token': access_token }
-                        });
-                        if (!r.ok) { hasMore = false; break; }
+                        const r = await traer(url);
+                        if (!r) { hasMore = false; break; }
                         const j = await r.json();
                         const items = j.results || j.data || (Array.isArray(j) ? j : []);
                         if (!items || items.length === 0) { hasMore = false; break; }
@@ -1097,10 +1114,8 @@ export default function DashboardEjecutivo({
                     while (hasMore && page <= 5) {
                         const url = `${EDGE_FUNCTION_URL}?action=invoices&created_start=${startStr}&created_end=${endStr}&page=${page}&page_size=100`;
                         try {
-                            const r = await fetch(url, {
-                                headers: { ...baseHeaders, 'x-siigo-token': access_token }
-                            });
-                            if (!r.ok) { hasMore = false; break; }
+                            const r = await traer(url);
+                            if (!r) { hasMore = false; break; }
                             const j = await r.json();
                             const items = j.results || j.data || (Array.isArray(j) ? j : []);
                             if (!items || items.length === 0) { hasMore = false; break; }
@@ -1122,10 +1137,8 @@ export default function DashboardEjecutivo({
                 // 3) Descargar Notas Crédito de este mes para restar devoluciones/anulaciones
                 try {
                     const cnUrl = `${EDGE_FUNCTION_URL}?action=credit-notes&date_start=${startStr}&date_end=${endStr}&page=1&page_size=100`;
-                    const rCn = await fetch(cnUrl, {
-                        headers: { ...baseHeaders, 'x-siigo-token': access_token }
-                    });
-                    if (rCn.ok) {
+                    const rCn = await traer(cnUrl);
+                    if (rCn) {
                         const jCn = await rCn.json();
                         const cnItems = jCn.results || jCn.data || (Array.isArray(jCn) ? jCn : []);
                         cnItems.forEach((cn: any) => {
@@ -1151,6 +1164,7 @@ export default function DashboardEjecutivo({
                     localStorage.setItem(`siigo_credit_notes_${anio}`, JSON.stringify(allCreditNotes));
                 } catch { guardado = false; }
                 setSyncLog(`✅ ${anio}: ${allInvoices.length} facturas y ${allCreditNotes.length} notas crédito descargadas de Siigo Nube.`
+                    + (consultasFallidas > 0 ? ` ⚠️ ${consultasFallidas} consultas fallaron: vuelva a sincronizar para completar.` : '')
                     + (guardado ? '' : ' (No caben en este navegador: se verán hasta recargar la página.)'));
             } else {
                 setSyncLog(`✅ Conexión con Siigo verificada. Si no hay facturas devueltas por la API, se muestra el consolidado oficial.`);
