@@ -1030,7 +1030,7 @@ export default function DashboardEjecutivo({
 
     // ── FUNCIÓN DE SINCRONIZACIÓN REAL CON SIIGO NUBE (POR MESES) ──
     // Las credenciales de Siigo están en el servidor (secretos de siigo-proxy)
-    const ejecutarSincronizacionSiigo = async (anio: number = anio) => {
+    const ejecutarSincronizacionSiigo = async (anio: number = selectedYear) => {
 
         setLoadingSiigo(true);
         setSyncLog('⏳ Autenticando con Siigo Nube...');
