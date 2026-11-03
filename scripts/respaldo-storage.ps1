@@ -36,6 +36,7 @@ foreach ($b in $buckets) {
     Write-Host "Bucket $($b.id): $($archivos.Count) archivos"
     foreach ($a in $archivos) {
         $local = Join-Path $Destino (Join-Path $b.id ($a -replace '/', '\'))
+        if (Test-Path $local) { continue }   # ya descargado en un respaldo anterior: solo se bajan los nuevos
         New-Item -ItemType Directory -Force -Path (Split-Path $local) | Out-Null
         $rutaUrl = ($a -split '/' | ForEach-Object { [Uri]::EscapeDataString($_) }) -join '/'
         try {
@@ -49,4 +50,5 @@ foreach ($b in $buckets) {
 }
 
 $mb = [math]::Round(((Get-ChildItem $Destino -Recurse -File | Measure-Object Length -Sum).Sum) / 1MB, 1)
-Write-Host "Listo: $total archivos descargados ($mb MB) en $Destino. Fallos: $fallos"
+$enCarpeta = (Get-ChildItem $Destino -Recurse -File).Count
+Write-Host "Listo: $total archivos nuevos descargados. En la carpeta hay $enCarpeta archivos ($mb MB). Fallos: $fallos"

@@ -11,6 +11,14 @@
 		header Access-Control-Max-Age "86400"
 		respond 204
 	}
+	# Como Supabase en la nube: quien manda solo la llave en "apikey" (n8n, scripts) se atiende con
+	# esa llave. PostgREST y storage solo leen Authorization.
+	@soloApikey {
+		not header Authorization *
+		header apikey *
+	}
+	request_header @soloApikey Authorization "Bearer {http.request.header.apikey}"
+
 	# Solo si el servicio no lo puso ya (dos valores harían fallar al navegador)
 	header ?Access-Control-Allow-Origin "*"
 	header ?Access-Control-Expose-Headers "Content-Range, Content-Location, X-Total-Count, Location"
