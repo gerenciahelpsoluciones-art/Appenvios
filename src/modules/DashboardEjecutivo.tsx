@@ -93,6 +93,77 @@ const TRM_USD_COP = 4150;
 // Siigo no trae el costo de cada venta: la utilidad de los datos de Siigo es una estimación
 const MARGEN_ESTIMADO_SIIGO = 0.312;
 
+type SiigoMes = { ventasNetas: number; facturasCount: number; porAsesor: Record<string, number>; facturasPorAsesor: Record<string, number> };
+
+const leerGuardado = (k: string, def: any) => { try { const s = localStorage.getItem(k); return s ? JSON.parse(s) : def; } catch { return def; } };
+
+// Venta neta SIN IVA de una factura o nota crédito (por ítems o subtotal oficial)
+const valorNetoSiigo = (doc: any) => {
+    let val = 0;
+    if (Array.isArray(doc.items) && doc.items.length > 0) {
+        val = doc.items.reduce((sum: number, it: any) => {
+            const qty = Number(it.quantity) || 1;
+            const price = Number(it.price) || 0;
+            const discount = Number(it.discount) || 0;
+            return sum + (qty * price - discount);
+        }, 0);
+    }
+    if (val <= 0) {
+        const rawSubtotal = Number(doc.subtotal || 0);
+        const rawTotal = Number(doc.total || doc.balance || 0);
+        val = rawSubtotal > 0 ? rawSubtotal : (rawTotal > 0 ? Math.round(rawTotal / 1.19) : 0);
+    }
+    return val;
+};
+
+// ── FACTURAS SIIGO POR MES (DEDUPLICADO, SIN ANULADAS Y MENOS NOTAS CRÉDITO) ──
+const agruparSiigoPorMes = (invoices: any[], creditNotes: any[], year: number) => {
+    const map: Record<number, SiigoMes> = {};
+    for (let m = 1; m <= 12; m++) {
+        map[m] = { ventasNetas: 0, facturasCount: 0, porAsesor: {}, facturasPorAsesor: {} };
+    }
+    const mesDe = (doc: any) => {
+        if (!doc.date) return 0;
+        const parts = String(doc.date).split('-');
+        const m = parseInt(parts[1], 10);
+        return parts[0] === String(year) && m >= 1 && m <= 12 ? m : 0;
+    };
+
+    const seenIds = new Set<string>();
+    (invoices || []).forEach(inv => {
+        const id = String(inv.id || inv.number || inv.name || '');
+        if (!id || seenIds.has(id)) return;
+        seenIds.add(id);
+
+        // Excluir facturas anuladas o canceladas
+        const st = String(inv.status || '').toLowerCase();
+        if (st === 'canceled' || st === 'annulled' || inv.active === false || inv.annulled === true) return;
+
+        const m = mesDe(inv);
+        if (!m) return;
+        const val = valorNetoSiigo(inv);
+        map[m].ventasNetas += val;
+        map[m].facturasCount += 1;
+
+        const ccId = String(typeof inv.cost_center === 'object' ? (inv.cost_center?.id || '') : (inv.cost_center || ''));
+        const asesor = DEFAULT_CC_MAP[ccId] || inv.seller?.name || 'Sin asignar';
+        map[m].porAsesor[asesor] = (map[m].porAsesor[asesor] || 0) + val;
+        map[m].facturasPorAsesor[asesor] = (map[m].facturasPorAsesor[asesor] || 0) + 1;
+    });
+
+    // Descontar Notas Crédito del mes (Devoluciones y anulaciones)
+    const seenCnIds = new Set<string>();
+    (creditNotes || []).forEach(cn => {
+        const id = String(cn.id || cn.number || cn.name || '');
+        if (!id || seenCnIds.has(id)) return;
+        seenCnIds.add(id);
+        const m = mesDe(cn);
+        if (!m) return;
+        map[m].ventasNetas = Math.max(0, map[m].ventasNetas - valorNetoSiigo(cn));
+    });
+    return map;
+};
+
 // ── CIFRAS CONTABLES CARGADAS A MANO (solo ago–oct 2026; ene–jul eran inventadas y se quitaron) ──
 // Se usan solo si no hay facturas descargadas de Siigo para ese mes.
 const SIIGO_FACTURACION_REAL_2026: Record<number, {
@@ -230,11 +301,18 @@ export default function DashboardEjecutivo({
             return saved ? JSON.parse(saved) : {};
         } catch { return {}; }
     });
+    // Datos del año anterior, para el comparativo (se descargan con "Descargar año anterior")
+    const [siigoAnterior, setSiigoAnterior] = useState<{ invoices: any[]; creditNotes: any[]; manual: Record<number, { ventas: number }> }>(
+        { invoices: [], creditNotes: [], manual: {} });
     useEffect(() => {
-        const leer = (k: string, def: any) => { try { const s = localStorage.getItem(k); return s ? JSON.parse(s) : def; } catch { return def; } };
-        setSiigoInvoices(leer(`siigo_invoices_${selectedYear}`, []));
-        setSiigoCreditNotes(leer(`siigo_credit_notes_${selectedYear}`, []));
-        setManualMonthAdjust(leer(`crm_manual_months_${selectedYear}`, {}));
+        setSiigoInvoices(leerGuardado(`siigo_invoices_${selectedYear}`, []));
+        setSiigoCreditNotes(leerGuardado(`siigo_credit_notes_${selectedYear}`, []));
+        setManualMonthAdjust(leerGuardado(`crm_manual_months_${selectedYear}`, {}));
+        setSiigoAnterior({
+            invoices: leerGuardado(`siigo_invoices_${selectedYear - 1}`, []),
+            creditNotes: leerGuardado(`siigo_credit_notes_${selectedYear - 1}`, []),
+            manual: leerGuardado(`crm_manual_months_${selectedYear - 1}`, {}),
+        });
     }, [selectedYear]);
     const [editingMonth, setEditingMonth] = useState<number | null>(null);
     const [editMonthForm, setEditMonthForm] = useState<{ ventas: string; costos: string; facturas: string }>({ ventas: '', costos: '', facturas: '' });
@@ -279,90 +357,14 @@ export default function DashboardEjecutivo({
     };
 
     // ── PROCESAMIENTO DE FACTURAS SIIGO EN VIVO (DEDUPLICADO Y NETO SIN IVA) ──
-    const siigoMonthlyData = useMemo(() => {
-        const map: Record<number, { ventasNetas: number; facturasCount: number; porAsesor: Record<string, number>; facturasPorAsesor: Record<string, number> }> = {};
-        for (let m = 1; m <= 12; m++) {
-            map[m] = { ventasNetas: 0, facturasCount: 0, porAsesor: {}, facturasPorAsesor: {} };
-        }
+    const siigoMonthlyData = useMemo(
+        () => agruparSiigoPorMes(siigoInvoices, siigoCreditNotes, selectedYear),
+        [siigoInvoices, siigoCreditNotes, selectedYear]);
 
-        if (siigoInvoices && siigoInvoices.length > 0) {
-            const seenIds = new Set<string>();
-            siigoInvoices.forEach(inv => {
-                const id = String(inv.id || inv.number || inv.name || '');
-                if (!id || seenIds.has(id)) return;
-                seenIds.add(id);
-
-                // Excluir facturas anuladas o canceladas
-                const st = String(inv.status || '').toLowerCase();
-                if (st === 'canceled' || st === 'annulled' || inv.active === false || inv.annulled === true) return;
-
-                if (!inv.date) return;
-                const parts = String(inv.date).split('-');
-                if (parts[0] === String(selectedYear)) {
-                    const m = parseInt(parts[1], 10);
-                    if (m >= 1 && m <= 12) {
-                        // Venta neta contable SIN IVA (calculada por ítems o subtotal oficial)
-                        let val = 0;
-                        if (Array.isArray(inv.items) && inv.items.length > 0) {
-                            val = inv.items.reduce((sum: number, it: any) => {
-                                const qty = Number(it.quantity) || 1;
-                                const price = Number(it.price) || 0;
-                                const discount = Number(it.discount) || 0;
-                                return sum + (qty * price - discount);
-                            }, 0);
-                        }
-                        if (val <= 0) {
-                            const rawSubtotal = Number(inv.subtotal || 0);
-                            const rawTotal = Number(inv.total || inv.balance || 0);
-                            val = rawSubtotal > 0 ? rawSubtotal : (rawTotal > 0 ? Math.round(rawTotal / 1.19) : 0);
-                        }
-
-                        map[m].ventasNetas += val;
-                        map[m].facturasCount += 1;
-
-                        const ccId = String(typeof inv.cost_center === 'object' ? (inv.cost_center?.id || '') : (inv.cost_center || ''));
-                        const asesor = DEFAULT_CC_MAP[ccId] || inv.seller?.name || 'Sin asignar';
-                        map[m].porAsesor[asesor] = (map[m].porAsesor[asesor] || 0) + val;
-                        map[m].facturasPorAsesor[asesor] = (map[m].facturasPorAsesor[asesor] || 0) + 1;
-                    }
-                }
-            });
-        }
-
-        // Descontar Notas Crédito del mes (Devoluciones y anulaciones)
-        if (siigoCreditNotes && siigoCreditNotes.length > 0) {
-            const seenCnIds = new Set<string>();
-            siigoCreditNotes.forEach(cn => {
-                const id = String(cn.id || cn.number || cn.name || '');
-                if (!id || seenCnIds.has(id)) return;
-                seenCnIds.add(id);
-
-                if (!cn.date) return;
-                const parts = String(cn.date).split('-');
-                if (parts[0] === String(selectedYear)) {
-                    const m = parseInt(parts[1], 10);
-                    if (m >= 1 && m <= 12) {
-                        let cnVal = 0;
-                        if (Array.isArray(cn.items) && cn.items.length > 0) {
-                            cnVal = cn.items.reduce((sum: number, it: any) => {
-                                const qty = Number(it.quantity) || 1;
-                                const price = Number(it.price) || 0;
-                                const discount = Number(it.discount) || 0;
-                                return sum + (qty * price - discount);
-                            }, 0);
-                        }
-                        if (cnVal <= 0) {
-                            const rawSubtotal = Number(cn.subtotal || 0);
-                            const rawTotal = Number(cn.total || cn.balance || 0);
-                            cnVal = rawSubtotal > 0 ? rawSubtotal : (rawTotal > 0 ? Math.round(rawTotal / 1.19) : 0);
-                        }
-                        map[m].ventasNetas = Math.max(0, map[m].ventasNetas - cnVal);
-                    }
-                }
-            });
-        }
-        return map;
-    }, [siigoInvoices, siigoCreditNotes, selectedYear]);
+    // Mismo cálculo para el año anterior (comparativo)
+    const siigoMonthlyAnterior = useMemo(
+        () => agruparSiigoPorMes(siigoAnterior.invoices, siigoAnterior.creditNotes, selectedYear - 1),
+        [siigoAnterior, selectedYear]);
 
     // ── CÁLCULO DE COTIZACIONES VISIBLES (SEGÚN ROL) ──
     const cotizacionesVisibles = useMemo(() => {
@@ -476,8 +478,20 @@ export default function DashboardEjecutivo({
             }
 
             const margen = totalVentas > 0 ? (totalUtil / totalVentas) * 100 : 0;
-            // No hay datos reales de 2025 cargados (antes se mostraba 90 % de 2026)
-            const ventas2025 = 0;
+
+            // Mismo mes del año anterior, de la misma fuente (0 si no hay datos descargados)
+            let ventasAnterior = 0;
+            if (dataSource === 'crm') {
+                const prefixAnt = `${selectedYear - 1}-${String(m).padStart(2, '0')}`;
+                ventasAnterior = cotizacionesVisibles
+                    .filter(c => c.estado === 'Ganado' && c.fecha && c.fecha.startsWith(prefixAnt))
+                    .reduce((acc, c) => acc + (Number(c.total) || 0), 0);
+            } else if (siigoAnterior.manual[m] && !vistaAsesor) {
+                ventasAnterior = siigoAnterior.manual[m].ventas;
+            } else {
+                const ant = siigoMonthlyAnterior[m];
+                ventasAnterior = vistaAsesor ? (ant.porAsesor[vistaAsesor] || 0) : ant.ventasNetas;
+            }
 
             meses.push({
                 mesNum: m,
@@ -489,7 +503,7 @@ export default function DashboardEjecutivo({
                 margen,
                 cotizado: totalCots,
                 cierresCount,
-                ventas2025,
+                ventasAnterior,
                 ventasSiigo,
                 ventasCrm: crmVentas,
                 brechaCrmSiigo: crmVentas - ventasSiigo,
@@ -497,7 +511,7 @@ export default function DashboardEjecutivo({
             });
         }
         return meses;
-    }, [cotizacionesVisibles, selectedYear, siigoMonthlyData, manualMonthAdjust, isAdmin, selectedVendedor, dataSource]);
+    }, [cotizacionesVisibles, selectedYear, siigoMonthlyData, siigoMonthlyAnterior, siigoAnterior, manualMonthAdjust, isAdmin, selectedVendedor, dataSource]);
 
     // Totales Anuales
     const totalVentasAnual = useMemo(() => matrizAnual.reduce((acc, m) => acc + m.ventas, 0), [matrizAnual]);
@@ -505,9 +519,10 @@ export default function DashboardEjecutivo({
     const totalUtilidadAnual = useMemo(() => matrizAnual.reduce((acc, m) => acc + m.utilidad, 0), [matrizAnual]);
     const totalCierresAnual = useMemo(() => matrizAnual.reduce((acc, m) => acc + m.cierresCount, 0), [matrizAnual]);
     const totalCotizadoAnual = useMemo(() => matrizAnual.reduce((acc, m) => acc + m.cotizado, 0), [matrizAnual]);
-    const totalVentas2025Anual = useMemo(() => matrizAnual.reduce((acc, m) => acc + m.ventas2025, 0), [matrizAnual]);
-    const margenAnualPromedio = totalVentasAnual > 0 ? (totalUtilidadAnual / totalVentasAnual) * 100 : 0;
-    const variacionVs2025 = totalVentas2025Anual > 0 ? ((totalVentasAnual - totalVentas2025Anual) / totalVentas2025Anual) * 100 : null;
+    // "Mismo corte": enero hasta el mes elegido, en ambos años
+    const ventasCorte = useMemo(() => matrizAnual.filter(m => m.mesNum <= selectedMonth).reduce((acc, m) => acc + m.ventas, 0), [matrizAnual, selectedMonth]);
+    const ventasCorteAnterior = useMemo(() => matrizAnual.filter(m => m.mesNum <= selectedMonth).reduce((acc, m) => acc + m.ventasAnterior, 0), [matrizAnual, selectedMonth]);    const margenAnualPromedio = totalVentasAnual > 0 ? (totalUtilidadAnual / totalVentasAnual) * 100 : 0;
+    const variacionVsAnterior = ventasCorteAnterior > 0 ? ((ventasCorte - ventasCorteAnterior) / ventasCorteAnterior) * 100 : null;
 
     // Mes Seleccionado
     const selectedMonthData = useMemo(() => {
@@ -1011,7 +1026,7 @@ export default function DashboardEjecutivo({
 
     // ── FUNCIÓN DE SINCRONIZACIÓN REAL CON SIIGO NUBE (POR MESES) ──
     // Las credenciales de Siigo están en el servidor (secretos de siigo-proxy)
-    const ejecutarSincronizacionSiigo = async (_u?: string, _k?: string) => {
+    const ejecutarSincronizacionSiigo = async (anio: number = anio) => {
 
         setLoadingSiigo(true);
         setSyncLog('⏳ Autenticando con Siigo Nube...');
@@ -1034,16 +1049,16 @@ export default function DashboardEjecutivo({
 
 
             // Descargar mes a mes por fecha contable de factura (date_start / date_end)
-            setSyncLog(`⏳ Descargando facturación electrónica mensual de ${selectedYear}...`);
+            setSyncLog(`⏳ Descargando facturación electrónica mensual de ${anio}...`);
             let allInvoices: any[] = [];
             let allCreditNotes: any[] = [];
-            const currentM = 12; // Consultar los 12 meses de 2026
+            const currentM = 12; // Consultar los 12 meses del año
 
             for (let m = 1; m <= currentM; m++) {
-                const lastDay = new Date(selectedYear, m, 0).getDate();
+                const lastDay = new Date(anio, m, 0).getDate();
                 const mStr = String(m).padStart(2, '0');
-                const startStr = `${selectedYear}-${mStr}-01`;
-                const endStr = `${selectedYear}-${mStr}-${String(lastDay).padStart(2, '0')}`;
+                const startStr = `${anio}-${mStr}-01`;
+                const endStr = `${anio}-${mStr}-${String(lastDay).padStart(2, '0')}`;
 
                 let page = 1;
                 let hasMore = true;
@@ -1124,11 +1139,19 @@ export default function DashboardEjecutivo({
             }
 
             if (allInvoices.length > 0) {
-                setSiigoInvoices(allInvoices);
-                setSiigoCreditNotes(allCreditNotes);
-                localStorage.setItem(`siigo_invoices_${selectedYear}`, JSON.stringify(allInvoices));
-                localStorage.setItem(`siigo_credit_notes_${selectedYear}`, JSON.stringify(allCreditNotes));
-                setSyncLog(`✅ Sincronización exitosa: ${allInvoices.length} facturas y ${allCreditNotes.length} notas crédito descargadas de Siigo Nube.`);
+                if (anio === selectedYear) {
+                    setSiigoInvoices(allInvoices);
+                    setSiigoCreditNotes(allCreditNotes);
+                } else {
+                    setSiigoAnterior(prev => ({ ...prev, invoices: allInvoices, creditNotes: allCreditNotes }));
+                }
+                let guardado = true;
+                try {
+                    localStorage.setItem(`siigo_invoices_${anio}`, JSON.stringify(allInvoices));
+                    localStorage.setItem(`siigo_credit_notes_${anio}`, JSON.stringify(allCreditNotes));
+                } catch { guardado = false; }
+                setSyncLog(`✅ ${anio}: ${allInvoices.length} facturas y ${allCreditNotes.length} notas crédito descargadas de Siigo Nube.`
+                    + (guardado ? '' : ' (No caben en este navegador: se verán hasta recargar la página.)'));
             } else {
                 setSyncLog(`✅ Conexión con Siigo verificada. Si no hay facturas devueltas por la API, se muestra el consolidado oficial.`);
             }
@@ -1158,6 +1181,10 @@ export default function DashboardEjecutivo({
 
     const handleSyncSiigoClick = () => {
         ejecutarSincronizacionSiigo();
+    };
+
+    const handleSyncAnioAnterior = () => {
+        ejecutarSincronizacionSiigo(selectedYear - 1);
     };
 
     // Guardar ajuste manual
@@ -1605,7 +1632,7 @@ export default function DashboardEjecutivo({
                         <div style={{ background: '#ffffff', borderRadius: '14px', padding: '1.25rem', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                                 <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>
-                                    {dataSource === 'siigo' ? 'VENTAS 2026 (SIIGO)' : 'VENTAS (CRM)'}
+                                    {dataSource === 'siigo' ? `VENTAS ${selectedYear} (SIIGO)` : 'VENTAS (CRM)'}
                                 </span>
                                 <div style={{ padding: '0.4rem', background: '#eff6ff', borderRadius: '8px', color: '#0284c7' }}>
                                     <DollarSign size={18} />
@@ -1615,9 +1642,17 @@ export default function DashboardEjecutivo({
                                 {fmt(totalVentasAnual)}
                             </div>
                             <div style={{ fontSize: '0.78rem', color: '#16a34a', marginTop: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 600 }}>
-                                {variacionVs2025 === null
-                                    ? <span style={{ color: '#64748b' }}>Sin datos de 2025 para comparar</span>
-                                    : <><ArrowUpRight size={14} /> {variacionVs2025 >= 0 ? '+' : ''}{variacionVs2025.toFixed(1)}% vs mismo corte 2025</>}
+                                {variacionVsAnterior !== null
+                                    ? <span style={{ color: variacionVsAnterior >= 0 ? '#16a34a' : '#dc2626', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                        {variacionVsAnterior >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+                                        {variacionVsAnterior >= 0 ? '+' : ''}{variacionVsAnterior.toFixed(1)}% vs ene–{MONTH_SHORT[selectedMonth - 1]} {selectedYear - 1}
+                                      </span>
+                                    : dataSource === 'crm'
+                                        ? <span style={{ color: '#64748b' }}>El CRM no tiene cierres de {selectedYear - 1}</span>
+                                        : <button type="button" onClick={handleSyncAnioAnterior} disabled={loadingSiigo}
+                                            style={{ padding: 0, border: 'none', background: 'none', color: '#0284c7', fontWeight: 600, fontSize: '0.78rem', cursor: loadingSiigo ? 'wait' : 'pointer', textDecoration: 'underline' }}>
+                                            {loadingSiigo ? 'Descargando…' : `Descargar ${selectedYear - 1} de Siigo para comparar`}
+                                          </button>}
                             </div>
                         </div>
 
@@ -1690,12 +1725,12 @@ export default function DashboardEjecutivo({
                         </div>
                     </div>
 
-                    {/* COMPARATIVO MENSUAL 2026 VS 2025 (GRÁFICO DE BARRAS) */}
+                    {/* COMPARATIVO MENSUAL VS AÑO ANTERIOR (GRÁFICO DE BARRAS) */}
                     <div style={{ background: '#ffffff', borderRadius: '16px', padding: '1.5rem', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                             <div>
                                 <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: '#0f172a' }}>
-                                    Ventas por Mes: 2026 vs. 2025
+                                    Ventas por Mes: {selectedYear} vs. {selectedYear - 1}
                                 </h3>
                                 <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>
                                     {dataSource === 'siigo' ? 'Facturación Neta Real Contable Siigo Nube (sin IVA)' : 'Cotizaciones y Cierres en CRM'}
@@ -1704,11 +1739,11 @@ export default function DashboardEjecutivo({
                             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', color: '#64748b' }}>
                                     <div style={{ width: 12, height: 12, background: '#93c5fd', borderRadius: 3 }} />
-                                    2025
+                                    {selectedYear - 1}
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', color: '#64748b' }}>
                                     <div style={{ width: 12, height: 12, background: '#1e3a8a', borderRadius: 3 }} />
-                                    2026 ({dataSource === 'siigo' ? 'Siigo Nube' : 'CRM'})
+                                    {selectedYear} ({dataSource === 'siigo' ? 'Siigo Nube' : 'CRM'})
                                 </div>
                             </div>
                         </div>
@@ -1716,20 +1751,20 @@ export default function DashboardEjecutivo({
                         {/* BARRAS MENSUALES */}
                         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', height: '240px', paddingTop: '20px', gap: '0.5rem' }}>
                             {matrizAnual.map(m => {
-                                const maxV = Math.max(...matrizAnual.map(x => Math.max(x.ventas, x.ventas2025)), 1);
+                                const maxV = Math.max(...matrizAnual.map(x => Math.max(x.ventas, x.ventasAnterior)), 1);
                                 const h2026 = (m.ventas / maxV) * 190;
-                                const h2025 = (m.ventas2025 / maxV) * 190;
+                                const hAnterior = (m.ventasAnterior / maxV) * 190;
                                 const isCurrent = m.mesNum === selectedMonth;
 
                                 return (
                                     <div key={m.mesNum} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, height: '100%', justifyContent: 'flex-end' }}>
                                         <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px', height: '190px' }}>
-                                            {/* Barra 2025 */}
+                                            {/* Barra año anterior */}
                                             <div
-                                                title={`2025: ${fmt(m.ventas2025)}`}
+                                                title={`${selectedYear - 1}: ${fmt(m.ventasAnterior)}`}
                                                 style={{
                                                     width: '18px',
-                                                    height: `${Math.max(4, h2025)}px`,
+                                                    height: `${Math.max(4, hAnterior)}px`,
                                                     background: '#93c5fd',
                                                     borderRadius: '4px 4px 0 0',
                                                     transition: 'height 0.4s ease'
@@ -1737,7 +1772,7 @@ export default function DashboardEjecutivo({
                                             />
                                             {/* Barra 2026 */}
                                             <div
-                                                title={`2026: ${fmt(m.ventas)} (${m.cierresCount} facturas)`}
+                                                title={`${selectedYear}: ${fmt(m.ventas)} (${m.cierresCount} facturas)`}
                                                 style={{
                                                     width: '20px',
                                                     height: `${Math.max(4, h2026)}px`,
@@ -3022,7 +3057,7 @@ export default function DashboardEjecutivo({
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={() => ejecutarSincronizacionSiigo(siigoUsername, siigoAccessKey)}
+                                    onClick={() => ejecutarSincronizacionSiigo()}
                                     disabled={loadingSiigo}
                                     style={{ padding: '0.55rem 1.25rem', borderRadius: '8px', border: 'none', background: '#0284c7', color: '#ffffff', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}
                                 >
