@@ -1,33 +1,41 @@
-import { useState, useEffect, useRef } from 'react'
-import RecoveryAssistant from './components/RecoveryAssistant'
+import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import './index.css'
-import ClientesModule from './modules/Clientes'
-import CotizacionesModule from './modules/Cotizaciones'
-import ProveedoresModule from './modules/Proveedores'
-import ProductosModule from './modules/Productos'
-import InformesModule from './modules/Informes'
-import OrdenesCompraModule from './modules/OrdenesCompra'
-import LogisticaModule from './modules/Logistica'
-import ConductoresModule from './modules/Conductores'
-import ReparacionesModule from './modules/Reparaciones'
-import AdminModule from './modules/Admin'
 import Login from './modules/Login'
-import VendedoresModule from './modules/Vendedores'
-import AlquileresModule from './modules/Alquileres'
-import FacturacionModule from './modules/Facturacion'
-import VentasManualesModule from './modules/VentasManuales'
-import LeadsWebModule, { type ClienteWeb } from './modules/LeadsWeb'
-import RegistrosWeb, { type RegistroPendiente } from './modules/RegistrosWeb'
-import AgenteInformesModule from './modules/AgenteInformes'
-import RemisionesModule from './modules/Remisiones'
-import ComisionesModule from './modules/Comisiones'
-import CarteraModule from './modules/Cartera'
-import PropuestasModule from './modules/Propuestas'
-import DashboardEjecutivo from './modules/DashboardEjecutivo'
+import type { ClienteWeb } from './modules/LeadsWeb'
+import type { RegistroPendiente } from './modules/RegistrosWeb'
 import { supabase, USER_COLS } from './lib/supabaseClient'
-import RegistrationForm from './modules/RegistrationForm';
-import PublicPropuestaView from './components/PublicPropuestaView';
+
+
 import { logoBase64 } from './assets/logoBase64'
+
+// Cada módulo se descarga solo cuando se abre (antes todo iba en un archivo de 1,57 MB)
+const ClientesModule = lazy(() => import('./modules/Clientes'));
+const CotizacionesModule = lazy(() => import('./modules/Cotizaciones'));
+const ProveedoresModule = lazy(() => import('./modules/Proveedores'));
+const ProductosModule = lazy(() => import('./modules/Productos'));
+const InformesModule = lazy(() => import('./modules/Informes'));
+const OrdenesCompraModule = lazy(() => import('./modules/OrdenesCompra'));
+const LogisticaModule = lazy(() => import('./modules/Logistica'));
+const ConductoresModule = lazy(() => import('./modules/Conductores'));
+const ReparacionesModule = lazy(() => import('./modules/Reparaciones'));
+const AdminModule = lazy(() => import('./modules/Admin'));
+const VendedoresModule = lazy(() => import('./modules/Vendedores'));
+const AlquileresModule = lazy(() => import('./modules/Alquileres'));
+const FacturacionModule = lazy(() => import('./modules/Facturacion'));
+const VentasManualesModule = lazy(() => import('./modules/VentasManuales'));
+const AgenteInformesModule = lazy(() => import('./modules/AgenteInformes'));
+const RemisionesModule = lazy(() => import('./modules/Remisiones'));
+const ComisionesModule = lazy(() => import('./modules/Comisiones'));
+const CarteraModule = lazy(() => import('./modules/Cartera'));
+const PropuestasModule = lazy(() => import('./modules/Propuestas'));
+const DashboardEjecutivo = lazy(() => import('./modules/DashboardEjecutivo'));
+const LeadsWebModule = lazy(() => import('./modules/LeadsWeb'));
+const RegistrosWeb = lazy(() => import('./modules/RegistrosWeb'));
+const RegistrationForm = lazy(() => import('./modules/RegistrationForm'));
+const PublicPropuestaView = lazy(() => import('./components/PublicPropuestaView'));
+
+const Cargando = () => <div style={{ padding: '2rem', color: '#64748b' }}>Cargando…</div>;
+
 import AIAssistant from './components/AIAssistant'
 import {
   LayoutDashboard, Sparkles, ClipboardList, FileText, FilePenLine, Users, Package, UserCheck,
@@ -2611,7 +2619,7 @@ delete fallbackPayload.categoria;
   if (isPublicForm) {
     return (
       <div className="public-form-container" style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)' }}>
-        <RegistrationForm />
+        <Suspense fallback={<Cargando />}><RegistrationForm /></Suspense>
       </div>
     );
   }
@@ -2619,7 +2627,7 @@ delete fallbackPayload.categoria;
   // Detect Public Proposal Mode (?p=P-005 or ?propuesta=P-005)
   const publicPropuestaFolio = urlParams.get('p') || urlParams.get('propuesta');
   if (publicPropuestaFolio) {
-    return <PublicPropuestaView folio={publicPropuestaFolio} />;
+    return <Suspense fallback={<Cargando />}><PublicPropuestaView folio={publicPropuestaFolio} /></Suspense>;
   }
 
   const activeItem = menuItems.find(i => i.id === activeTab) || menuItems[0];
@@ -2726,7 +2734,7 @@ delete fallbackPayload.categoria;
           </div>
         </header>
         <div className="content-area">
-          {renderContent()}
+          <Suspense fallback={<Cargando />}>{renderContent()}</Suspense>
         </div>
         <AIAssistant />
       </main>
