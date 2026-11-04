@@ -30,6 +30,23 @@ export const normalizarNit = (nit: string | undefined | null) => {
     return s;
 };
 
+// Dígito de verificación DIAN
+const PESOS_DV = [3, 7, 13, 17, 19, 23, 29, 37, 41, 43, 47, 53, 59, 67, 71];
+export const digitoVerificacion = (nit: string) => {
+    const d = nit.split('').reverse();
+    const suma = d.reduce((acc, c, i) => acc + Number(c) * PESOS_DV[i], 0);
+    const r = suma % 11;
+    return r > 1 ? 11 - r : r;
+};
+
+// El CRM guarda algunos NIT con el DV pegado ('9004232229'); Siigo los manda sin DV ('900423222')
+export const mismoNit = (nitCrm: string | undefined | null, nitSiigo: string) => {
+    const c = normalizarNit(nitCrm);
+    if (!c || !nitSiigo) return false;
+    if (c === nitSiigo) return true;
+    return c.length === nitSiigo.length + 1 && c.startsWith(nitSiigo) && Number(c.slice(-1)) === digitoVerificacion(nitSiigo);
+};
+
 export const esLineaAlquiler = (descripcion: string, esAtcg: boolean) => {
     const d = descripcion.toLowerCase();
     return ES_ALQUILER.test(d) || (esAtcg && d.includes('combo'));

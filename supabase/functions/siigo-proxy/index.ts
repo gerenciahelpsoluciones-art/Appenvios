@@ -24,6 +24,7 @@ const endpointMap: Record<string, string> = {
     'debit-notes': '/v1/debit-notes',
     'debit-note-detail': '/v1/debit-notes',
     'products': '/v1/products',
+    'customers': '/v1/customers',
     'purchase-support-documents': '/v1/purchase-support-documents',
     'purchase-support-document-detail': '/v1/purchase-support-documents',
 };

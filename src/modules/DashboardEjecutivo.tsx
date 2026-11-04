@@ -54,7 +54,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { SIIGO_PROXY_URL, siigoHeaders } from '../lib/siigo';
-import { alquilerFacturadoSiigo, normalizarNit, NIT_ATCG, type LineaAlquilerSiigo } from '../lib/alquilerSiigo';
+import { alquilerFacturadoSiigo, mismoNit, NIT_ATCG, type LineaAlquilerSiigo } from '../lib/alquilerSiigo';
 
 interface IProps {
     cotizaciones: Cotizacion[];
@@ -275,6 +275,7 @@ export default function DashboardEjecutivo({
     const [alquilerSearch, setAlquilerSearch] = useState<string>('');
     const [alquilerFilterStatus, setAlquilerFilterStatus] = useState<'todos' | 'alquilado' | 'bodega'>('todos');
     const [selectedClientForModal, setSelectedClientForModal] = useState<any | null>(null);
+    const [nombresSiigo, setNombresSiigo] = useState<Record<string, string>>(() => leerGuardado('siigo_nombres_clientes', {}));
 
     // Sincronización Siigo
     const [loadingSiigo, setLoadingSiigo] = useState<boolean>(false);
@@ -761,15 +762,20 @@ export default function DashboardEjecutivo({
         const mesAnt = selectedMonth === 1 ? { y: selectedYear - 1, m: 12 } : { y: selectedYear, m: selectedMonth - 1 };
         const siigoMesAnterior = alquilerFacturadoSiigo(siigoInvoices, prefijoMes(mesAnt.y, mesAnt.m));
         const haySiigoMes = (siigoInvoices || []).some(inv => String(inv.date || '').startsWith(prefijoMes(selectedYear, selectedMonth)));
+        const nitsSinNombre: string[] = []; // clientes de Siigo que no están en el CRM: el nombre se pide a Siigo
 
         Object.values(siigoMes.porNit).forEach(s => {
-            let key = Object.keys(clientMap).find(k => s.nit && normalizarNit(clientMap[k].nit) === s.nit);
+            let key = Object.keys(clientMap).find(k => mismoNit(clientMap[k].nit, s.nit));
             if (!key) {
-                const cli = (clientes || []).find(c => s.nit && normalizarNit(c.nit) === s.nit);
+                const cli = (clientes || []).find(c => mismoNit(c.nit, s.nit));
                 key = cli?.id || `siigo-${s.nit}`;
+            }
+            if (!clientMap[key]) {
+                const cli = (clientes || []).find(c => mismoNit(c.nit, s.nit));
+                if (!cli && s.nit && !nombresSiigo[s.nit]) nitsSinNombre.push(s.nit);
                 clientMap[key] = {
                     clienteId: cli?.id || '',
-                    clienteNombre: cli?.nombre || s.nombre || `NIT ${s.nit}`,
+                    clienteNombre: cli?.nombre || nombresSiigo[s.nit] || s.nombre || `NIT ${s.nit}`,
                     nit: cli?.nit || s.nit || '—',
                     contacto: cli?.contacto || '',
                     cantidad: 0,
@@ -820,9 +826,36 @@ export default function DashboardEjecutivo({
             haySiigoMes,
             facturadoSiigoMes: siigoMes.total,
             facturadoSiigoMesAnterior: siigoMesAnterior.total,
-            mesAnteriorNombre: MONTH_NAMES[mesAnt.m - 1]
+            mesAnteriorNombre: MONTH_NAMES[mesAnt.m - 1],
+            nitsSinNombre
         };
-    }, [alquileres, clientes, alquilerSearch, alquilerFilterStatus, siigoInvoices, selectedYear, selectedMonth]);
+    }, [alquileres, clientes, alquilerSearch, alquilerFilterStatus, siigoInvoices, selectedYear, selectedMonth, nombresSiigo]);
+
+    // Nombre en Siigo de los clientes que facturan alquiler pero no existen en el CRM (se guarda en el navegador)
+    const nitsSinNombreClave = alquileresAnalysis.nitsSinNombre.join(',');
+    useEffect(() => {
+        if (!nitsSinNombreClave) return;
+        let cancelado = false;
+        (async () => {
+            const nuevos: Record<string, string> = {};
+            for (const nit of nitsSinNombreClave.split(',')) {
+                try {
+                    const r = await fetch(`${EDGE_FUNCTION_URL}?action=customers&identification=${encodeURIComponent(nit)}`, { headers: siigoHeaders() });
+                    if (!r.ok) continue;
+                    const c = (await r.json())?.results?.[0];
+                    const nombre = Array.isArray(c?.name) ? c.name.filter(Boolean).join(' ') : String(c?.name || '');
+                    if (nombre.trim()) nuevos[nit] = nombre.trim();
+                } catch {}
+            }
+            if (cancelado || Object.keys(nuevos).length === 0) return;
+            setNombresSiigo(prev => {
+                const todos = { ...prev, ...nuevos };
+                try { localStorage.setItem('siigo_nombres_clientes', JSON.stringify(todos)); } catch {}
+                return todos;
+            });
+        })();
+        return () => { cancelado = true; };
+    }, [nitsSinNombreClave]);
 
     // ── TOP PRODUCTOS Y SOLUCIONES MÁS VENDIDOS ──
     const topProductosData = useMemo(() => {
